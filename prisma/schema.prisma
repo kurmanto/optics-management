@@ -15,18 +15,20 @@ datasource db {
 // ─────────────────────────────────────────
 
 model User {
-  id           String   @id @default(cuid())
-  email        String   @unique
-  name         String
-  passwordHash String
-  role         UserRole @default(STAFF)
-  isActive     Boolean  @default(true)
-  mustChangePassword Boolean @default(false)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id                 String   @id @default(cuid())
+  email              String   @unique
+  name               String
+  passwordHash       String
+  role               UserRole @default(STAFF)
+  isActive           Boolean  @default(true)
+  mustChangePassword Boolean  @default(false)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
 
-  orders    Order[]
-  auditLogs AuditLog[]
+  orders          Order[]
+  auditLogs       AuditLog[]
+  formSubmissions FormSubmission[]
+  formPackages    FormPackage[]
 
   @@map("users")
 }
@@ -53,8 +55,8 @@ model Family {
 }
 
 model Customer {
-  id               String   @id @default(cuid())
-  legacyCustomerId String?  @unique // e.g. "6476485809-A"
+  id               String    @id @default(cuid())
+  legacyCustomerId String?   @unique // e.g. "6476485809-A"
   firstName        String
   lastName         String
   email            String?
@@ -66,26 +68,29 @@ model Customer {
   province         String?
   postalCode       String?
   notes            String?
-  tags             String[] @default([]) // ["VIP", "Insurance Gaming"]
-  isActive         Boolean  @default(true)
-  smsOptIn         Boolean  @default(true)
-  emailOptIn       Boolean  @default(true)
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
+  tags             String[]  @default([]) // ["VIP", "Insurance Gaming"]
+  isActive         Boolean   @default(true)
+  isOnboarded      Boolean   @default(false)
+  smsOptIn         Boolean   @default(true)
+  emailOptIn       Boolean   @default(true)
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
 
   familyId String?
   family   Family? @relation(fields: [familyId], references: [id])
 
-  prescriptions     Prescription[]
-  orders            Order[]
-  insurancePolicies InsurancePolicy[]
-  exams             Exam[]
-  walkins           Walkin[]
+  prescriptions       Prescription[]
+  orders              Order[]
+  insurancePolicies   InsurancePolicy[]
+  exams               Exam[]
+  walkins             Walkin[]
   campaignEnrollments CampaignRecipient[]
-  messages          Message[]
-  referralsGiven    Referral[] @relation("referrer")
-  referralsReceived Referral[] @relation("referred")
-  appointments      Appointment[]
+  messages            Message[]
+  referralsGiven      Referral[]          @relation("referrer")
+  referralsReceived   Referral[]          @relation("referred")
+  appointments        Appointment[]
+  formSubmissions     FormSubmission[]
+  formPackages        FormPackage[]
 
   @@index([lastName, firstName])
   @@index([phone])
@@ -105,7 +110,7 @@ enum Gender {
 // ─────────────────────────────────────────
 
 model Prescription {
-  id         String   @id @default(cuid())
+  id         String           @id @default(cuid())
   customerId String
   examId     String?
   type       PrescriptionType @default(GLASSES)
@@ -132,11 +137,11 @@ model Prescription {
   // Combined PD
   pdBinocular Float?
 
-  doctorName  String?
-  notes       String?
-  isActive    Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  doctorName String?
+  notes      String?
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 
   customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
   exam     Exam?    @relation(fields: [examId], references: [id])
@@ -156,29 +161,29 @@ enum PrescriptionType {
 // ─────────────────────────────────────────
 
 model InventoryItem {
-  id              String   @id @default(cuid())
-  legacyItemId    String?  @unique
-  brand           String
-  model           String
-  sku             String?  @unique
-  category        FrameCategory
-  gender          FrameGender
-  color           String?
-  material        String?
-  size            String?  // e.g. "54-18-145"
-  eyeSize         Int?
-  bridgeSize      Int?
-  templeLength    Int?
-  rimType         RimType?
-  wholesaleCost   Float?
-  retailPrice     Float?
-  stockQuantity   Int      @default(0)
-  reorderPoint    Int      @default(2)
-  isActive        Boolean  @default(true)
-  notes           String?
-  imageUrl        String?
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  id            String        @id @default(cuid())
+  legacyItemId  String?       @unique
+  brand         String
+  model         String
+  sku           String?       @unique
+  category      FrameCategory
+  gender        FrameGender
+  color         String?
+  material      String?
+  size          String? // e.g. "54-18-145"
+  eyeSize       Int?
+  bridgeSize    Int?
+  templeLength  Int?
+  rimType       RimType?
+  wholesaleCost Float?
+  retailPrice   Float?
+  stockQuantity Int           @default(0)
+  reorderPoint  Int           @default(2)
+  isActive      Boolean       @default(true)
+  notes         String?
+  imageUrl      String?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
 
   orderLineItems OrderLineItem[]
 
@@ -213,61 +218,61 @@ enum RimType {
 // ─────────────────────────────────────────
 
 model Order {
-  id              String      @id @default(cuid())
-  orderNumber     String      @unique // e.g. "ORD-2025-001"
-  customerId      String
-  userId          String      // staff who created it
-  prescriptionId  String?
-  status          OrderStatus @default(DRAFT)
-  type            OrderType   @default(GLASSES)
-  orderTypes      String[]    @default([]) @map("order_types")
+  id             String      @id @default(cuid())
+  orderNumber    String      @unique // e.g. "ORD-2025-001"
+  customerId     String
+  userId         String // staff who created it
+  prescriptionId String?
+  status         OrderStatus @default(DRAFT)
+  type           OrderType   @default(GLASSES)
+  orderTypes     String[]    @default([]) @map("order_types")
 
   // Customer-facing amounts
-  totalCustomer   Float       @default(0)
-  depositCustomer Float       @default(0)
-  balanceCustomer Float       @default(0)
+  totalCustomer   Float @default(0)
+  depositCustomer Float @default(0)
+  balanceCustomer Float @default(0)
 
   // Real/internal amounts (for reporting)
-  totalReal       Float       @default(0)
-  depositReal     Float       @default(0)
-  balanceReal     Float       @default(0)
+  totalReal   Float @default(0)
+  depositReal Float @default(0)
+  balanceReal Float @default(0)
 
-  isDualInvoice   Boolean     @default(false)
+  isDualInvoice Boolean @default(false)
 
   insurancePolicyId String?
 
   // Frame details (denormalized at time of sale)
-  frameBrand      String?
-  frameModel      String?
-  frameColor      String?
-  frameSku        String?
-  frameWholesale  Float?
+  frameBrand     String?
+  frameModel     String?
+  frameColor     String?
+  frameSku       String?
+  frameWholesale Float?
 
   // Lens details
-  lensType        String?
-  lensCoating     String?
-  lensSku         String?
+  lensType    String?
+  lensCoating String?
+  lensSku     String?
 
-  notes           String?     // internal notes
-  labNotes        String?     // notes sent to lab
-  labOrderedAt    DateTime?
-  labReceivedAt   DateTime?
-  readyAt         DateTime?
-  pickedUpAt      DateTime?
-  dueDate         DateTime?
+  notes         String? // internal notes
+  labNotes      String? // notes sent to lab
+  labOrderedAt  DateTime?
+  labReceivedAt DateTime?
+  readyAt       DateTime?
+  pickedUpAt    DateTime?
+  dueDate       DateTime?
 
-  createdAt       DateTime    @default(now())
-  updatedAt       DateTime    @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  customer        Customer        @relation(fields: [customerId], references: [id])
-  user            User            @relation(fields: [userId], references: [id])
-  prescription    Prescription?   @relation(fields: [prescriptionId], references: [id])
+  customer        Customer         @relation(fields: [customerId], references: [id])
+  user            User             @relation(fields: [userId], references: [id])
+  prescription    Prescription?    @relation(fields: [prescriptionId], references: [id])
   insurancePolicy InsurancePolicy? @relation(fields: [insurancePolicyId], references: [id])
 
-  lineItems       OrderLineItem[]
-  statusHistory   OrderStatusHistory[]
-  payments        Payment[]
-  invoices        Invoice[]
+  lineItems     OrderLineItem[]
+  statusHistory OrderStatusHistory[]
+  payments      Payment[]
+  invoices      Invoice[]
 
   @@index([customerId])
   @@index([status])
@@ -294,18 +299,18 @@ enum OrderType {
 }
 
 model OrderLineItem {
-  id              String       @id @default(cuid())
-  orderId         String
-  inventoryItemId String?
-  type            LineItemType
-  description     String
-  quantity        Int          @default(1)
+  id                String       @id @default(cuid())
+  orderId           String
+  inventoryItemId   String?
+  type              LineItemType
+  description       String
+  quantity          Int          @default(1)
   unitPriceCustomer Float
-  unitPriceReal   Float
-  totalCustomer   Float
-  totalReal       Float
-  notes           String?
-  createdAt       DateTime     @default(now())
+  unitPriceReal     Float
+  totalCustomer     Float
+  totalReal         Float
+  notes             String?
+  createdAt         DateTime     @default(now())
 
   order         Order          @relation(fields: [orderId], references: [id], onDelete: Cascade)
   inventoryItem InventoryItem? @relation(fields: [inventoryItemId], references: [id])
@@ -330,7 +335,7 @@ model OrderStatusHistory {
   status    OrderStatus
   note      String?
   createdAt DateTime    @default(now())
-  createdBy String?     // user name or id
+  createdBy String? // user name or id
 
   order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
 
@@ -346,7 +351,7 @@ model Payment {
   orderId   String
   amount    Float
   method    PaymentMethod
-  reference String?       // cheque number, last 4 digits, etc.
+  reference String? // cheque number, last 4 digits, etc.
   note      String?
   paidAt    DateTime      @default(now())
   createdAt DateTime      @default(now())
@@ -372,7 +377,7 @@ model Invoice {
   id          String      @id @default(cuid())
   orderId     String
   type        InvoiceType
-  fileUrl     String?     // Supabase Storage URL
+  fileUrl     String? // Supabase Storage URL
   generatedAt DateTime    @default(now())
   createdAt   DateTime    @default(now())
 
@@ -382,8 +387,8 @@ model Invoice {
 }
 
 enum InvoiceType {
-  CUSTOMER  // what customer sees
-  INTERNAL  // real amounts
+  CUSTOMER // what customer sees
+  INTERNAL // real amounts
 }
 
 // ─────────────────────────────────────────
@@ -391,23 +396,23 @@ enum InvoiceType {
 // ─────────────────────────────────────────
 
 model InsurancePolicy {
-  id             String   @id @default(cuid())
-  customerId     String
-  providerName   String   // e.g. "Sunlife", "OHIP", "Green Shield"
-  policyNumber   String?
-  groupNumber    String?
-  memberId       String?
-  coverageType   CoverageType
-  renewalMonth   Int?     // 1-12
-  renewalYear    Int?
-  maxFrames      Float?
-  maxLenses      Float?
-  maxContacts    Float?
-  maxExam        Float?
-  notes          String?
-  isActive       Boolean  @default(true)
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  id           String       @id @default(cuid())
+  customerId   String
+  providerName String // e.g. "Sunlife", "OHIP", "Green Shield"
+  policyNumber String?
+  groupNumber  String?
+  memberId     String?
+  coverageType CoverageType
+  renewalMonth Int? // 1-12
+  renewalYear  Int?
+  maxFrames    Float?
+  maxLenses    Float?
+  maxContacts  Float?
+  maxExam      Float?
+  notes        String?
+  isActive     Boolean      @default(true)
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
 
   customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
   orders   Order[]
@@ -436,18 +441,18 @@ model Exam {
   examType          ExamType @default(COMPREHENSIVE)
 
   // Billing
-  billingCode       String?
-  amountBilled      Float?
-  amountPaid        Float?
-  ohipCovered       Boolean  @default(false)
+  billingCode  String?
+  amountBilled Float?
+  amountPaid   Float?
+  ohipCovered  Boolean @default(false)
 
   // Clinical notes
-  iop               String?  // intraocular pressure
-  va                String?  // visual acuity
-  clinicalNotes     String?
+  iop           String? // intraocular pressure
+  va            String? // visual acuity
+  clinicalNotes String?
 
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   customer        Customer         @relation(fields: [customerId], references: [id])
   insurancePolicy InsurancePolicy? @relation(fields: [insurancePolicyId], references: [id])
@@ -468,15 +473,15 @@ enum ExamType {
 // ─────────────────────────────────────────
 
 model Walkin {
-  id          String   @id @default(cuid())
-  customerId  String?  // may be null if new/unidentified visitor
-  visitedAt   DateTime @default(now())
-  source      String?  // "walk-in", "referral", "google", etc.
-  interest    String?  // what they were looking for
-  outcome     WalkinOutcome @default(BROWSED)
-  notes       String?
+  id             String        @id @default(cuid())
+  customerId     String? // may be null if new/unidentified visitor
+  visitedAt      DateTime      @default(now())
+  source         String? // "walk-in", "referral", "google", etc.
+  interest       String? // what they were looking for
+  outcome        WalkinOutcome @default(BROWSED)
+  notes          String?
   followUpSentAt DateTime?
-  createdAt   DateTime @default(now())
+  createdAt      DateTime      @default(now())
 
   customer Customer? @relation(fields: [customerId], references: [id])
 
@@ -513,9 +518,9 @@ model Campaign {
 }
 
 enum CampaignType {
-  WALKIN_FOLLOWUP     // 14-day drip
-  EXAM_REMINDER       // annual reminder
-  INSURANCE_RENEWAL   // 2-year cycle
+  WALKIN_FOLLOWUP // 14-day drip
+  EXAM_REMINDER // annual reminder
+  INSURANCE_RENEWAL // 2-year cycle
   ONE_TIME_BLAST
 }
 
@@ -528,13 +533,13 @@ enum CampaignStatus {
 }
 
 model CampaignRecipient {
-  id         String            @id @default(cuid())
-  campaignId String
-  customerId String
-  status     RecipientStatus   @default(ACTIVE)
-  enrolledAt DateTime          @default(now())
+  id          String          @id @default(cuid())
+  campaignId  String
+  customerId  String
+  status      RecipientStatus @default(ACTIVE)
+  enrolledAt  DateTime        @default(now())
   completedAt DateTime?
-  optedOutAt DateTime?
+  optedOutAt  DateTime?
 
   campaign Campaign @relation(fields: [campaignId], references: [id])
   customer Customer @relation(fields: [customerId], references: [id])
@@ -552,19 +557,19 @@ enum RecipientStatus {
 }
 
 model Message {
-  id           String        @id @default(cuid())
+  id           String         @id @default(cuid())
   campaignId   String?
   customerId   String
   channel      MessageChannel
-  status       MessageStatus @default(PENDING)
-  subject      String?       // email subject
+  status       MessageStatus  @default(PENDING)
+  subject      String? // email subject
   body         String
   sentAt       DateTime?
   deliveredAt  DateTime?
   failedAt     DateTime?
   errorMessage String?
-  externalId   String?       // Twilio/SendGrid message ID
-  createdAt    DateTime      @default(now())
+  externalId   String? // Twilio/SendGrid message ID
+  createdAt    DateTime       @default(now())
 
   campaign Campaign? @relation(fields: [campaignId], references: [id])
   customer Customer  @relation(fields: [customerId], references: [id])
@@ -590,14 +595,14 @@ enum MessageStatus {
 // ─────────────────────────────────────────
 
 model Referral {
-  id           String   @id @default(cuid())
-  referrerId   String   // customer who referred
-  referredId   String   // customer who was referred
-  code         String?  @unique
+  id           String    @id @default(cuid())
+  referrerId   String // customer who referred
+  referredId   String // customer who was referred
+  code         String?   @unique
   rewardAmount Float?
   rewardPaidAt DateTime?
   notes        String?
-  createdAt    DateTime @default(now())
+  createdAt    DateTime  @default(now())
 
   referrer Customer @relation("referrer", fields: [referrerId], references: [id])
   referred Customer @relation("referred", fields: [referredId], references: [id])
@@ -610,17 +615,17 @@ model Referral {
 // ─────────────────────────────────────────
 
 model Appointment {
-  id           String            @id @default(cuid())
-  customerId   String
-  type         AppointmentType   @default(EYE_EXAM)
-  status       AppointmentStatus @default(SCHEDULED)
-  scheduledAt  DateTime
-  duration     Int               @default(30) // minutes
-  doctorName   String?
-  notes        String?
+  id             String            @id @default(cuid())
+  customerId     String
+  type           AppointmentType   @default(EYE_EXAM)
+  status         AppointmentStatus @default(SCHEDULED)
+  scheduledAt    DateTime
+  duration       Int               @default(30) // minutes
+  doctorName     String?
+  notes          String?
   reminderSentAt DateTime?
-  createdAt    DateTime          @default(now())
-  updatedAt    DateTime          @updatedAt
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
 
   customer Customer @relation(fields: [customerId], references: [id])
 
@@ -649,14 +654,14 @@ enum AppointmentStatus {
 // ─────────────────────────────────────────
 
 model AuditLog {
-  id         String   @id @default(cuid())
-  userId     String?
-  action     String   // "CREATE", "UPDATE", "DELETE"
-  model      String   // "Customer", "Order", etc.
-  recordId   String
-  changes    Json?    // before/after diff
-  ipAddress  String?
-  createdAt  DateTime @default(now())
+  id        String   @id @default(cuid())
+  userId    String?
+  action    String // "CREATE", "UPDATE", "DELETE"
+  model     String // "Customer", "Order", etc.
+  recordId  String
+  changes   Json? // before/after diff
+  ipAddress String?
+  createdAt DateTime @default(now())
 
   user User? @relation(fields: [userId], references: [id])
 
@@ -672,4 +677,93 @@ model SystemSetting {
   updatedAt DateTime @updatedAt
 
   @@map("system_settings")
+}
+
+// ─────────────────────────────────────────
+// FORMS
+// ─────────────────────────────────────────
+
+model FormTemplate {
+  id          String           @id @default(cuid())
+  name        String
+  type        FormTemplateType
+  description String?
+  isActive    Boolean          @default(true)
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  submissions FormSubmission[]
+
+  @@map("form_templates")
+}
+
+enum FormTemplateType {
+  NEW_PATIENT
+  HIPAA_CONSENT
+  FRAME_REPAIR_WAIVER
+  INSURANCE_VERIFICATION
+}
+
+model FormSubmission {
+  id            String     @id @default(cuid())
+  token         String     @unique @default(cuid())
+  templateId    String
+  customerId    String?
+  customerName  String?
+  sentByUserId  String
+  status        FormStatus @default(PENDING)
+  data          Json?
+  signatureText String?
+  signedAt      DateTime?
+  completedAt   DateTime?
+  expiresAt     DateTime?
+  packageId     String?
+  packageOrder  Int?
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+
+  template FormTemplate @relation(fields: [templateId], references: [id])
+  customer Customer?    @relation(fields: [customerId], references: [id])
+  sentBy   User         @relation(fields: [sentByUserId], references: [id])
+  package  FormPackage? @relation(fields: [packageId], references: [id])
+
+  @@index([status])
+  @@index([customerId])
+  @@index([packageId])
+  @@map("form_submissions")
+}
+
+enum FormStatus {
+  PENDING
+  COMPLETED
+  EXPIRED
+}
+
+model FormPackage {
+  id            String        @id @default(cuid())
+  token         String        @unique @default(cuid())
+  customerId    String?
+  customerName  String?
+  customerEmail String?
+  sentByUserId  String
+  status        PackageStatus @default(PENDING)
+  completedAt   DateTime?
+  appliedAt     DateTime?
+  expiresAt     DateTime?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  customer    Customer?       @relation(fields: [customerId], references: [id])
+  sentBy      User            @relation(fields: [sentByUserId], references: [id])
+  submissions FormSubmission[]
+
+  @@index([customerId])
+  @@index([status])
+  @@map("form_packages")
+}
+
+enum PackageStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
 }

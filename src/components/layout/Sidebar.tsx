@@ -11,6 +11,7 @@ import {
   LogOut,
   Eye,
   Kanban,
+  FileText,
 } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { logout } from "@/lib/actions/auth";
@@ -25,6 +26,11 @@ const navItems = [
     title: "Customers",
     href: "/customers",
     icon: Users,
+  },
+  {
+    title: "Forms",
+    href: "/forms",
+    icon: FileText,
   },
   {
     title: "Orders",

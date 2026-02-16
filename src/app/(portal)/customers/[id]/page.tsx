@@ -3,8 +3,15 @@ import { verifySession } from "@/lib/dal";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { formatPhone, formatDate, formatCurrency, formatRxValue } from "@/lib/utils/formatters";
-import { ChevronLeft, Edit, Plus, FileText } from "lucide-react";
-import { OrderStatus } from "@prisma/client";
+import { ChevronLeft, Edit, Plus, FileText, PenLine, CheckCircle2, Clock } from "lucide-react";
+import { OrderStatus, FormTemplateType } from "@prisma/client";
+
+const FORM_TYPE_LABELS: Record<FormTemplateType, string> = {
+  NEW_PATIENT: "New Patient Registration",
+  HIPAA_CONSENT: "Privacy & Consent",
+  FRAME_REPAIR_WAIVER: "Frame Repair Waiver",
+  INSURANCE_VERIFICATION: "Insurance Verification",
+};
 
 const STATUS_LABELS: Record<OrderStatus, string> = {
   DRAFT: "Draft",
@@ -49,6 +56,10 @@ export default async function CustomerDetailPage({
       insurancePolicies: {
         where: { isActive: true },
       },
+      formSubmissions: {
+        orderBy: { createdAt: "desc" },
+        include: { template: true },
+      },
     },
   });
 
@@ -66,9 +77,20 @@ export default async function CustomerDetailPage({
             <ChevronLeft className="w-5 h-5" />
           </Link>
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">
-              {customer.firstName} {customer.lastName}
-            </h1>
+            <div className="flex items-center gap-2">
+              <h1 className="text-2xl font-bold text-gray-900">
+                {customer.firstName} {customer.lastName}
+              </h1>
+              {customer.isOnboarded ? (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700">
+                  <CheckCircle2 className="w-3 h-3" /> Onboarded
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-700">
+                  <Clock className="w-3 h-3" /> Not onboarded
+                </span>
+              )}
+            </div>
             {customer.legacyCustomerId && (
               <p className="text-sm text-gray-400">ID: {customer.legacyCustomerId}</p>
             )}
@@ -247,6 +269,73 @@ export default async function CustomerDetailPage({
                       <span className="text-sm font-semibold text-gray-900">
                         {formatCurrency(order.totalCustomer)}
                       </span>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Forms & Documents */}
+          <div className="bg-white rounded-xl border border-gray-100 shadow-sm">
+            <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
+              <h2 className="font-semibold text-gray-900 flex items-center gap-2">
+                <FileText className="w-4 h-4 text-gray-400" />
+                Forms & Documents ({customer.formSubmissions.length})
+              </h2>
+              <Link
+                href={`/forms?customerId=${customer.id}`}
+                className="text-xs text-primary hover:underline font-medium"
+              >
+                Send form
+              </Link>
+            </div>
+
+            {customer.formSubmissions.length === 0 ? (
+              <div className="py-8 text-center text-gray-400 text-sm">
+                No forms on file.
+              </div>
+            ) : (
+              <div className="divide-y divide-gray-50">
+                {customer.formSubmissions.map((sub) => (
+                  <Link
+                    key={sub.id}
+                    href={`/forms/${sub.id}`}
+                    className="flex items-center justify-between px-5 py-3 hover:bg-gray-50 transition-colors group"
+                  >
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${
+                        sub.status === "COMPLETED" ? "bg-green-100" : "bg-gray-100"
+                      }`}>
+                        {sub.signatureText ? (
+                          <PenLine className="w-4 h-4 text-green-600" />
+                        ) : (
+                          <FileText className="w-4 h-4 text-gray-400" />
+                        )}
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium text-gray-900 truncate">
+                          {FORM_TYPE_LABELS[sub.template.type]}
+                        </p>
+                        <p className="text-xs text-gray-400">{formatDate(sub.createdAt)}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      {sub.signatureText && (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-700">
+                          <PenLine className="w-3 h-3" /> Signed
+                        </span>
+                      )}
+                      <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${
+                        sub.status === "COMPLETED"
+                          ? "bg-green-100 text-green-700"
+                          : sub.status === "EXPIRED"
+                          ? "bg-gray-100 text-gray-500"
+                          : "bg-amber-100 text-amber-700"
+                      }`}>
+                        {sub.status === "COMPLETED" ? "Completed" : sub.status === "EXPIRED" ? "Expired" : "Pending"}
+                      </span>
+                      <span className="text-xs text-gray-400 group-hover:text-primary transition-colors">View →</span>
                     </div>
                   </Link>
                 ))}
