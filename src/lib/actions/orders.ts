@@ -27,6 +27,7 @@ type CreateOrderInput = {
   prescriptionId?: string;
   insurancePolicyId?: string;
   type: OrderType;
+  orderTypes: string[];
   isDualInvoice: boolean;
   frameBrand?: string;
   frameModel?: string;
@@ -67,6 +68,7 @@ export async function createOrder(input: CreateOrderInput): Promise<{ id: string
         prescriptionId: input.prescriptionId || null,
         insurancePolicyId: input.insurancePolicyId || null,
         type: input.type,
+        orderTypes: input.orderTypes,
         status: OrderStatus.DRAFT,
         isDualInvoice: input.isDualInvoice,
         totalCustomer,

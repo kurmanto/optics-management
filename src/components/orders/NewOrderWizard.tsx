@@ -92,7 +92,7 @@ export function NewOrderWizard({ customer, allCustomers, prescriptions = [], ins
   const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
 
   // Step 2: Order Details
-  const [orderType, setOrderType] = useState<string>("GLASSES");
+  const [orderTypes, setOrderTypes] = useState<string[]>(["GLASSES"]);
   const [prescriptionId, setPrescriptionId] = useState("");
   const [insurancePolicyId, setInsurancePolicyId] = useState("");
   const [isDualInvoice, setIsDualInvoice] = useState(false);
@@ -171,7 +171,8 @@ export function NewOrderWizard({ customer, allCustomers, prescriptions = [], ins
       customerId: selectedCustomerId,
       prescriptionId: prescriptionId || undefined,
       insurancePolicyId: insurancePolicyId || undefined,
-      type: orderType as any,
+      type: (orderTypes[0] || "GLASSES") as any,
+      orderTypes,
       isDualInvoice,
       frameBrand: frameBrand || undefined,
       frameModel: frameModel || undefined,
@@ -301,23 +302,47 @@ export function NewOrderWizard({ customer, allCustomers, prescriptions = [], ins
           <h2 className="font-semibold text-gray-900">Order Details</h2>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Order Type</label>
-            <div className="grid grid-cols-3 gap-2">
-              {ORDER_TYPES.map((t) => (
-                <button
-                  key={t.value}
-                  type="button"
-                  onClick={() => setOrderType(t.value)}
-                  className={`px-3 py-2 rounded-lg text-sm font-medium border transition-colors ${
-                    orderType === t.value
-                      ? "bg-primary text-white border-primary"
-                      : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
-                  }`}
-                >
-                  {t.label}
-                </button>
-              ))}
+            <div className="flex items-center justify-between mb-2">
+              <label className="block text-sm font-medium text-gray-700">Order Type</label>
+              <span className="text-xs text-gray-400">Select all that apply</span>
             </div>
+            <div className="grid grid-cols-3 gap-2">
+              {ORDER_TYPES.map((t) => {
+                const selected = orderTypes.includes(t.value);
+                return (
+                  <button
+                    key={t.value}
+                    type="button"
+                    onClick={() => {
+                      setOrderTypes((prev) =>
+                        selected
+                          ? prev.filter((v) => v !== t.value).length > 0
+                            ? prev.filter((v) => v !== t.value)
+                            : prev // keep at least one selected
+                          : [...prev, t.value]
+                      );
+                    }}
+                    className={`relative px-3 py-2.5 rounded-lg text-sm font-medium border transition-colors text-left ${
+                      selected
+                        ? "bg-primary text-white border-primary"
+                        : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
+                    }`}
+                  >
+                    {selected && (
+                      <span className="absolute top-1.5 right-1.5 w-4 h-4 bg-white/30 rounded-full flex items-center justify-center text-[10px] font-bold">
+                        ✓
+                      </span>
+                    )}
+                    {t.label}
+                  </button>
+                );
+              })}
+            </div>
+            {orderTypes.length > 1 && (
+              <p className="text-xs text-primary mt-2 font-medium">
+                {orderTypes.length} types selected
+              </p>
+            )}
           </div>
 
           {prescriptions.length > 0 && (

@@ -219,6 +219,7 @@ model Order {
   prescriptionId  String?
   status          OrderStatus @default(DRAFT)
   type            OrderType   @default(GLASSES)
+  orderTypes      String[]    @default([])
 
   // Customer-facing amounts
   totalCustomer   Float       @default(0)
