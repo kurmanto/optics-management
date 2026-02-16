@@ -681,7 +681,7 @@ export function NewOrderWizard({ customer, allCustomers, prescriptions = [], ins
               setError("");
               setStep(step + 1);
             }}
-            className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors"
+            className="inline-flex items-center gap-2 bg-primary text-white px-4 h-9 rounded-lg text-sm font-medium shadow-sm hover:bg-primary/90 active:scale-[0.98] transition-all duration-150"
           >
             Next
             <ChevronRight className="w-4 h-4" />
@@ -691,7 +691,7 @@ export function NewOrderWizard({ customer, allCustomers, prescriptions = [], ins
             type="button"
             onClick={handleSubmit}
             disabled={saving}
-            className="flex items-center gap-2 px-6 py-2 bg-primary text-white rounded-lg text-sm font-medium hover:bg-primary/90 disabled:opacity-60 transition-colors"
+            className="inline-flex items-center gap-2 bg-primary text-white px-5 h-9 rounded-lg text-sm font-medium shadow-sm hover:bg-primary/90 active:scale-[0.98] disabled:opacity-50 disabled:active:scale-100 transition-all duration-150"
           >
             {saving ? "Creating..." : "Create Order"}
           </button>

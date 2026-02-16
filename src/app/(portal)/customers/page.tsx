@@ -4,6 +4,7 @@ import Link from "next/link";
 import { formatPhone, formatDate } from "@/lib/utils/formatters";
 import { Plus, Search, UserCircle2 } from "lucide-react";
 import { Prisma } from "@prisma/client";
+import { buttonVariants } from "@/components/ui/Button";
 
 type SearchParams = { q?: string; page?: string };
 
@@ -59,10 +60,7 @@ export default async function CustomersPage({
             {total.toLocaleString()} {total === 1 ? "customer" : "customers"}
           </p>
         </div>
-        <Link
-          href="/customers/new"
-          className="flex items-center gap-2 bg-primary text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors"
-        >
+        <Link href="/customers/new" className={buttonVariants("primary", "md")}>
           <Plus className="w-4 h-4" />
           New Customer
         </Link>
