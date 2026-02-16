@@ -99,7 +99,7 @@ export default async function OrdersPage({
       <div className="flex gap-2 flex-wrap">
         <Link
           href="/orders"
-          className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
+          className={`inline-flex items-center h-8 px-3 rounded-lg text-xs font-medium transition-colors ${
             !statusFilter
               ? "bg-primary text-white"
               : "bg-gray-100 text-gray-600 hover:bg-gray-200"
@@ -111,7 +111,7 @@ export default async function OrdersPage({
           <Link
             key={s}
             href={`/orders?status=${s}`}
-            className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
+            className={`inline-flex items-center h-8 px-3 rounded-lg text-xs font-medium transition-colors ${
               statusFilter === s
                 ? "bg-primary text-white"
                 : "bg-gray-100 text-gray-600 hover:bg-gray-200"
@@ -173,7 +173,7 @@ export default async function OrdersPage({
                   </td>
                   <td className="px-6 py-4">
                     <span
-                      className={`text-xs px-2.5 py-1 rounded-full font-medium ${STATUS_COLORS[order.status]}`}
+                      className={`text-xs px-2.5 py-1 rounded-md font-medium ${STATUS_COLORS[order.status]}`}
                     >
                       {STATUS_LABELS[order.status]}
                     </span>

@@ -72,7 +72,7 @@ export function KanbanBoard({ orders: initialOrders }: Props) {
             {/* Column Header */}
             <div className={`${col.bg} rounded-t-xl px-4 py-3 flex items-center justify-between`}>
               <span className={`text-sm font-semibold ${col.color}`}>{col.label}</span>
-              <span className={`text-xs ${col.color} font-medium bg-white rounded-full px-2 py-0.5`}>
+              <span className={`text-xs ${col.color} font-medium bg-white rounded-md px-2 py-0.5`}>
                 {colOrders.length}
               </span>
             </div>

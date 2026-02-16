@@ -101,7 +101,7 @@ export default async function InventoryPage({
             <Link
               key={cat}
               href={`/inventory?${new URLSearchParams({ ...(query ? { q: query } : {}), ...(genderFilter ? { gender: genderFilter } : {}), ...(categoryFilter === cat ? {} : { category: cat }) })}`}
-              className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
+              className={`inline-flex items-center h-8 px-3 rounded-lg text-xs font-medium transition-colors ${
                 categoryFilter === cat
                   ? "bg-primary text-white"
                   : "bg-gray-100 text-gray-600 hover:bg-gray-200"
@@ -117,7 +117,7 @@ export default async function InventoryPage({
             <Link
               key={g}
               href={`/inventory?${new URLSearchParams({ ...(query ? { q: query } : {}), ...(categoryFilter ? { category: categoryFilter } : {}), ...(genderFilter === g ? {} : { gender: g }) })}`}
-              className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
+              className={`inline-flex items-center h-8 px-3 rounded-lg text-xs font-medium transition-colors ${
                 genderFilter === g
                   ? "bg-primary text-white"
                   : "bg-gray-100 text-gray-600 hover:bg-gray-200"

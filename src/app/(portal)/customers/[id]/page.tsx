@@ -160,7 +160,7 @@ export default async function CustomerDetailPage({
               {customer.tags.map((tag) => (
                 <span
                   key={tag}
-                  className="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded-full"
+                  className="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded-md"
                 >
                   {tag}
                 </span>
@@ -240,7 +240,7 @@ export default async function CustomerDetailPage({
                     </div>
                     <div className="flex items-center gap-3">
                       <span
-                        className={`text-xs px-2 py-0.5 rounded-full font-medium ${STATUS_COLORS[order.status]}`}
+                        className={`text-xs px-2 py-0.5 rounded-md font-medium ${STATUS_COLORS[order.status]}`}
                       >
                         {STATUS_LABELS[order.status]}
                       </span>
