@@ -89,7 +89,6 @@ export function NewOrderWizard({ customer, allCustomers, prescriptions = [], ins
   const [customerSearch, setCustomerSearch] = useState(
     customer ? `${customer.lastName}, ${customer.firstName}` : ""
   );
-  const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
 
   // Step 2: Order Details
   const [orderTypes, setOrderTypes] = useState<string[]>(["GLASSES"]);
@@ -126,11 +125,10 @@ export function NewOrderWizard({ customer, allCustomers, prescriptions = [], ins
   );
 
   const filteredCustomers = allCustomers.filter((c) =>
-    customerSearch.length > 1
-      ? `${c.lastName} ${c.firstName}`.toLowerCase().includes(customerSearch.toLowerCase()) ||
-        (c.phone && c.phone.includes(customerSearch.replace(/\D/g, "")))
-      : false
-  ).slice(0, 8);
+    customerSearch.length === 0 ||
+    `${c.lastName} ${c.firstName}`.toLowerCase().includes(customerSearch.toLowerCase()) ||
+    (c.phone && c.phone.includes(customerSearch.replace(/\D/g, "")))
+  ).slice(0, 10);
 
   function addLineItem() {
     setLineItems([...lineItems, {
@@ -249,50 +247,67 @@ export function NewOrderWizard({ customer, allCustomers, prescriptions = [], ins
 
       {/* Step 1: Customer */}
       {step === 1 && (
-        <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6 space-y-4">
+        <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6 space-y-3">
           <h2 className="font-semibold text-gray-900">Select Customer</h2>
+
+          {/* Search */}
           <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
             <input
               value={customerSearch}
               onChange={(e) => {
                 setCustomerSearch(e.target.value);
-                setShowCustomerDropdown(true);
                 if (!e.target.value) setSelectedCustomerId("");
               }}
               placeholder="Search by name or phone..."
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+              className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary"
             />
-            {showCustomerDropdown && filteredCustomers.length > 0 && (
-              <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-10">
-                {filteredCustomers.map((c) => (
+          </div>
+
+          {/* Customer list — always visible */}
+          <div className="border border-gray-100 rounded-lg overflow-hidden max-h-64 overflow-y-auto">
+            {filteredCustomers.length === 0 ? (
+              <p className="text-xs text-gray-400 text-center py-6">No customers match your search.</p>
+            ) : (
+              filteredCustomers.map((c) => {
+                const isSelected = selectedCustomerId === c.id;
+                return (
                   <button
                     key={c.id}
                     type="button"
                     onClick={() => {
                       setSelectedCustomerId(c.id);
-                      setCustomerSearch(`${c.lastName}, ${c.firstName}`);
-                      setShowCustomerDropdown(false);
+                      setCustomerSearch("");
                     }}
-                    className="w-full text-left px-4 py-3 text-sm hover:bg-gray-50 border-b border-gray-50 last:border-0"
+                    className={`w-full flex items-center gap-3 px-4 py-3 text-sm border-b border-gray-50 last:border-0 text-left transition-colors ${
+                      isSelected ? "bg-primary/5" : "hover:bg-gray-50"
+                    }`}
                   >
-                    <span className="font-medium">{c.lastName}, {c.firstName}</span>
-                    {c.phone && <span className="text-gray-400 ml-2">{c.phone}</span>}
+                    <div className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${isSelected ? "bg-primary" : "bg-gray-200"}`} />
+                    <div className="flex-1 min-w-0">
+                      <span className="font-medium text-gray-900">{c.lastName}, {c.firstName}</span>
+                    </div>
+                    {c.phone && (
+                      <span className="text-xs text-gray-400 flex-shrink-0">{c.phone}</span>
+                    )}
                   </button>
-                ))}
-              </div>
+                );
+              })
             )}
           </div>
-          {selectedCustomerId && (
-            <p className="text-sm text-green-600 font-medium">✓ Customer selected</p>
-          )}
-          {!selectedCustomerId && (
-            <p className="text-sm text-gray-500">
-              Customer not found?{" "}
-              <a href="/customers/new" target="_blank" className="text-primary hover:underline">
-                Add new customer
-              </a>
-            </p>
-          )}
+
+          <div className="flex items-center justify-between">
+            {selectedCustomerId ? (
+              <p className="text-sm text-green-600 font-medium">
+                ✓ {allCustomers.find(c => c.id === selectedCustomerId)?.lastName}, {allCustomers.find(c => c.id === selectedCustomerId)?.firstName}
+              </p>
+            ) : (
+              <p className="text-sm text-gray-400">No customer selected</p>
+            )}
+            <a href="/customers/new" target="_blank" className="text-xs text-primary hover:underline">
+              + New customer
+            </a>
+          </div>
         </div>
       )}
 
