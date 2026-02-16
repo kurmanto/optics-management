@@ -2,7 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { verifySession } from "@/lib/dal";
 import Link from "next/link";
 import { formatCurrency } from "@/lib/utils/formatters";
-import { Search, Package } from "lucide-react";
+import { Search, Package, Plus } from "lucide-react";
 import { FrameCategory, FrameGender, Prisma } from "@prisma/client";
 
 type SearchParams = {
@@ -77,6 +77,13 @@ export default async function InventoryPage({
             {total.toLocaleString()} {total === 1 ? "frame" : "frames"}
           </p>
         </div>
+        <Link
+          href="/inventory/new"
+          className="inline-flex items-center gap-2 bg-primary text-white px-4 h-9 rounded-lg text-sm font-medium shadow-sm hover:bg-primary/90 active:scale-[0.98] transition-all duration-150"
+        >
+          <Plus className="w-4 h-4" />
+          New Item
+        </Link>
       </div>
 
       {/* Filters */}
@@ -144,6 +151,7 @@ export default async function InventoryPage({
           <table className="w-full text-sm">
             <thead className="bg-gray-50 border-b border-gray-100">
               <tr>
+                <th className="w-12 px-4 py-3"></th>
                 <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Brand / Model</th>
                 <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide hidden md:table-cell">SKU</th>
                 <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide hidden lg:table-cell">Category</th>
@@ -155,10 +163,25 @@ export default async function InventoryPage({
             <tbody className="divide-y divide-gray-50">
               {items.map((item) => (
                 <tr key={item.id} className="hover:bg-gray-50/50 transition-colors">
+                  <td className="px-4 py-3">
+                    <Link href={`/inventory/${item.id}`}>
+                      <div className="w-10 h-10 rounded-lg bg-gray-100 overflow-hidden flex-shrink-0">
+                        {item.imageUrl ? (
+                          <img src={item.imageUrl} alt="" className="w-full h-full object-cover" />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-gray-300">
+                            <Package className="w-5 h-5" />
+                          </div>
+                        )}
+                      </div>
+                    </Link>
+                  </td>
                   <td className="px-6 py-4">
-                    <p className="font-medium text-gray-900">{item.brand}</p>
-                    <p className="text-xs text-gray-500">{item.model}</p>
-                    {item.color && <p className="text-xs text-gray-400">{item.color}</p>}
+                    <Link href={`/inventory/${item.id}`} className="hover:text-primary">
+                      <p className="font-medium text-gray-900">{item.brand}</p>
+                      <p className="text-xs text-gray-500">{item.model}</p>
+                      {item.color && <p className="text-xs text-gray-400">{item.color}</p>}
+                    </Link>
                   </td>
                   <td className="px-6 py-4 text-gray-500 hidden md:table-cell text-xs font-mono">
                     {item.sku || "—"}
