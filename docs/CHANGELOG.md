@@ -43,6 +43,14 @@ Format: `[Version] — Date`
 
 ---
 
+## [1.0.2] — 2026-02-15
+
+### Added
+- `scripts/seed-test-data.ts` — comprehensive test data for all V1 entities
+  - 2 staff users, 3 families, 10 customers, 6 prescriptions, 10 inventory items, 3 insurance policies, 10 orders
+
+---
+
 ## Upcoming
 
 ### [1.1.0] — Planned
