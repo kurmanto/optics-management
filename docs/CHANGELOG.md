@@ -43,6 +43,18 @@ Format: `[Version] — Date`
 
 ---
 
+## [1.0.3] — 2026-02-15
+
+### Added
+- **Inter font** — loaded via `next/font/google`, applied as `--font-sans` CSS variable on body
+- **Button component** (`src/components/ui/Button.tsx`) — reusable component with variants (`primary`, `secondary`, `destructive`, `ghost`, `outline`), sizes (`sm`, `md`, `lg`), `loading` spinner state, and `buttonVariants()` helper for Link-based buttons in server components
+
+### Changed
+- **globals.css** — sharper foreground color (224 15% 12%), cleaner borders (214 20% 90%), border-radius to `0.625rem`, improved muted/secondary tones
+- **All CTA buttons** across `LoginForm`, `OrderStatusActions`, `CustomerForm`, `ChangePasswordForm`, `NewOrderWizard`, and all portal pages now use consistent `shadow-sm`, `active:scale-[0.98]`, and `transition-all duration-150` classes for a polished press effect
+
+---
+
 ## [1.0.2] — 2026-02-15
 
 ### Added

@@ -2,6 +2,7 @@
 
 import { useActionState } from "react";
 import { login } from "@/lib/actions/auth";
+import { Button } from "@/components/ui/Button";
 
 export function LoginForm() {
   const [state, action, isPending] = useActionState(login, {});
@@ -50,13 +51,9 @@ export function LoginForm() {
           </div>
         )}
 
-        <button
-          type="submit"
-          disabled={isPending}
-          className="w-full bg-primary text-white py-2.5 px-4 rounded-lg font-medium text-sm hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
-        >
-          {isPending ? "Signing in..." : "Sign in"}
-        </button>
+        <Button type="submit" loading={isPending} size="lg" className="w-full">
+          Sign in
+        </Button>
       </form>
     </div>
   );

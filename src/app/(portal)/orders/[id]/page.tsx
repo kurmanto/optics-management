@@ -80,7 +80,7 @@ export default async function OrderDetailPage({
           <div>
             <div className="flex items-center gap-3">
               <h1 className="text-2xl font-bold text-gray-900">{order.orderNumber}</h1>
-              <span className={`text-sm px-2.5 py-1 rounded-full font-medium ${STATUS_COLORS[order.status]}`}>
+              <span className={`text-sm px-2.5 py-1 rounded-md font-medium ${STATUS_COLORS[order.status]}`}>
                 {STATUS_LABELS[order.status]}
               </span>
             </div>

@@ -87,7 +87,7 @@ export default async function OrdersPage({
           </Link>
           <Link
             href="/orders/new"
-            className="flex items-center gap-2 bg-primary text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors"
+            className="inline-flex items-center gap-2 bg-primary text-white px-4 h-9 rounded-lg text-sm font-medium shadow-sm hover:bg-primary/90 active:scale-[0.98] transition-all duration-150"
           >
             <Plus className="w-4 h-4" />
             New Order
@@ -99,7 +99,7 @@ export default async function OrdersPage({
       <div className="flex gap-2 flex-wrap">
         <Link
           href="/orders"
-          className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
+          className={`inline-flex items-center h-8 px-3 rounded-lg text-xs font-medium transition-colors ${
             !statusFilter
               ? "bg-primary text-white"
               : "bg-gray-100 text-gray-600 hover:bg-gray-200"
@@ -111,7 +111,7 @@ export default async function OrdersPage({
           <Link
             key={s}
             href={`/orders?status=${s}`}
-            className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
+            className={`inline-flex items-center h-8 px-3 rounded-lg text-xs font-medium transition-colors ${
               statusFilter === s
                 ? "bg-primary text-white"
                 : "bg-gray-100 text-gray-600 hover:bg-gray-200"
@@ -173,7 +173,7 @@ export default async function OrdersPage({
                   </td>
                   <td className="px-6 py-4">
                     <span
-                      className={`text-xs px-2.5 py-1 rounded-full font-medium ${STATUS_COLORS[order.status]}`}
+                      className={`text-xs px-2.5 py-1 rounded-md font-medium ${STATUS_COLORS[order.status]}`}
                     >
                       {STATUS_LABELS[order.status]}
                     </span>

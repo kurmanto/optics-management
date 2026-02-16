@@ -175,7 +175,7 @@ export default async function DashboardPage() {
                 </div>
                 <div className="flex items-center gap-4">
                   <span
-                    className={`text-xs px-2.5 py-1 rounded-full font-medium ${
+                    className={`text-xs px-2.5 py-1 rounded-md font-medium ${
                       STATUS_COLORS[order.status]
                     }`}
                   >

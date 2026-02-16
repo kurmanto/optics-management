@@ -1,7 +1,7 @@
 # Project Status
 ## Mint Vision Optique — Staff Portal
 
-**Last updated:** 2026-02-15 (post-setup)
+**Last updated:** 2026-02-15 (design-fixes)
 
 ---
 
