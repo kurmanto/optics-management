@@ -14,7 +14,7 @@ export default async function NewOrderPage({
   const params = await searchParams;
   const customerId = params.customerId;
 
-  const [allCustomers, customer, prescriptions, insurancePolicies] = await Promise.all([
+  const [allCustomers, customer, prescriptions, insurancePolicies, inventoryItems] = await Promise.all([
     prisma.customer.findMany({
       where: { isActive: true },
       select: { id: true, firstName: true, lastName: true, phone: true },
@@ -39,6 +39,11 @@ export default async function NewOrderPage({
           select: { id: true, providerName: true, policyNumber: true },
         })
       : [],
+    prisma.inventoryItem.findMany({
+      where: { isActive: true },
+      select: { id: true, brand: true, model: true, color: true, sku: true, retailPrice: true, wholesaleCost: true },
+      orderBy: [{ brand: "asc" }, { model: "asc" }],
+    }),
   ]);
 
   return (
@@ -58,6 +63,7 @@ export default async function NewOrderPage({
         allCustomers={allCustomers}
         prescriptions={prescriptions}
         insurancePolicies={insurancePolicies}
+        inventoryItems={inventoryItems}
       />
     </div>
   );

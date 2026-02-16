@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createOrder } from "@/lib/actions/orders";
 import { formatCurrency } from "@/lib/utils/formatters";
-import { Plus, Trash2, ChevronRight, ChevronLeft } from "lucide-react";
+import { Plus, Trash2, ChevronRight, ChevronLeft, Search } from "lucide-react";
 
 type Customer = {
   id: string;
@@ -35,11 +35,22 @@ type LineItem = {
   notes?: string;
 };
 
+type InventoryItem = {
+  id: string;
+  brand: string;
+  model: string;
+  color: string | null;
+  sku: string | null;
+  retailPrice: number | null;
+  wholesaleCost: number | null;
+};
+
 type Props = {
   customer?: Customer;
   allCustomers: Customer[];
   prescriptions?: Prescription[];
   insurancePolicies?: InsurancePolicy[];
+  inventoryItems?: InventoryItem[];
 };
 
 const LINE_ITEM_TYPES = [
@@ -66,21 +77,21 @@ const PAYMENT_METHODS = [
   "CHEQUE", "E_TRANSFER", "INSURANCE", "OTHER"
 ];
 
-export function NewOrderWizard({ customer, allCustomers, prescriptions = [], insurancePolicies = [] }: Props) {
+export function NewOrderWizard({ customer, allCustomers, prescriptions = [], insurancePolicies = [], inventoryItems = [] }: Props) {
   const router = useRouter();
   const [step, setStep] = useState(1);
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
+  const [inventorySearches, setInventorySearches] = useState<Record<number, string>>({});
 
   // Step 1: Customer
   const [selectedCustomerId, setSelectedCustomerId] = useState(customer?.id || "");
   const [customerSearch, setCustomerSearch] = useState(
     customer ? `${customer.lastName}, ${customer.firstName}` : ""
   );
-  const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
 
   // Step 2: Order Details
-  const [orderType, setOrderType] = useState<string>("GLASSES");
+  const [orderTypes, setOrderTypes] = useState<string[]>(["GLASSES"]);
   const [prescriptionId, setPrescriptionId] = useState("");
   const [insurancePolicyId, setInsurancePolicyId] = useState("");
   const [isDualInvoice, setIsDualInvoice] = useState(false);
@@ -114,11 +125,10 @@ export function NewOrderWizard({ customer, allCustomers, prescriptions = [], ins
   );
 
   const filteredCustomers = allCustomers.filter((c) =>
-    customerSearch.length > 1
-      ? `${c.lastName} ${c.firstName}`.toLowerCase().includes(customerSearch.toLowerCase()) ||
-        (c.phone && c.phone.includes(customerSearch.replace(/\D/g, "")))
-      : false
-  ).slice(0, 8);
+    customerSearch.length === 0 ||
+    `${c.lastName} ${c.firstName}`.toLowerCase().includes(customerSearch.toLowerCase()) ||
+    (c.phone && c.phone.includes(customerSearch.replace(/\D/g, "")))
+  ).slice(0, 10);
 
   function addLineItem() {
     setLineItems([...lineItems, {
@@ -159,7 +169,8 @@ export function NewOrderWizard({ customer, allCustomers, prescriptions = [], ins
       customerId: selectedCustomerId,
       prescriptionId: prescriptionId || undefined,
       insurancePolicyId: insurancePolicyId || undefined,
-      type: orderType as any,
+      type: (orderTypes[0] || "GLASSES") as any,
+      orderTypes,
       isDualInvoice,
       frameBrand: frameBrand || undefined,
       frameModel: frameModel || undefined,
@@ -236,50 +247,67 @@ export function NewOrderWizard({ customer, allCustomers, prescriptions = [], ins
 
       {/* Step 1: Customer */}
       {step === 1 && (
-        <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6 space-y-4">
+        <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6 space-y-3">
           <h2 className="font-semibold text-gray-900">Select Customer</h2>
+
+          {/* Search */}
           <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
             <input
               value={customerSearch}
               onChange={(e) => {
                 setCustomerSearch(e.target.value);
-                setShowCustomerDropdown(true);
                 if (!e.target.value) setSelectedCustomerId("");
               }}
               placeholder="Search by name or phone..."
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+              className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary"
             />
-            {showCustomerDropdown && filteredCustomers.length > 0 && (
-              <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-10">
-                {filteredCustomers.map((c) => (
+          </div>
+
+          {/* Customer list — always visible */}
+          <div className="border border-gray-100 rounded-lg overflow-hidden max-h-64 overflow-y-auto">
+            {filteredCustomers.length === 0 ? (
+              <p className="text-xs text-gray-400 text-center py-6">No customers match your search.</p>
+            ) : (
+              filteredCustomers.map((c) => {
+                const isSelected = selectedCustomerId === c.id;
+                return (
                   <button
                     key={c.id}
                     type="button"
                     onClick={() => {
                       setSelectedCustomerId(c.id);
-                      setCustomerSearch(`${c.lastName}, ${c.firstName}`);
-                      setShowCustomerDropdown(false);
+                      setCustomerSearch("");
                     }}
-                    className="w-full text-left px-4 py-3 text-sm hover:bg-gray-50 border-b border-gray-50 last:border-0"
+                    className={`w-full flex items-center gap-3 px-4 py-3 text-sm border-b border-gray-50 last:border-0 text-left transition-colors ${
+                      isSelected ? "bg-primary/5" : "hover:bg-gray-50"
+                    }`}
                   >
-                    <span className="font-medium">{c.lastName}, {c.firstName}</span>
-                    {c.phone && <span className="text-gray-400 ml-2">{c.phone}</span>}
+                    <div className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${isSelected ? "bg-primary" : "bg-gray-200"}`} />
+                    <div className="flex-1 min-w-0">
+                      <span className="font-medium text-gray-900">{c.lastName}, {c.firstName}</span>
+                    </div>
+                    {c.phone && (
+                      <span className="text-xs text-gray-400 flex-shrink-0">{c.phone}</span>
+                    )}
                   </button>
-                ))}
-              </div>
+                );
+              })
             )}
           </div>
-          {selectedCustomerId && (
-            <p className="text-sm text-green-600 font-medium">✓ Customer selected</p>
-          )}
-          {!selectedCustomerId && (
-            <p className="text-sm text-gray-500">
-              Customer not found?{" "}
-              <a href="/customers/new" target="_blank" className="text-primary hover:underline">
-                Add new customer
-              </a>
-            </p>
-          )}
+
+          <div className="flex items-center justify-between">
+            {selectedCustomerId ? (
+              <p className="text-sm text-green-600 font-medium">
+                ✓ {allCustomers.find(c => c.id === selectedCustomerId)?.lastName}, {allCustomers.find(c => c.id === selectedCustomerId)?.firstName}
+              </p>
+            ) : (
+              <p className="text-sm text-gray-400">No customer selected</p>
+            )}
+            <a href="/customers/new" target="_blank" className="text-xs text-primary hover:underline">
+              + New customer
+            </a>
+          </div>
         </div>
       )}
 
@@ -289,23 +317,47 @@ export function NewOrderWizard({ customer, allCustomers, prescriptions = [], ins
           <h2 className="font-semibold text-gray-900">Order Details</h2>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Order Type</label>
-            <div className="grid grid-cols-3 gap-2">
-              {ORDER_TYPES.map((t) => (
-                <button
-                  key={t.value}
-                  type="button"
-                  onClick={() => setOrderType(t.value)}
-                  className={`px-3 py-2 rounded-lg text-sm font-medium border transition-colors ${
-                    orderType === t.value
-                      ? "bg-primary text-white border-primary"
-                      : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
-                  }`}
-                >
-                  {t.label}
-                </button>
-              ))}
+            <div className="flex items-center justify-between mb-2">
+              <label className="block text-sm font-medium text-gray-700">Order Type</label>
+              <span className="text-xs text-gray-400">Select all that apply</span>
             </div>
+            <div className="grid grid-cols-3 gap-2">
+              {ORDER_TYPES.map((t) => {
+                const selected = orderTypes.includes(t.value);
+                return (
+                  <button
+                    key={t.value}
+                    type="button"
+                    onClick={() => {
+                      setOrderTypes((prev) =>
+                        selected
+                          ? prev.filter((v) => v !== t.value).length > 0
+                            ? prev.filter((v) => v !== t.value)
+                            : prev // keep at least one selected
+                          : [...prev, t.value]
+                      );
+                    }}
+                    className={`relative px-3 py-2.5 rounded-lg text-sm font-medium border transition-colors text-left ${
+                      selected
+                        ? "bg-primary text-white border-primary"
+                        : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
+                    }`}
+                  >
+                    {selected && (
+                      <span className="absolute top-1.5 right-1.5 w-4 h-4 bg-white/30 rounded-full flex items-center justify-center text-[10px] font-bold">
+                        ✓
+                      </span>
+                    )}
+                    {t.label}
+                  </button>
+                );
+              })}
+            </div>
+            {orderTypes.length > 1 && (
+              <p className="text-xs text-primary mt-2 font-medium">
+                {orderTypes.length} types selected
+              </p>
+            )}
           </div>
 
           {prescriptions.length > 0 && (
@@ -378,98 +430,160 @@ export function NewOrderWizard({ customer, allCustomers, prescriptions = [], ins
         <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6 space-y-4">
           <h2 className="font-semibold text-gray-900">Line Items</h2>
 
-          <div className="space-y-3">
-            {lineItems.map((item, i) => (
-              <div
-                key={i}
-                className="p-4 border border-gray-200 rounded-lg space-y-3 bg-gray-50/50"
-              >
-                <div className="flex items-center justify-between">
-                  <select
-                    value={item.type}
-                    onChange={(e) => updateLineItem(i, "type", e.target.value)}
-                    className="text-xs font-medium bg-transparent border-0 focus:outline-none text-primary cursor-pointer"
-                  >
-                    {LINE_ITEM_TYPES.map((t) => (
-                      <option key={t.value} value={t.value}>{t.label}</option>
-                    ))}
-                  </select>
-                  {lineItems.length > 1 && (
-                    <button
-                      type="button"
-                      onClick={() => removeLineItem(i)}
-                      className="text-gray-400 hover:text-red-500 transition-colors"
+          <div className="space-y-4">
+            {lineItems.map((item, i) => {
+              const search = inventorySearches[i] || "";
+              const filtered = inventoryItems.filter((inv) =>
+                search.length === 0 ||
+                `${inv.brand} ${inv.model} ${inv.color || ""} ${inv.sku || ""}`.toLowerCase().includes(search.toLowerCase())
+              ).slice(0, 8);
+
+              return (
+                <div key={i} className="border border-gray-200 rounded-xl overflow-hidden">
+                  {/* Header row: type + remove */}
+                  <div className="flex items-center gap-3 px-4 py-3 bg-gray-50 border-b border-gray-100">
+                    <label className="text-xs font-medium text-gray-500 whitespace-nowrap">Item type</label>
+                    <select
+                      value={item.type}
+                      onChange={(e) => updateLineItem(i, "type", e.target.value)}
+                      className="flex-1 px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary bg-white"
                     >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  )}
-                </div>
+                      {LINE_ITEM_TYPES.map((t) => (
+                        <option key={t.value} value={t.value}>{t.label}</option>
+                      ))}
+                    </select>
+                    {lineItems.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          removeLineItem(i);
+                          setInventorySearches((prev) => { const n = { ...prev }; delete n[i]; return n; });
+                        }}
+                        className="text-gray-400 hover:text-red-500 transition-colors flex-shrink-0"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    )}
+                  </div>
 
-                <input
-                  value={item.description}
-                  onChange={(e) => updateLineItem(i, "description", e.target.value)}
-                  placeholder="Description (e.g. Essilor Varilux X, PLANO AR coating)"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary bg-white"
-                />
+                  <div className="p-4 space-y-3">
+                    {/* Inventory picker — always visible if there are items */}
+                    {inventoryItems.length > 0 && (
+                      <div className="space-y-2">
+                        <div className="relative">
+                          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
+                          <input
+                            value={search}
+                            onChange={(e) => setInventorySearches((prev) => ({ ...prev, [i]: e.target.value }))}
+                            placeholder="Search inventory..."
+                            className="w-full pl-9 pr-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary bg-white"
+                          />
+                        </div>
+                        <div className="border border-gray-100 rounded-lg overflow-hidden max-h-44 overflow-y-auto">
+                          {filtered.length === 0 ? (
+                            <p className="text-xs text-gray-400 text-center py-4">No items match your search.</p>
+                          ) : (
+                            filtered.map((inv) => {
+                              const desc = `${inv.brand} ${inv.model}${inv.color ? ` — ${inv.color}` : ""}`;
+                              const isSelected = item.description === desc;
+                              return (
+                                <button
+                                  key={inv.id}
+                                  type="button"
+                                  onClick={() => {
+                                    updateLineItem(i, "description", desc);
+                                    updateLineItem(i, "type", "FRAME");
+                                    updateLineItem(i, "unitPriceCustomer", inv.retailPrice ?? 0);
+                                    updateLineItem(i, "unitPriceReal", isDualInvoice ? (inv.wholesaleCost ?? 0) : (inv.retailPrice ?? 0));
+                                  }}
+                                  className={`w-full flex items-center gap-3 px-3 py-2.5 text-sm border-b border-gray-50 last:border-0 text-left transition-colors ${
+                                    isSelected ? "bg-primary/5" : "hover:bg-gray-50"
+                                  }`}
+                                >
+                                  <div className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${isSelected ? "bg-primary" : "bg-gray-200"}`} />
+                                  <div className="flex-1 min-w-0">
+                                    <span className="font-medium text-gray-900">{inv.brand} {inv.model}</span>
+                                    {inv.color && <span className="text-gray-400 text-xs ml-1.5">{inv.color}</span>}
+                                    {inv.sku && <span className="text-gray-400 text-xs ml-1.5">· {inv.sku}</span>}
+                                  </div>
+                                  {inv.retailPrice && (
+                                    <span className="text-xs font-semibold text-gray-700 flex-shrink-0">{formatCurrency(inv.retailPrice)}</span>
+                                  )}
+                                </button>
+                              );
+                            })
+                          )}
+                        </div>
+                      </div>
+                    )}
 
-                <div className="grid grid-cols-3 gap-3">
-                  <div>
-                    <label className="block text-xs text-gray-500 mb-1">Qty</label>
+                    {/* Description (custom / overrideable) */}
                     <input
-                      type="number"
-                      min="1"
-                      value={item.quantity}
-                      onChange={(e) => updateLineItem(i, "quantity", parseInt(e.target.value) || 1)}
+                      value={item.description}
+                      onChange={(e) => updateLineItem(i, "description", e.target.value)}
+                      placeholder="Description (auto-filled from selection, or type custom)"
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary bg-white"
                     />
-                  </div>
-                  <div>
-                    <label className="block text-xs text-gray-500 mb-1">
-                      {isDualInvoice ? "Price (Customer)" : "Price"}
-                    </label>
-                    <input
-                      type="number"
-                      min="0"
-                      step="0.01"
-                      value={item.unitPriceCustomer || ""}
-                      onChange={(e) => {
-                        const val = parseFloat(e.target.value) || 0;
-                        updateLineItem(i, "unitPriceCustomer", val);
-                        if (!isDualInvoice) updateLineItem(i, "unitPriceReal", val);
-                      }}
-                      placeholder="0.00"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary bg-white"
-                    />
-                  </div>
-                  {isDualInvoice && (
-                    <div>
-                      <label className="block text-xs text-gray-500 mb-1">Price (Internal)</label>
-                      <input
-                        type="number"
-                        min="0"
-                        step="0.01"
-                        value={item.unitPriceReal || ""}
-                        onChange={(e) => updateLineItem(i, "unitPriceReal", parseFloat(e.target.value) || 0)}
-                        placeholder="0.00"
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary bg-white"
-                      />
+
+                    {/* Qty + Price */}
+                    <div className="grid grid-cols-3 gap-3">
+                      <div>
+                        <label className="block text-xs text-gray-500 mb-1">Qty</label>
+                        <input
+                          type="number"
+                          min="1"
+                          value={item.quantity}
+                          onChange={(e) => updateLineItem(i, "quantity", parseInt(e.target.value) || 1)}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary bg-white"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs text-gray-500 mb-1">
+                          {isDualInvoice ? "Price (Customer)" : "Price"}
+                        </label>
+                        <input
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          value={item.unitPriceCustomer || ""}
+                          onChange={(e) => {
+                            const val = parseFloat(e.target.value) || 0;
+                            updateLineItem(i, "unitPriceCustomer", val);
+                            if (!isDualInvoice) updateLineItem(i, "unitPriceReal", val);
+                          }}
+                          placeholder="0.00"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary bg-white"
+                        />
+                      </div>
+                      {isDualInvoice && (
+                        <div>
+                          <label className="block text-xs text-gray-500 mb-1">Price (Internal)</label>
+                          <input
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            value={item.unitPriceReal || ""}
+                            onChange={(e) => updateLineItem(i, "unitPriceReal", parseFloat(e.target.value) || 0)}
+                            placeholder="0.00"
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary bg-white"
+                          />
+                        </div>
+                      )}
                     </div>
-                  )}
-                </div>
 
-                <div className="text-xs text-right text-gray-500">
-                  Subtotal: <span className="font-medium text-gray-900">
-                    {formatCurrency(item.unitPriceCustomer * item.quantity)}
-                  </span>
+                    <div className="text-xs text-right text-gray-500">
+                      Subtotal: <span className="font-medium text-gray-900">{formatCurrency(item.unitPriceCustomer * item.quantity)}</span>
+                    </div>
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
 
           <button
             type="button"
             onClick={addLineItem}
-            className="flex items-center gap-2 text-sm text-primary hover:text-primary/80 font-medium"
+            className="inline-flex items-center gap-2 h-8 px-3 rounded-lg text-sm text-primary border border-dashed border-primary/40 hover:bg-primary/5 font-medium transition-colors"
           >
             <Plus className="w-4 h-4" />
             Add item
