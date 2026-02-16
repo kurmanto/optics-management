@@ -4,6 +4,7 @@ import Link from "next/link";
 import { formatCurrency, formatDate } from "@/lib/utils/formatters";
 import { Plus, Kanban } from "lucide-react";
 import { OrderStatus, Prisma } from "@prisma/client";
+import { redirect } from "next/navigation";
 
 const STATUS_LABELS: Record<OrderStatus, string> = {
   DRAFT: "Draft",
@@ -35,6 +36,11 @@ export default async function OrdersPage({
   await verifySession();
 
   const params = await searchParams;
+
+  // Default to Kanban board when no filters active
+  if (!params.q && !params.status && !params.page) {
+    redirect("/orders/board");
+  }
   const query = params.q?.trim() || "";
   const statusFilter = params.status as OrderStatus | undefined;
   const page = Math.max(1, parseInt(params.page || "1"));
