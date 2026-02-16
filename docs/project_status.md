@@ -1,7 +1,7 @@
 # Project Status
 ## Mint Vision Optique — Staff Portal
 
-**Last updated:** 2026-02-15
+**Last updated:** 2026-02-15 (post-setup)
 
 ---
 
@@ -36,6 +36,8 @@
 | Migration script — customers | ✅ Scaffolded | Not yet run — needs CSV export |
 | Migration script — inventory | ✅ Scaffolded | Not yet run — needs CSV export |
 | **Data migration (actual run)** | 🔲 Pending | Needs CSV export from Google Sheets |
+| **Database connected (Supabase)** | ✅ Complete | aws-1-ca-central-1 pooler, schema deployed, admin seeded |
+| **GitHub repo** | ✅ Complete | kurmanto/optics-management |
 
 ---
 

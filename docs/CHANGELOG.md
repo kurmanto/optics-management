@@ -26,6 +26,23 @@ Format: `[Version] — Date`
 
 ---
 
+## [1.0.1] — 2026-02-15
+
+### Added
+- All documentation: PRD, architecture, setup guide, reference docs, project status, changelog, README
+
+### Fixed
+- Supabase connection: use `aws-1-ca-central-1.pooler.supabase.com` (not `aws-0`) for this project
+- SSL: set `NODE_TLS_REJECT_UNAUTHORIZED=0` and `ssl: { rejectUnauthorized: false }` in Prisma adapter
+- `prisma.config.ts` datasource uses `DIRECT_URL` (session pooler, port 5432) for schema operations
+- Schema deployed to Supabase via SQL editor; admin user seeded manually
+
+### Infrastructure
+- GitHub repo created: `kurmanto/optics-management`
+- Initial commit pushed to `master`
+
+---
+
 ## Upcoming
 
 ### [1.1.0] — Planned

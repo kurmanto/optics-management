@@ -56,9 +56,12 @@ openssl rand -base64 32
 Edit `.env` with the following values from your Supabase project:
 
 ```env
-# Supabase (Settings > Database > Connection string)
-DATABASE_URL="postgresql://postgres.[project-ref]:[password]@aws-0-ca-central-1.pooler.supabase.com:6543/postgres?pgbouncer=true"
-DIRECT_URL="postgresql://postgres.[project-ref]:[password]@aws-0-ca-central-1.pooler.supabase.com:5432/postgres"
+# Supabase — get exact URLs from project dashboard → Connect button
+# NOTE: pooler hostname is region-specific (e.g. aws-1-ca-central-1, NOT aws-0)
+# Transaction pooler (port 6543) → DATABASE_URL
+# Session pooler (port 5432) → DIRECT_URL
+DATABASE_URL="postgresql://postgres.[project-ref]:[password]@aws-1-ca-central-1.pooler.supabase.com:6543/postgres"
+DIRECT_URL="postgresql://postgres.[project-ref]:[password]@aws-1-ca-central-1.pooler.supabase.com:5432/postgres"
 
 # Auth (generate with: openssl rand -base64 32)
 SESSION_SECRET="your-secret-here"
@@ -162,6 +165,22 @@ The app is designed to run on Vercel (or any Node.js host).
 - Use the **pooled** `DATABASE_URL` for the app (PgBouncer for connection pooling)
 - Use the **direct** `DIRECT_URL` for migrations only
 - Prisma 7 requires Node 22.12+ — configure in `package.json` engines field or Vercel settings
+
+---
+
+## Known Supabase Connection Issues
+
+### "Tenant or user not found"
+The pooler hostname is region-specific. **Copy the exact URL from your Supabase project → Connect button.** Do not guess the region — `aws-1` and `aws-0` are different and project-specific.
+
+### SSL / self-signed certificate error
+Set `NODE_TLS_REJECT_UNAUTHORIZED=0` in `.env`. The Prisma adapter also needs `ssl: { rejectUnauthorized: false }` in `src/lib/prisma.ts`.
+
+### `db.[project-ref].supabase.co` not resolving
+The direct DB hostname may not resolve from some networks. Use the **session pooler** (port 5432) for `DIRECT_URL` instead.
+
+### `prisma db push` failing
+`prisma.config.ts` must use `DIRECT_URL` (session pooler, port 5432), not the transaction pooler. The transaction pooler (port 6543) does not support schema operations.
 
 ---
 

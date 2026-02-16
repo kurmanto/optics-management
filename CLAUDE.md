@@ -106,6 +106,18 @@ Current version: **V1.0**
 | Walk-ins / Exams | 🔲 V2 |
 | SMS / Email | 🔲 V2.1 |
 
+## Documentation Requirements
+After every `/ship`, update ALL documentation files in `docs/` to reflect the current state:
+- `docs/CHANGELOG.md` — add entry for what was shipped
+- `docs/project_status.md` — update feature status table and known issues
+- `docs/setup_guide.md` — update if any setup steps changed
+- `docs/architecture.md` — update if any architecture changed
+- `docs/PRD.md` — update if any requirements changed
+- `docs/reference_docs.md` — update if any patterns/conventions changed
+- `README.md` — update if setup or overview changed
+
+This is a hard requirement, not optional.
+
 ## Running Locally
 
 ```bash
