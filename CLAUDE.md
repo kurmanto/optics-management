@@ -100,6 +100,7 @@ Current version: **V1.0**
 | Inventory browser | ✅ Complete |
 | Dashboard | ✅ Complete |
 | Migration scripts | ✅ Scaffolded |
+| Digital Forms (V1) | ✅ Complete |
 | PDF invoices | 🔲 Pending |
 | Staff management | 🔲 V1.1 |
 | Reporting | 🔲 V1.1 |

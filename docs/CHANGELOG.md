@@ -63,6 +63,51 @@ Format: `[Version] — Date`
 
 ---
 
+---
+
+## [1.2.0] — 2026-02-16
+
+### Added — Digital Forms System
+
+#### Core Infrastructure
+- `form_templates` + `form_submissions` tables with SQL migration (`prisma/migrations/forms_migration.sql`)
+- `form_packages` table + `PackageStatus` enum for multi-form intake bundles (`prisma/migrations/intake_migration.sql`)
+- `isOnboarded` boolean on `Customer` model — tracks whether a patient has completed intake
+- `appliedAt` timestamp on `FormPackage` — tracks when staff reviewed and applied intake data to PMS
+- New Prisma models: `FormTemplate`, `FormSubmission`, `FormPackage` with full relations
+- Middleware: `/f/` and `/intake/` added to `PUBLIC_PATHS` (no auth required for patients)
+- Server actions in `src/lib/actions/forms.ts`: `createFormSubmission`, `createIntakePackage`, `completeFormSubmission`, `completeIntakeStep`, `autoPopulateFromSubmission`, `applyIntakePackage`
+
+#### Public Patient Forms (no login required)
+- `/f/[token]` — individual form fill route
+- `/intake/[token]` — sequential multi-form intake flow with step progress bar
+- `/intake/[token]?handoff=1` — in-person handoff welcome screen (shown when staff opens form on device for patient)
+- 4 form templates: New Patient Registration, Privacy & Consent (PIPEDA/HIPAA), Insurance Verification, Frame Repair Waiver
+- Canvas-based digital signature pad on forms that require signing (New Patient, HIPAA Consent, Frame Repair Waiver)
+- Auto-creates Customer record from NEW_PATIENT form data; links all package submissions to customer
+
+#### Staff Portal — Forms Hub (`/forms`)
+- Forms Hub page with: intake CTA, intake packages section, individual form templates, outstanding forms queue, completed forms browser
+- **Send Intake Package** modal — create a 3-form bundle (Registration + Privacy + Insurance) and share via link or email
+- **In-Person Intake** button — creates package and opens `/intake/[token]?handoff=1` on the current device for walk-in patients
+- **Intake Packages** section — shows each package's per-step completion status with Copy Link + Email buttons
+- **Needs Review** queue — completed-but-not-applied intake packages surfaced with amber indicator and Review link
+- **Completed Forms** browser — searchable (by name) + filterable (by form type), shows Signed badge for forms with signatures
+- Individual form send modal (`SendFormModal`) — send any single form to an existing or new patient
+
+#### Staff Portal — Intake Review (`/forms/review/[packageId]`)
+- Unified review page showing all 3 intake forms' submitted data in ordered, labelled field layout
+- Renders drawn canvas signatures as `<img>` (with fallback to italic text for legacy text signatures)
+- Status indicators: "Needs Review" (amber), "Applied" (green with date)
+- **Apply All to Patient Record** button — runs `applyIntakePackage` server action to import Registration, PIPEDA preferences, and Insurance data in one transaction; sets `isOnboarded = true`
+- Linked patient record navigation
+
+#### Customer Detail Page
+- `isOnboarded` / `Not onboarded` badge next to patient name
+- **Forms & Documents** section — lists all form submissions for the customer with type, date, Signed badge, status badge, and View link
+
+---
+
 ## Upcoming
 
 ### [1.1.0] — Planned
@@ -70,3 +115,4 @@ Format: `[Version] — Date`
 - Staff management UI (Admin only)
 - Reporting page (revenue, orders by status)
 - Data migration (run customer + inventory import)
+- Notification system (new form submissions, order status changes, payments)

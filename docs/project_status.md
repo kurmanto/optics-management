@@ -1,7 +1,7 @@
 # Project Status
 ## Mint Vision Optique — Staff Portal
 
-**Last updated:** 2026-02-15 (design-fixes)
+**Last updated:** 2026-02-16 (forms-impl)
 
 ---
 
@@ -38,6 +38,29 @@
 | **Data migration (actual run)** | 🔲 Pending | Needs CSV export from Google Sheets |
 | **Database connected (Supabase)** | ✅ Complete | aws-1-ca-central-1 pooler, schema deployed, admin seeded |
 | **GitHub repo** | ✅ Complete | kurmanto/optics-management |
+| **Digital Forms** | ✅ Complete | See V1.2 section below |
+
+---
+
+---
+
+### V1.2 — Digital Forms (Complete)
+
+| Feature | Status | Notes |
+|---------|--------|-------|
+| Form templates (4 types) | ✅ Complete | New Patient, HIPAA Consent, Insurance, Frame Repair Waiver |
+| Individual form send + share link | ✅ Complete | |
+| Public form fill page `/f/[token]` | ✅ Complete | No login required |
+| Canvas digital signature pad | ✅ Complete | New Patient, HIPAA Consent, Frame Repair Waiver |
+| Intake package (3-form bundle) | ✅ Complete | Registration + Privacy + Insurance |
+| Sequential intake flow `/intake/[token]` | ✅ Complete | Progress bar, auto-advances |
+| In-person intake (kiosk mode) | ✅ Complete | Handoff screen, opens on current device |
+| Auto-create customer from intake | ✅ Complete | NEW_PATIENT form creates Customer record |
+| `isOnboarded` flag on Customer | ✅ Complete | Set to true when intake applied |
+| Intake review page + "Apply All" | ✅ Complete | One-click import to PMS |
+| Needs Review queue on Forms Hub | ✅ Complete | Completed-but-unapplied packages surfaced |
+| Completed forms browser (search/filter) | ✅ Complete | |
+| Forms & Documents on customer detail | ✅ Complete | |
 
 ---
 
@@ -92,9 +115,10 @@
 
 ## Immediate Next Steps (V1.1)
 
-1. **PDF invoices** — most operationally critical; staff need to hand invoices to customers
-2. **Run data migration** — export Customer Master CSV, run `migrate-customers.ts`
-3. **Staff management** — settings page is a stub; need staff list + create/deactivate
+1. **Notification system** — bell icon in header; surface new form submissions, order status changes, payments requiring action
+2. **PDF invoices** — most operationally critical; staff need to hand invoices to customers
+3. **Run data migration** — export Customer Master CSV, run `migrate-customers.ts`
+4. **Staff management** — settings page is a stub; need staff list + create/deactivate
 
 ---
 

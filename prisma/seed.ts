@@ -10,6 +10,7 @@ import {
   OrderType,
   LineItemType,
   ExamType,
+  FormTemplateType,
 } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { config } from "dotenv";
@@ -98,6 +99,38 @@ async function main() {
     await prisma.systemSetting.upsert({ where: { key: s.key }, update: {}, create: s });
   }
   console.log("✅ System settings");
+
+  // ── Form Templates ──
+  const formTemplates = [
+    {
+      type: FormTemplateType.NEW_PATIENT,
+      name: "New Patient Registration",
+      description: "Collect personal details, contact info, and health card number.",
+    },
+    {
+      type: FormTemplateType.HIPAA_CONSENT,
+      name: "Privacy & Consent (PIPEDA)",
+      description: "Consent for data collection, SMS/email communications, and insurance sharing.",
+    },
+    {
+      type: FormTemplateType.FRAME_REPAIR_WAIVER,
+      name: "Frame Repair Waiver",
+      description: "Liability waiver for frame adjustments and repairs with patient signature.",
+    },
+    {
+      type: FormTemplateType.INSURANCE_VERIFICATION,
+      name: "Insurance Verification",
+      description: "Collect policy details, member ID, group number, and renewal dates.",
+    },
+  ];
+
+  for (const t of formTemplates) {
+    const existing = await prisma.formTemplate.findFirst({ where: { type: t.type } });
+    if (!existing) {
+      await prisma.formTemplate.create({ data: t });
+    }
+  }
+  console.log("✅ Form templates (4)");
 
   // ── Customers ──
   const customerDefs = [
