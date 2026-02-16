@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createOrder } from "@/lib/actions/orders";
 import { formatCurrency } from "@/lib/utils/formatters";
-import { Plus, Trash2, ChevronRight, ChevronLeft } from "lucide-react";
+import { Plus, Trash2, ChevronRight, ChevronLeft, Search, Package } from "lucide-react";
 
 type Customer = {
   id: string;
@@ -35,11 +35,22 @@ type LineItem = {
   notes?: string;
 };
 
+type InventoryItem = {
+  id: string;
+  brand: string;
+  model: string;
+  color: string | null;
+  sku: string | null;
+  retailPrice: number | null;
+  wholesaleCost: number | null;
+};
+
 type Props = {
   customer?: Customer;
   allCustomers: Customer[];
   prescriptions?: Prescription[];
   insurancePolicies?: InsurancePolicy[];
+  inventoryItems?: InventoryItem[];
 };
 
 const LINE_ITEM_TYPES = [
@@ -66,11 +77,13 @@ const PAYMENT_METHODS = [
   "CHEQUE", "E_TRANSFER", "INSURANCE", "OTHER"
 ];
 
-export function NewOrderWizard({ customer, allCustomers, prescriptions = [], insurancePolicies = [] }: Props) {
+export function NewOrderWizard({ customer, allCustomers, prescriptions = [], insurancePolicies = [], inventoryItems = [] }: Props) {
   const router = useRouter();
   const [step, setStep] = useState(1);
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
+  const [inventorySearches, setInventorySearches] = useState<Record<number, string>>({});
+  const [openInventoryDropdown, setOpenInventoryDropdown] = useState<number | null>(null);
 
   // Step 1: Customer
   const [selectedCustomerId, setSelectedCustomerId] = useState(customer?.id || "");
@@ -376,100 +389,187 @@ export function NewOrderWizard({ customer, allCustomers, prescriptions = [], ins
       {/* Step 3: Line Items */}
       {step === 3 && (
         <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6 space-y-4">
-          <h2 className="font-semibold text-gray-900">Line Items</h2>
+          <div>
+            <h2 className="font-semibold text-gray-900">Line Items</h2>
+            <p className="text-xs text-gray-500 mt-0.5">Select an item type, then search inventory or type a custom description.</p>
+          </div>
 
           <div className="space-y-3">
-            {lineItems.map((item, i) => (
-              <div
-                key={i}
-                className="p-4 border border-gray-200 rounded-lg space-y-3 bg-gray-50/50"
-              >
-                <div className="flex items-center justify-between">
-                  <select
-                    value={item.type}
-                    onChange={(e) => updateLineItem(i, "type", e.target.value)}
-                    className="text-xs font-medium bg-transparent border-0 focus:outline-none text-primary cursor-pointer"
-                  >
-                    {LINE_ITEM_TYPES.map((t) => (
-                      <option key={t.value} value={t.value}>{t.label}</option>
-                    ))}
-                  </select>
-                  {lineItems.length > 1 && (
-                    <button
-                      type="button"
-                      onClick={() => removeLineItem(i)}
-                      className="text-gray-400 hover:text-red-500 transition-colors"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  )}
-                </div>
+            {lineItems.map((item, i) => {
+              const search = inventorySearches[i] || "";
+              const filtered = search.length > 0
+                ? inventoryItems.filter((inv) =>
+                    `${inv.brand} ${inv.model} ${inv.color || ""} ${inv.sku || ""}`.toLowerCase().includes(search.toLowerCase())
+                  ).slice(0, 6)
+                : [];
 
-                <input
-                  value={item.description}
-                  onChange={(e) => updateLineItem(i, "description", e.target.value)}
-                  placeholder="Description (e.g. Essilor Varilux X, PLANO AR coating)"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary bg-white"
-                />
-
-                <div className="grid grid-cols-3 gap-3">
-                  <div>
-                    <label className="block text-xs text-gray-500 mb-1">Qty</label>
-                    <input
-                      type="number"
-                      min="1"
-                      value={item.quantity}
-                      onChange={(e) => updateLineItem(i, "quantity", parseInt(e.target.value) || 1)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary bg-white"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs text-gray-500 mb-1">
-                      {isDualInvoice ? "Price (Customer)" : "Price"}
-                    </label>
-                    <input
-                      type="number"
-                      min="0"
-                      step="0.01"
-                      value={item.unitPriceCustomer || ""}
-                      onChange={(e) => {
-                        const val = parseFloat(e.target.value) || 0;
-                        updateLineItem(i, "unitPriceCustomer", val);
-                        if (!isDualInvoice) updateLineItem(i, "unitPriceReal", val);
-                      }}
-                      placeholder="0.00"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary bg-white"
-                    />
-                  </div>
-                  {isDualInvoice && (
-                    <div>
-                      <label className="block text-xs text-gray-500 mb-1">Price (Internal)</label>
-                      <input
-                        type="number"
-                        min="0"
-                        step="0.01"
-                        value={item.unitPriceReal || ""}
-                        onChange={(e) => updateLineItem(i, "unitPriceReal", parseFloat(e.target.value) || 0)}
-                        placeholder="0.00"
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary bg-white"
-                      />
+              return (
+                <div key={i} className="border border-gray-200 rounded-xl bg-gray-50/30 overflow-hidden">
+                  {/* Type selector */}
+                  <div className="flex items-center justify-between px-4 pt-3 pb-2 border-b border-gray-100">
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <span className="text-xs text-gray-400 font-medium mr-1">Type:</span>
+                      {LINE_ITEM_TYPES.map((t) => (
+                        <button
+                          key={t.value}
+                          type="button"
+                          onClick={() => updateLineItem(i, "type", t.value)}
+                          className={`inline-flex items-center h-6 px-2 rounded-md text-xs font-medium transition-colors ${
+                            item.type === t.value
+                              ? "bg-primary text-white"
+                              : "bg-white border border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50"
+                          }`}
+                        >
+                          {t.label}
+                        </button>
+                      ))}
                     </div>
-                  )}
-                </div>
+                    {lineItems.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          removeLineItem(i);
+                          setInventorySearches((prev) => {
+                            const next = { ...prev };
+                            delete next[i];
+                            return next;
+                          });
+                          if (openInventoryDropdown === i) setOpenInventoryDropdown(null);
+                        }}
+                        className="text-gray-300 hover:text-red-500 transition-colors ml-2 flex-shrink-0"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    )}
+                  </div>
 
-                <div className="text-xs text-right text-gray-500">
-                  Subtotal: <span className="font-medium text-gray-900">
-                    {formatCurrency(item.unitPriceCustomer * item.quantity)}
-                  </span>
+                  {/* Description / inventory search */}
+                  <div className="px-4 pt-3 space-y-3">
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
+                      <input
+                        value={item.description || inventorySearches[i] || ""}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          updateLineItem(i, "description", val);
+                          setInventorySearches((prev) => ({ ...prev, [i]: val }));
+                          setOpenInventoryDropdown(val.length > 0 ? i : null);
+                        }}
+                        onFocus={() => {
+                          if ((inventorySearches[i] || item.description || "").length > 0) {
+                            setOpenInventoryDropdown(i);
+                          }
+                        }}
+                        onBlur={() => setTimeout(() => setOpenInventoryDropdown(null), 150)}
+                        placeholder={
+                          item.type === "FRAME"
+                            ? "Search inventory or type frame description..."
+                            : "Type description (e.g. Essilor Varilux X, AR coating)..."
+                        }
+                        className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary bg-white"
+                      />
+
+                      {/* Inventory dropdown */}
+                      {openInventoryDropdown === i && filtered.length > 0 && (
+                        <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-20 overflow-hidden">
+                          {filtered.map((inv) => (
+                            <button
+                              key={inv.id}
+                              type="button"
+                              onMouseDown={() => {
+                                const desc = `${inv.brand} ${inv.model}${inv.color ? ` — ${inv.color}` : ""}`;
+                                updateLineItem(i, "description", desc);
+                                updateLineItem(i, "type", "FRAME");
+                                updateLineItem(i, "unitPriceCustomer", inv.retailPrice ?? 0);
+                                if (!isDualInvoice) {
+                                  updateLineItem(i, "unitPriceReal", inv.retailPrice ?? 0);
+                                } else {
+                                  updateLineItem(i, "unitPriceReal", inv.wholesaleCost ?? 0);
+                                }
+                                setInventorySearches((prev) => ({ ...prev, [i]: desc }));
+                                setOpenInventoryDropdown(null);
+                              }}
+                              className="w-full flex items-center gap-3 px-4 py-2.5 text-sm hover:bg-gray-50 border-b border-gray-50 last:border-0 text-left transition-colors"
+                            >
+                              <Package className="w-4 h-4 text-gray-300 flex-shrink-0" />
+                              <div className="flex-1 min-w-0">
+                                <span className="font-medium text-gray-900">{inv.brand} {inv.model}</span>
+                                {inv.color && <span className="text-gray-400 ml-1.5 text-xs">{inv.color}</span>}
+                                {inv.sku && <span className="text-gray-400 ml-1.5 text-xs">· {inv.sku}</span>}
+                              </div>
+                              {inv.retailPrice && (
+                                <span className="text-xs font-semibold text-gray-700 flex-shrink-0">
+                                  {formatCurrency(inv.retailPrice)}
+                                </span>
+                              )}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Qty + Price */}
+                    <div className="grid grid-cols-3 gap-3 pb-3">
+                      <div>
+                        <label className="block text-xs text-gray-500 mb-1">Qty</label>
+                        <input
+                          type="number"
+                          min="1"
+                          value={item.quantity}
+                          onChange={(e) => updateLineItem(i, "quantity", parseInt(e.target.value) || 1)}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary bg-white"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs text-gray-500 mb-1">
+                          {isDualInvoice ? "Price (Customer)" : "Price"}
+                        </label>
+                        <input
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          value={item.unitPriceCustomer || ""}
+                          onChange={(e) => {
+                            const val = parseFloat(e.target.value) || 0;
+                            updateLineItem(i, "unitPriceCustomer", val);
+                            if (!isDualInvoice) updateLineItem(i, "unitPriceReal", val);
+                          }}
+                          placeholder="0.00"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary bg-white"
+                        />
+                      </div>
+                      {isDualInvoice && (
+                        <div>
+                          <label className="block text-xs text-gray-500 mb-1">Price (Internal)</label>
+                          <input
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            value={item.unitPriceReal || ""}
+                            onChange={(e) => updateLineItem(i, "unitPriceReal", parseFloat(e.target.value) || 0)}
+                            placeholder="0.00"
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary bg-white"
+                          />
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="text-xs text-right text-gray-500 -mt-1 pb-2">
+                      Subtotal:{" "}
+                      <span className="font-medium text-gray-900">
+                        {formatCurrency(item.unitPriceCustomer * item.quantity)}
+                      </span>
+                    </div>
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
 
           <button
             type="button"
             onClick={addLineItem}
-            className="flex items-center gap-2 text-sm text-primary hover:text-primary/80 font-medium"
+            className="inline-flex items-center gap-2 h-8 px-3 rounded-lg text-sm text-primary border border-dashed border-primary/40 hover:bg-primary/5 font-medium transition-colors"
           >
             <Plus className="w-4 h-4" />
             Add item
