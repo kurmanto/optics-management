@@ -152,9 +152,9 @@ export default async function InventoryPage({
             <div className="hidden sm:block w-px h-6 bg-gray-200 flex-shrink-0" />
             <Link
               href={`/inventory${query ? `?q=${encodeURIComponent(query)}` : ""}`}
-              className="text-xs text-gray-400 hover:text-gray-600 transition-colors whitespace-nowrap"
+              className="inline-flex items-center h-7 px-3 rounded-md text-xs font-medium border border-gray-300 text-gray-600 hover:bg-gray-50 hover:border-gray-400 transition-colors whitespace-nowrap"
             >
-              Clear filters
+              ✕ Clear filters
             </Link>
           </>
         )}
