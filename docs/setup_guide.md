@@ -117,6 +117,17 @@ For inventory:
 1. Export inventory data to CSV
 2. Save to: `scripts/data/inventory.csv`
 
+### Test data (development only)
+
+To populate the database with realistic test data:
+
+```bash
+npx tsx scripts/seed-test-data.ts
+```
+
+Creates 2 staff users, 10 customers, 10 orders across all statuses, 10 inventory items, and more.
+Staff login: `sarah@mintvisionsoptique.com` / `staff123`
+
 ### Step 2 — Run migration scripts
 
 ```bash
