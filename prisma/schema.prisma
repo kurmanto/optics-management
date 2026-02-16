@@ -1,0 +1,673 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ─────────────────────────────────────────
+// AUTH
+// ─────────────────────────────────────────
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  name         String
+  passwordHash String
+  role         UserRole @default(STAFF)
+  isActive     Boolean  @default(true)
+  mustChangePassword Boolean @default(false)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  orders    Order[]
+  auditLogs AuditLog[]
+
+  @@map("users")
+}
+
+enum UserRole {
+  ADMIN
+  STAFF
+  VIEWER
+}
+
+// ─────────────────────────────────────────
+// CUSTOMERS & FAMILIES
+// ─────────────────────────────────────────
+
+model Family {
+  id        String   @id @default(cuid())
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  customers Customer[]
+
+  @@map("families")
+}
+
+model Customer {
+  id               String   @id @default(cuid())
+  legacyCustomerId String?  @unique // e.g. "6476485809-A"
+  firstName        String
+  lastName         String
+  email            String?
+  phone            String?
+  dateOfBirth      DateTime?
+  gender           Gender?
+  address          String?
+  city             String?
+  province         String?
+  postalCode       String?
+  notes            String?
+  tags             String[] @default([]) // ["VIP", "Insurance Gaming"]
+  isActive         Boolean  @default(true)
+  smsOptIn         Boolean  @default(true)
+  emailOptIn       Boolean  @default(true)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  familyId String?
+  family   Family? @relation(fields: [familyId], references: [id])
+
+  prescriptions     Prescription[]
+  orders            Order[]
+  insurancePolicies InsurancePolicy[]
+  exams             Exam[]
+  walkins           Walkin[]
+  campaignEnrollments CampaignRecipient[]
+  messages          Message[]
+  referralsGiven    Referral[] @relation("referrer")
+  referralsReceived Referral[] @relation("referred")
+  appointments      Appointment[]
+
+  @@index([lastName, firstName])
+  @@index([phone])
+  @@index([email])
+  @@map("customers")
+}
+
+enum Gender {
+  MALE
+  FEMALE
+  OTHER
+  PREFER_NOT_TO_SAY
+}
+
+// ─────────────────────────────────────────
+// PRESCRIPTIONS
+// ─────────────────────────────────────────
+
+model Prescription {
+  id         String   @id @default(cuid())
+  customerId String
+  examId     String?
+  type       PrescriptionType @default(GLASSES)
+  date       DateTime
+
+  // OD (Right Eye)
+  odSphere   Float?
+  odCylinder Float?
+  odAxis     Int?
+  odAdd      Float?
+  odPd       Float?
+  odBc       Float? // base curve (contacts)
+  odDia      Float? // diameter (contacts)
+
+  // OS (Left Eye)
+  osSphere   Float?
+  osCylinder Float?
+  osAxis     Int?
+  osAdd      Float?
+  osPd       Float?
+  osBc       Float?
+  osDia      Float?
+
+  // Combined PD
+  pdBinocular Float?
+
+  doctorName  String?
+  notes       String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  exam     Exam?    @relation(fields: [examId], references: [id])
+  orders   Order[]
+
+  @@index([customerId])
+  @@map("prescriptions")
+}
+
+enum PrescriptionType {
+  GLASSES
+  CONTACTS
+}
+
+// ─────────────────────────────────────────
+// INVENTORY
+// ─────────────────────────────────────────
+
+model InventoryItem {
+  id              String   @id @default(cuid())
+  legacyItemId    String?  @unique
+  brand           String
+  model           String
+  sku             String?  @unique
+  category        FrameCategory
+  gender          FrameGender
+  color           String?
+  material        String?
+  size            String?  // e.g. "54-18-145"
+  eyeSize         Int?
+  bridgeSize      Int?
+  templeLength    Int?
+  rimType         RimType?
+  wholesaleCost   Float?
+  retailPrice     Float?
+  stockQuantity   Int      @default(0)
+  reorderPoint    Int      @default(2)
+  isActive        Boolean  @default(true)
+  notes           String?
+  imageUrl        String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  orderLineItems OrderLineItem[]
+
+  @@index([brand])
+  @@index([category, gender])
+  @@map("inventory_items")
+}
+
+enum FrameCategory {
+  OPTICAL
+  SUN
+  READING
+  SAFETY
+  SPORT
+}
+
+enum FrameGender {
+  MENS
+  WOMENS
+  UNISEX
+  KIDS
+}
+
+enum RimType {
+  FULL_RIM
+  HALF_RIM
+  RIMLESS
+}
+
+// ─────────────────────────────────────────
+// ORDERS
+// ─────────────────────────────────────────
+
+model Order {
+  id              String      @id @default(cuid())
+  orderNumber     String      @unique // e.g. "ORD-2025-001"
+  customerId      String
+  userId          String      // staff who created it
+  prescriptionId  String?
+  status          OrderStatus @default(DRAFT)
+  type            OrderType   @default(GLASSES)
+
+  // Customer-facing amounts
+  totalCustomer   Float       @default(0)
+  depositCustomer Float       @default(0)
+  balanceCustomer Float       @default(0)
+
+  // Real/internal amounts (for reporting)
+  totalReal       Float       @default(0)
+  depositReal     Float       @default(0)
+  balanceReal     Float       @default(0)
+
+  isDualInvoice   Boolean     @default(false)
+
+  insurancePolicyId String?
+
+  // Frame details (denormalized at time of sale)
+  frameBrand      String?
+  frameModel      String?
+  frameColor      String?
+  frameSku        String?
+  frameWholesale  Float?
+
+  // Lens details
+  lensType        String?
+  lensCoating     String?
+  lensSku         String?
+
+  notes           String?     // internal notes
+  labNotes        String?     // notes sent to lab
+  labOrderedAt    DateTime?
+  labReceivedAt   DateTime?
+  readyAt         DateTime?
+  pickedUpAt      DateTime?
+  dueDate         DateTime?
+
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  customer        Customer        @relation(fields: [customerId], references: [id])
+  user            User            @relation(fields: [userId], references: [id])
+  prescription    Prescription?   @relation(fields: [prescriptionId], references: [id])
+  insurancePolicy InsurancePolicy? @relation(fields: [insurancePolicyId], references: [id])
+
+  lineItems       OrderLineItem[]
+  statusHistory   OrderStatusHistory[]
+  payments        Payment[]
+  invoices        Invoice[]
+
+  @@index([customerId])
+  @@index([status])
+  @@index([orderNumber])
+  @@map("orders")
+}
+
+enum OrderStatus {
+  DRAFT
+  CONFIRMED
+  LAB_ORDERED
+  LAB_RECEIVED
+  READY
+  PICKED_UP
+  CANCELLED
+}
+
+enum OrderType {
+  GLASSES
+  CONTACTS
+  SUNGLASSES
+  ACCESSORIES
+  EXAM_ONLY
+}
+
+model OrderLineItem {
+  id              String       @id @default(cuid())
+  orderId         String
+  inventoryItemId String?
+  type            LineItemType
+  description     String
+  quantity        Int          @default(1)
+  unitPriceCustomer Float
+  unitPriceReal   Float
+  totalCustomer   Float
+  totalReal       Float
+  notes           String?
+  createdAt       DateTime     @default(now())
+
+  order         Order          @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  inventoryItem InventoryItem? @relation(fields: [inventoryItemId], references: [id])
+
+  @@map("order_line_items")
+}
+
+enum LineItemType {
+  FRAME
+  LENS
+  COATING
+  CONTACT_LENS
+  EXAM
+  ACCESSORY
+  DISCOUNT
+  OTHER
+}
+
+model OrderStatusHistory {
+  id        String      @id @default(cuid())
+  orderId   String
+  status    OrderStatus
+  note      String?
+  createdAt DateTime    @default(now())
+  createdBy String?     // user name or id
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@map("order_status_history")
+}
+
+// ─────────────────────────────────────────
+// PAYMENTS & INVOICES
+// ─────────────────────────────────────────
+
+model Payment {
+  id        String        @id @default(cuid())
+  orderId   String
+  amount    Float
+  method    PaymentMethod
+  reference String?       // cheque number, last 4 digits, etc.
+  note      String?
+  paidAt    DateTime      @default(now())
+  createdAt DateTime      @default(now())
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@map("payments")
+}
+
+enum PaymentMethod {
+  CASH
+  DEBIT
+  CREDIT_VISA
+  CREDIT_MASTERCARD
+  CREDIT_AMEX
+  CHEQUE
+  E_TRANSFER
+  INSURANCE
+  OTHER
+}
+
+model Invoice {
+  id          String      @id @default(cuid())
+  orderId     String
+  type        InvoiceType
+  fileUrl     String?     // Supabase Storage URL
+  generatedAt DateTime    @default(now())
+  createdAt   DateTime    @default(now())
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@map("invoices")
+}
+
+enum InvoiceType {
+  CUSTOMER  // what customer sees
+  INTERNAL  // real amounts
+}
+
+// ─────────────────────────────────────────
+// INSURANCE
+// ─────────────────────────────────────────
+
+model InsurancePolicy {
+  id             String   @id @default(cuid())
+  customerId     String
+  providerName   String   // e.g. "Sunlife", "OHIP", "Green Shield"
+  policyNumber   String?
+  groupNumber    String?
+  memberId       String?
+  coverageType   CoverageType
+  renewalMonth   Int?     // 1-12
+  renewalYear    Int?
+  maxFrames      Float?
+  maxLenses      Float?
+  maxContacts    Float?
+  maxExam        Float?
+  notes          String?
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  orders   Order[]
+  exams    Exam[]
+
+  @@map("insurance_policies")
+}
+
+enum CoverageType {
+  VISION
+  OHIP
+  EXTENDED_HEALTH
+  COMBINED
+}
+
+// ─────────────────────────────────────────
+// EXAMS (V2)
+// ─────────────────────────────────────────
+
+model Exam {
+  id                String   @id @default(cuid())
+  customerId        String
+  insurancePolicyId String?
+  doctorName        String?
+  examDate          DateTime
+  examType          ExamType @default(COMPREHENSIVE)
+
+  // Billing
+  billingCode       String?
+  amountBilled      Float?
+  amountPaid        Float?
+  ohipCovered       Boolean  @default(false)
+
+  // Clinical notes
+  iop               String?  // intraocular pressure
+  va                String?  // visual acuity
+  clinicalNotes     String?
+
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  customer        Customer         @relation(fields: [customerId], references: [id])
+  insurancePolicy InsurancePolicy? @relation(fields: [insurancePolicyId], references: [id])
+  prescriptions   Prescription[]
+
+  @@map("exams")
+}
+
+enum ExamType {
+  COMPREHENSIVE
+  CONTACT_LENS
+  FOLLOW_UP
+  PEDIATRIC
+}
+
+// ─────────────────────────────────────────
+// WALK-INS (V2)
+// ─────────────────────────────────────────
+
+model Walkin {
+  id          String   @id @default(cuid())
+  customerId  String?  // may be null if new/unidentified visitor
+  visitedAt   DateTime @default(now())
+  source      String?  // "walk-in", "referral", "google", etc.
+  interest    String?  // what they were looking for
+  outcome     WalkinOutcome @default(BROWSED)
+  notes       String?
+  followUpSentAt DateTime?
+  createdAt   DateTime @default(now())
+
+  customer Customer? @relation(fields: [customerId], references: [id])
+
+  @@map("walkins")
+}
+
+enum WalkinOutcome {
+  BROWSED
+  QUOTE_GIVEN
+  ORDER_PLACED
+  EXAM_BOOKED
+  RETURNED_LATER
+  NO_INTEREST
+}
+
+// ─────────────────────────────────────────
+// MARKETING (V2.1)
+// ─────────────────────────────────────────
+
+model Campaign {
+  id          String         @id @default(cuid())
+  name        String
+  type        CampaignType
+  status      CampaignStatus @default(DRAFT)
+  description String?
+  config      Json           @default("{}") // drip steps, timing, etc.
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  recipients CampaignRecipient[]
+  messages   Message[]
+
+  @@map("campaigns")
+}
+
+enum CampaignType {
+  WALKIN_FOLLOWUP     // 14-day drip
+  EXAM_REMINDER       // annual reminder
+  INSURANCE_RENEWAL   // 2-year cycle
+  ONE_TIME_BLAST
+}
+
+enum CampaignStatus {
+  DRAFT
+  ACTIVE
+  PAUSED
+  COMPLETED
+  ARCHIVED
+}
+
+model CampaignRecipient {
+  id         String            @id @default(cuid())
+  campaignId String
+  customerId String
+  status     RecipientStatus   @default(ACTIVE)
+  enrolledAt DateTime          @default(now())
+  completedAt DateTime?
+  optedOutAt DateTime?
+
+  campaign Campaign @relation(fields: [campaignId], references: [id])
+  customer Customer @relation(fields: [customerId], references: [id])
+
+  @@unique([campaignId, customerId])
+  @@map("campaign_recipients")
+}
+
+enum RecipientStatus {
+  ACTIVE
+  COMPLETED
+  OPTED_OUT
+  CONVERTED
+  BOUNCED
+}
+
+model Message {
+  id           String        @id @default(cuid())
+  campaignId   String?
+  customerId   String
+  channel      MessageChannel
+  status       MessageStatus @default(PENDING)
+  subject      String?       // email subject
+  body         String
+  sentAt       DateTime?
+  deliveredAt  DateTime?
+  failedAt     DateTime?
+  errorMessage String?
+  externalId   String?       // Twilio/SendGrid message ID
+  createdAt    DateTime      @default(now())
+
+  campaign Campaign? @relation(fields: [campaignId], references: [id])
+  customer Customer  @relation(fields: [customerId], references: [id])
+
+  @@map("messages")
+}
+
+enum MessageChannel {
+  SMS
+  EMAIL
+}
+
+enum MessageStatus {
+  PENDING
+  SENT
+  DELIVERED
+  FAILED
+  BOUNCED
+}
+
+// ─────────────────────────────────────────
+// REFERRALS (V3)
+// ─────────────────────────────────────────
+
+model Referral {
+  id           String   @id @default(cuid())
+  referrerId   String   // customer who referred
+  referredId   String   // customer who was referred
+  code         String?  @unique
+  rewardAmount Float?
+  rewardPaidAt DateTime?
+  notes        String?
+  createdAt    DateTime @default(now())
+
+  referrer Customer @relation("referrer", fields: [referrerId], references: [id])
+  referred Customer @relation("referred", fields: [referredId], references: [id])
+
+  @@map("referrals")
+}
+
+// ─────────────────────────────────────────
+// APPOINTMENTS (V4 - PMS Replacement)
+// ─────────────────────────────────────────
+
+model Appointment {
+  id           String            @id @default(cuid())
+  customerId   String
+  type         AppointmentType   @default(EYE_EXAM)
+  status       AppointmentStatus @default(SCHEDULED)
+  scheduledAt  DateTime
+  duration     Int               @default(30) // minutes
+  doctorName   String?
+  notes        String?
+  reminderSentAt DateTime?
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+
+  customer Customer @relation(fields: [customerId], references: [id])
+
+  @@map("appointments")
+}
+
+enum AppointmentType {
+  EYE_EXAM
+  CONTACT_LENS_FITTING
+  FOLLOW_UP
+  GLASSES_PICKUP
+  ADJUSTMENT
+}
+
+enum AppointmentStatus {
+  SCHEDULED
+  CONFIRMED
+  CHECKED_IN
+  COMPLETED
+  CANCELLED
+  NO_SHOW
+}
+
+// ─────────────────────────────────────────
+// AUDIT & SETTINGS
+// ─────────────────────────────────────────
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  userId     String?
+  action     String   // "CREATE", "UPDATE", "DELETE"
+  model      String   // "Customer", "Order", etc.
+  recordId   String
+  changes    Json?    // before/after diff
+  ipAddress  String?
+  createdAt  DateTime @default(now())
+
+  user User? @relation(fields: [userId], references: [id])
+
+  @@index([model, recordId])
+  @@index([userId])
+  @@map("audit_logs")
+}
+
+model SystemSetting {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  value     String
+  updatedAt DateTime @updatedAt
+
+  @@map("system_settings")
+}
