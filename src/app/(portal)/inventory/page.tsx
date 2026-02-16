@@ -2,7 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { verifySession } from "@/lib/dal";
 import Link from "next/link";
 import { formatCurrency } from "@/lib/utils/formatters";
-import { Search, Package } from "lucide-react";
+import { Search, Package, Plus } from "lucide-react";
 import { FrameCategory, FrameGender, Prisma } from "@prisma/client";
 
 type SearchParams = {
@@ -77,56 +77,87 @@ export default async function InventoryPage({
             {total.toLocaleString()} {total === 1 ? "frame" : "frames"}
           </p>
         </div>
+        <Link
+          href="/inventory/new"
+          className="inline-flex items-center gap-2 bg-primary text-white px-4 h-9 rounded-lg text-sm font-medium shadow-sm hover:bg-primary/90 active:scale-[0.98] transition-all duration-150"
+        >
+          <Plus className="w-4 h-4" />
+          New Item
+        </Link>
+      </div>
+
+      {/* Search */}
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+        <form>
+          {categoryFilter && <input type="hidden" name="category" value={categoryFilter} />}
+          {genderFilter && <input type="hidden" name="gender" value={genderFilter} />}
+          <input
+            name="q"
+            defaultValue={query}
+            type="text"
+            placeholder="Search brand, model, SKU..."
+            className="w-full pl-9 pr-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+          />
+        </form>
       </div>
 
       {/* Filters */}
-      <div className="flex flex-col sm:flex-row gap-3">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-          <form>
-            {categoryFilter && <input type="hidden" name="category" value={categoryFilter} />}
-            {genderFilter && <input type="hidden" name="gender" value={genderFilter} />}
-            <input
-              name="q"
-              defaultValue={query}
-              type="text"
-              placeholder="Search brand, model, SKU..."
-              className="w-full pl-9 pr-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-            />
-          </form>
+      <div className="bg-white rounded-xl border border-gray-100 shadow-sm px-5 py-4 flex flex-col sm:flex-row sm:items-center gap-4">
+        {/* Type */}
+        <div className="flex items-center gap-2 min-w-0">
+          <span className="text-xs font-semibold text-gray-400 uppercase tracking-wide whitespace-nowrap">Type</span>
+          <div className="flex gap-1.5 flex-wrap">
+            {(Object.keys(CATEGORY_LABELS) as FrameCategory[]).map((cat) => (
+              <Link
+                key={cat}
+                href={`/inventory?${new URLSearchParams({ ...(query ? { q: query } : {}), ...(genderFilter ? { gender: genderFilter } : {}), ...(categoryFilter === cat ? {} : { category: cat }) })}`}
+                className={`inline-flex items-center h-7 px-2.5 rounded-md text-xs font-medium transition-colors ${
+                  categoryFilter === cat
+                    ? "bg-primary text-white shadow-sm"
+                    : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                }`}
+              >
+                {CATEGORY_LABELS[cat]}
+              </Link>
+            ))}
+          </div>
         </div>
 
-        <div className="flex gap-2 flex-wrap">
-          {(Object.keys(CATEGORY_LABELS) as FrameCategory[]).map((cat) => (
-            <Link
-              key={cat}
-              href={`/inventory?${new URLSearchParams({ ...(query ? { q: query } : {}), ...(genderFilter ? { gender: genderFilter } : {}), ...(categoryFilter === cat ? {} : { category: cat }) })}`}
-              className={`inline-flex items-center h-8 px-3 rounded-lg text-xs font-medium transition-colors ${
-                categoryFilter === cat
-                  ? "bg-primary text-white"
-                  : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-              }`}
-            >
-              {CATEGORY_LABELS[cat]}
-            </Link>
-          ))}
+        <div className="hidden sm:block w-px h-6 bg-gray-200 flex-shrink-0" />
+
+        {/* Gender */}
+        <div className="flex items-center gap-2 min-w-0">
+          <span className="text-xs font-semibold text-gray-400 uppercase tracking-wide whitespace-nowrap">For</span>
+          <div className="flex gap-1.5 flex-wrap">
+            {(Object.keys(GENDER_LABELS) as FrameGender[]).map((g) => (
+              <Link
+                key={g}
+                href={`/inventory?${new URLSearchParams({ ...(query ? { q: query } : {}), ...(categoryFilter ? { category: categoryFilter } : {}), ...(genderFilter === g ? {} : { gender: g }) })}`}
+                className={`inline-flex items-center h-7 px-2.5 rounded-md text-xs font-medium transition-colors ${
+                  genderFilter === g
+                    ? "bg-primary text-white shadow-sm"
+                    : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                }`}
+              >
+                {GENDER_LABELS[g]}
+              </Link>
+            ))}
+          </div>
         </div>
 
-        <div className="flex gap-2">
-          {(Object.keys(GENDER_LABELS) as FrameGender[]).map((g) => (
+        {/* Clear filters */}
+        {(categoryFilter || genderFilter) && (
+          <>
+            <div className="hidden sm:block w-px h-6 bg-gray-200 flex-shrink-0" />
             <Link
-              key={g}
-              href={`/inventory?${new URLSearchParams({ ...(query ? { q: query } : {}), ...(categoryFilter ? { category: categoryFilter } : {}), ...(genderFilter === g ? {} : { gender: g }) })}`}
-              className={`inline-flex items-center h-8 px-3 rounded-lg text-xs font-medium transition-colors ${
-                genderFilter === g
-                  ? "bg-primary text-white"
-                  : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-              }`}
+              href={`/inventory${query ? `?q=${encodeURIComponent(query)}` : ""}`}
+              className="inline-flex items-center h-7 px-3 rounded-md text-xs font-medium border border-gray-300 text-gray-600 hover:bg-gray-50 hover:border-gray-400 transition-colors whitespace-nowrap"
             >
-              {GENDER_LABELS[g]}
+              ✕ Clear filters
             </Link>
-          ))}
-        </div>
+          </>
+        )}
       </div>
 
       {/* Grid */}
@@ -144,6 +175,7 @@ export default async function InventoryPage({
           <table className="w-full text-sm">
             <thead className="bg-gray-50 border-b border-gray-100">
               <tr>
+                <th className="w-12 px-4 py-3"></th>
                 <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Brand / Model</th>
                 <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide hidden md:table-cell">SKU</th>
                 <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide hidden lg:table-cell">Category</th>
@@ -155,10 +187,25 @@ export default async function InventoryPage({
             <tbody className="divide-y divide-gray-50">
               {items.map((item) => (
                 <tr key={item.id} className="hover:bg-gray-50/50 transition-colors">
+                  <td className="px-4 py-3">
+                    <Link href={`/inventory/${item.id}`}>
+                      <div className="w-10 h-10 rounded-lg bg-gray-100 overflow-hidden flex-shrink-0">
+                        {item.imageUrl ? (
+                          <img src={item.imageUrl} alt="" className="w-full h-full object-cover" />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-gray-300">
+                            <Package className="w-5 h-5" />
+                          </div>
+                        )}
+                      </div>
+                    </Link>
+                  </td>
                   <td className="px-6 py-4">
-                    <p className="font-medium text-gray-900">{item.brand}</p>
-                    <p className="text-xs text-gray-500">{item.model}</p>
-                    {item.color && <p className="text-xs text-gray-400">{item.color}</p>}
+                    <Link href={`/inventory/${item.id}`} className="hover:text-primary">
+                      <p className="font-medium text-gray-900">{item.brand}</p>
+                      <p className="text-xs text-gray-500">{item.model}</p>
+                      {item.color && <p className="text-xs text-gray-400">{item.color}</p>}
+                    </Link>
                   </td>
                   <td className="px-6 py-4 text-gray-500 hidden md:table-cell text-xs font-mono">
                     {item.sku || "—"}
