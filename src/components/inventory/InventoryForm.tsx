@@ -6,9 +6,12 @@ import { InventoryItem } from "@prisma/client";
 import { Upload, X } from "lucide-react";
 import Image from "next/image";
 
+type VendorOption = { id: string; name: string };
+
 type Props = {
   action: (state: InventoryFormState, formData: FormData) => Promise<InventoryFormState>;
   item?: InventoryItem;
+  vendors?: VendorOption[];
 };
 
 const CATEGORIES = [
@@ -32,7 +35,11 @@ const RIM_TYPES = [
   { value: "RIMLESS", label: "Rimless" },
 ];
 
-export function InventoryForm({ action, item }: Props) {
+const STYLE_TAGS = [
+  "classic", "modern", "bold", "minimal", "sport", "luxury",
+];
+
+export function InventoryForm({ action, item, vendors = [] }: Props) {
   const [state, formAction, isPending] = useActionState(action, {});
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [preview, setPreview] = useState<string | null>(item?.imageUrl || null);
@@ -178,6 +185,73 @@ export function InventoryForm({ action, item }: Props) {
                 <option key={g.value} value={g.value}>{g.label}</option>
               ))}
             </select>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-3 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">UPC / Barcode</label>
+            <input
+              name="upc"
+              defaultValue={(item as any)?.upc || ""}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+              placeholder="e.g. 012345678901"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Vendor Color Code</label>
+            <input
+              name="colorCode"
+              defaultValue={(item as any)?.colorCode || ""}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+              placeholder="e.g. 901"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Country of Origin</label>
+            <input
+              name="countryOfOrigin"
+              defaultValue={(item as any)?.countryOfOrigin || ""}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+              placeholder="e.g. Italy"
+            />
+          </div>
+        </div>
+
+        {vendors.length > 0 && (
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Vendor</label>
+            <select
+              name="vendorId"
+              defaultValue={(item as any)?.vendorId || ""}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary bg-white"
+            >
+              <option value="">— No vendor —</option>
+              {vendors.map((v) => (
+                <option key={v.id} value={v.id}>{v.name}</option>
+              ))}
+            </select>
+          </div>
+        )}
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">Style Tags</label>
+          <div className="flex flex-wrap gap-3">
+            {STYLE_TAGS.map((tag) => {
+              const checked = ((item as any)?.styleTags ?? []).includes(tag);
+              return (
+                <label key={tag} className="flex items-center gap-2 cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    name="styleTags"
+                    value={tag}
+                    defaultChecked={checked}
+                    className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary"
+                  />
+                  <span className="text-sm text-gray-700 capitalize">{tag}</span>
+                </label>
+              );
+            })}
           </div>
         </div>
       </div>

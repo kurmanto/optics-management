@@ -11,9 +11,11 @@ const InventorySchema = z.object({
   brand: z.string().min(1, "Brand is required"),
   model: z.string().min(1, "Model is required"),
   sku: z.string().optional(),
+  upc: z.string().optional(),
   category: z.enum(["OPTICAL", "SUN", "READING", "SAFETY", "SPORT"]),
   gender: z.enum(["MENS", "WOMENS", "UNISEX", "KIDS"]),
   color: z.string().optional(),
+  colorCode: z.string().optional(),
   material: z.string().optional(),
   size: z.string().optional(),
   eyeSize: z.coerce.number().int().positive().optional().or(z.literal("")),
@@ -24,6 +26,8 @@ const InventorySchema = z.object({
   retailPrice: z.coerce.number().min(0).optional().or(z.literal("")),
   stockQuantity: z.coerce.number().int().min(0).default(0),
   reorderPoint: z.coerce.number().int().min(0).default(2),
+  vendorId: z.string().optional(),
+  countryOfOrigin: z.string().optional(),
   notes: z.string().optional(),
 });
 
@@ -37,9 +41,11 @@ function parseForm(formData: FormData) {
     brand: formData.get("brand") as string,
     model: formData.get("model") as string,
     sku: (formData.get("sku") as string) || undefined,
+    upc: (formData.get("upc") as string) || undefined,
     category: formData.get("category") as string,
     gender: formData.get("gender") as string,
     color: (formData.get("color") as string) || undefined,
+    colorCode: (formData.get("colorCode") as string) || undefined,
     material: (formData.get("material") as string) || undefined,
     size: (formData.get("size") as string) || undefined,
     eyeSize: (formData.get("eyeSize") as string) || "",
@@ -50,6 +56,8 @@ function parseForm(formData: FormData) {
     retailPrice: (formData.get("retailPrice") as string) || "",
     stockQuantity: (formData.get("stockQuantity") as string) || "0",
     reorderPoint: (formData.get("reorderPoint") as string) || "2",
+    vendorId: (formData.get("vendorId") as string) || undefined,
+    countryOfOrigin: (formData.get("countryOfOrigin") as string) || undefined,
     notes: (formData.get("notes") as string) || undefined,
   };
 }
@@ -68,14 +76,18 @@ export async function createInventoryItem(
   const d = parsed.data;
 
   try {
+    const styleTags = formData.getAll("styleTags") as string[];
+
     const item = await prisma.inventoryItem.create({
       data: {
         brand: d.brand,
         model: d.model,
         sku: d.sku || null,
+        upc: d.upc || null,
         category: d.category as any,
         gender: d.gender as any,
         color: d.color || null,
+        colorCode: d.colorCode || null,
         material: d.material || null,
         size: d.size || null,
         eyeSize: d.eyeSize !== "" ? Number(d.eyeSize) : null,
@@ -86,6 +98,9 @@ export async function createInventoryItem(
         retailPrice: d.retailPrice !== "" ? Number(d.retailPrice) : null,
         stockQuantity: Number(d.stockQuantity),
         reorderPoint: Number(d.reorderPoint),
+        vendorId: d.vendorId || null,
+        countryOfOrigin: d.countryOfOrigin || null,
+        styleTags,
         notes: d.notes || null,
       },
     });
@@ -128,15 +143,19 @@ export async function updateInventoryItem(
   const d = parsed.data;
 
   try {
+    const styleTags = formData.getAll("styleTags") as string[];
+
     const item = await prisma.inventoryItem.update({
       where: { id },
       data: {
         brand: d.brand,
         model: d.model,
         sku: d.sku || null,
+        upc: d.upc || null,
         category: d.category as any,
         gender: d.gender as any,
         color: d.color || null,
+        colorCode: d.colorCode || null,
         material: d.material || null,
         size: d.size || null,
         eyeSize: d.eyeSize !== "" ? Number(d.eyeSize) : null,
@@ -147,6 +166,9 @@ export async function updateInventoryItem(
         retailPrice: d.retailPrice !== "" ? Number(d.retailPrice) : null,
         stockQuantity: Number(d.stockQuantity),
         reorderPoint: Number(d.reorderPoint),
+        vendorId: d.vendorId || null,
+        countryOfOrigin: d.countryOfOrigin || null,
+        styleTags,
         notes: d.notes || null,
       },
     });
@@ -172,5 +194,45 @@ export async function updateInventoryItem(
       return { error: "An item with that SKU already exists." };
     }
     return { error: "Failed to update item. Please try again." };
+  }
+}
+
+export async function applyMarkdown(
+  id: string,
+  markdownPct: number
+): Promise<{ error?: string }> {
+  await verifySession();
+
+  const pct = Math.min(100, Math.max(0, Math.round(markdownPct)));
+
+  try {
+    await prisma.inventoryItem.update({
+      where: { id },
+      data: { markdownPct: pct },
+    });
+    revalidatePath(`/inventory/${id}`);
+    revalidatePath("/inventory");
+    return {};
+  } catch {
+    return { error: "Failed to apply markdown." };
+  }
+}
+
+export async function updateAbcCategory(
+  id: string,
+  category: "A" | "B" | "C" | null
+): Promise<{ error?: string }> {
+  await verifySession();
+
+  try {
+    await prisma.inventoryItem.update({
+      where: { id },
+      data: { abcCategory: category as any },
+    });
+    revalidatePath(`/inventory/${id}`);
+    revalidatePath("/inventory/analytics");
+    return {};
+  } catch {
+    return { error: "Failed to update ABC category." };
   }
 }

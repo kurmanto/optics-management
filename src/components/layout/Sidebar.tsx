@@ -10,8 +10,11 @@ import {
   Settings,
   LogOut,
   Eye,
-  Kanban,
   FileText,
+  ChevronDown,
+  Truck,
+  ClipboardList,
+  BarChart2,
 } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { logout } from "@/lib/actions/auth";
@@ -45,6 +48,12 @@ const navItems = [
     title: "Inventory",
     href: "/inventory",
     icon: Package,
+    children: [
+      { title: "All Frames", href: "/inventory" },
+      { title: "Vendors", href: "/inventory/vendors" },
+      { title: "Purchase Orders", href: "/inventory/purchase-orders" },
+      { title: "Analytics", href: "/inventory/analytics" },
+    ],
   },
   {
     title: "Settings",
@@ -53,6 +62,14 @@ const navItems = [
   },
 ];
 
+type NavChild = { title: string; href: string };
+type NavItem = {
+  title: string;
+  href: string;
+  icon: React.ElementType;
+  children?: NavChild[];
+};
+
 type Props = {
   userName: string;
   userRole: string;
@@ -60,6 +77,18 @@ type Props = {
 
 export function Sidebar({ userName, userRole }: Props) {
   const pathname = usePathname();
+
+  function isGroupActive(item: NavItem) {
+    if (item.href === "/dashboard") return pathname === "/dashboard";
+    return pathname.startsWith(item.href);
+  }
+
+  function isChildActive(child: NavChild) {
+    // Exact match for top-level children like "All Frames" at /inventory
+    if (child.href === "/inventory") return pathname === "/inventory";
+    if (child.href === "/orders") return pathname === "/orders";
+    return pathname.startsWith(child.href);
+  }
 
   return (
     <aside className="flex flex-col w-64 min-h-screen bg-gray-900 text-white">
@@ -79,11 +108,46 @@ export function Sidebar({ userName, userRole }: Props) {
       {/* Nav */}
       <nav className="flex-1 p-4 space-y-1">
         {navItems.map((item) => {
-          const isActive =
-            item.href === "/dashboard"
-              ? pathname === "/dashboard"
-              : pathname.startsWith(item.href);
+          const isActive = isGroupActive(item);
           const Icon = item.icon;
+
+          if (item.children) {
+            return (
+              <div key={item.href}>
+                <Link
+                  href={item.children[0].href}
+                  className={cn(
+                    "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors",
+                    isActive
+                      ? "bg-primary/20 text-white"
+                      : "text-gray-400 hover:text-white hover:bg-gray-800"
+                  )}
+                >
+                  <Icon className="w-5 h-5 flex-shrink-0" />
+                  <span className="flex-1">{item.title}</span>
+                  <ChevronDown className={cn("w-4 h-4 transition-transform", isActive && "rotate-180")} />
+                </Link>
+                {isActive && (
+                  <div className="mt-1 ml-4 pl-4 border-l border-gray-700 space-y-0.5">
+                    {item.children.map((child) => (
+                      <Link
+                        key={child.href}
+                        href={child.href}
+                        className={cn(
+                          "flex items-center px-3 py-2 rounded-lg text-sm transition-colors",
+                          isChildActive(child)
+                            ? "bg-primary text-white font-medium"
+                            : "text-gray-400 hover:text-white hover:bg-gray-800"
+                        )}
+                      >
+                        {child.title}
+                      </Link>
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          }
 
           return (
             <Link
