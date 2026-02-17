@@ -90,7 +90,7 @@ VERIFIED = Rx check by optician after lab receives order. PICKED_UP triggers Pic
 - `legacyCustomerId` is nullable — not all migrated records have it
 
 ## Version Status
-Current version: **V1.3 / Inventory V2** (2026-02-17)
+Current version: **V1.4 — Invoices** (2026-02-17)
 
 | Feature | Status |
 |---------|--------|
@@ -106,10 +106,11 @@ Current version: **V1.3 / Inventory V2** (2026-02-17)
 | Dashboard | ✅ Complete |
 | Migration scripts | ✅ Scaffolded |
 | Digital Forms (V1.2: 4 templates, intake packages, kiosk, AI review) | ✅ Complete |
-| PDF invoices | 🔲 V1.1 |
+| Invoices (print, email, issue tracking, central list) | ✅ Complete |
+| Work order redesign (centered layout, email/phone boxes, spec grids) | ✅ Complete |
+| Notification system | 🔲 Next |
 | Staff management | 🔲 V1.1 |
 | Reporting | 🔲 V1.1 |
-| Notification system | 🔲 Next |
 | Walk-ins / Exams | 🔲 V2 |
 | SMS / Email | 🔲 V2.1 |
 
