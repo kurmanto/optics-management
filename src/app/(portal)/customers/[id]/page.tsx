@@ -18,6 +18,7 @@ import {
 } from "@/lib/utils/customer";
 import { MedicalHistoryForm } from "@/components/customers/MedicalHistoryForm";
 import { StoreCreditManager } from "@/components/customers/StoreCreditManager";
+import { ExternalPrescriptionUpload } from "@/components/customers/ExternalPrescriptionUpload";
 
 const FORM_TYPE_LABELS: Record<FormTemplateType, string> = {
   NEW_PATIENT: "New Patient Registration",
@@ -31,6 +32,7 @@ const STATUS_LABELS: Record<OrderStatus, string> = {
   CONFIRMED: "Confirmed",
   LAB_ORDERED: "Lab Ordered",
   LAB_RECEIVED: "Lab Received",
+  VERIFIED: "Verified",
   READY: "Ready",
   PICKED_UP: "Picked Up",
   CANCELLED: "Cancelled",
@@ -41,6 +43,7 @@ const STATUS_COLORS: Record<OrderStatus, string> = {
   CONFIRMED: "bg-blue-100 text-blue-700",
   LAB_ORDERED: "bg-orange-100 text-orange-700",
   LAB_RECEIVED: "bg-yellow-100 text-yellow-700",
+  VERIFIED: "bg-indigo-100 text-indigo-700",
   READY: "bg-green-100 text-green-700",
   PICKED_UP: "bg-gray-100 text-gray-500",
   CANCELLED: "bg-red-100 text-red-700",
@@ -385,61 +388,60 @@ export default async function CustomerDetailPage({
             </div>
           </div>
 
-          {/* Latest Prescription */}
-          {customer.prescriptions.length > 0 && (
-            <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="font-semibold text-gray-900">Latest Prescription</h2>
-                <span className="text-xs text-gray-400">
-                  {formatDate(customer.prescriptions[0].date)}
-                </span>
+          {/* Prescriptions */}
+          <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-5 space-y-5">
+            <h2 className="font-semibold text-gray-900">Prescriptions</h2>
+
+            {/* Internal (Our) Prescriptions */}
+            {customer.prescriptions.filter((rx) => (rx as any).source !== "EXTERNAL").length > 0 && (
+              <div>
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="text-xs font-semibold text-blue-700 bg-blue-100 px-2 py-0.5 rounded">Our Prescriptions</span>
+                </div>
+                {customer.prescriptions
+                  .filter((rx) => (rx as any).source !== "EXTERNAL")
+                  .slice(0, 1)
+                  .map((rx) => (
+                    <div key={rx.id}>
+                      <p className="text-xs text-gray-400 mb-2">{formatDate(rx.date)}{rx.doctorName && ` — Dr. ${rx.doctorName}`}</p>
+                      <RxTable rx={rx} />
+                    </div>
+                  ))}
               </div>
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="text-xs text-gray-500 uppercase">
-                      <th className="text-left pb-2">Eye</th>
-                      <th className="text-center pb-2">Sph</th>
-                      <th className="text-center pb-2">Cyl</th>
-                      <th className="text-center pb-2">Axis</th>
-                      <th className="text-center pb-2">Add</th>
-                      <th className="text-center pb-2">PD</th>
-                      <th className="text-center pb-2">Seg Ht</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr>
-                      <td className="py-1 font-medium text-gray-700">OD (R)</td>
-                      <td className="text-center py-1">{formatRxValue(customer.prescriptions[0].odSphere)}</td>
-                      <td className="text-center py-1">{formatRxValue(customer.prescriptions[0].odCylinder)}</td>
-                      <td className="text-center py-1">{customer.prescriptions[0].odAxis ?? "—"}</td>
-                      <td className="text-center py-1">{formatRxValue(customer.prescriptions[0].odAdd)}</td>
-                      <td className="text-center py-1">{customer.prescriptions[0].odPd ?? "—"}</td>
-                      <td className="text-center py-1 font-medium text-primary">
-                        {(customer.prescriptions[0] as any).odSegmentHeight ?? "—"}
-                      </td>
-                    </tr>
-                    <tr>
-                      <td className="py-1 font-medium text-gray-700">OS (L)</td>
-                      <td className="text-center py-1">{formatRxValue(customer.prescriptions[0].osSphere)}</td>
-                      <td className="text-center py-1">{formatRxValue(customer.prescriptions[0].osCylinder)}</td>
-                      <td className="text-center py-1">{customer.prescriptions[0].osAxis ?? "—"}</td>
-                      <td className="text-center py-1">{formatRxValue(customer.prescriptions[0].osAdd)}</td>
-                      <td className="text-center py-1">{customer.prescriptions[0].osPd ?? "—"}</td>
-                      <td className="text-center py-1 font-medium text-primary">
-                        {(customer.prescriptions[0] as any).osSegmentHeight ?? "—"}
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
+            )}
+
+            {/* External Prescriptions */}
+            {customer.prescriptions.filter((rx) => (rx as any).source === "EXTERNAL").length > 0 && (
+              <div>
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="text-xs font-semibold text-orange-700 bg-orange-100 px-2 py-0.5 rounded">External Prescriptions</span>
+                </div>
+                {customer.prescriptions
+                  .filter((rx) => (rx as any).source === "EXTERNAL")
+                  .slice(0, 2)
+                  .map((rx) => (
+                    <div key={rx.id} className="mb-3">
+                      <p className="text-xs text-gray-400 mb-2">
+                        {formatDate(rx.date)}
+                        {(rx as any).externalDoctor && ` — Dr. ${(rx as any).externalDoctor}`}
+                      </p>
+                      <RxTable rx={rx} />
+                    </div>
+                  ))}
               </div>
-              {customer.prescriptions[0].pdBinocular && (
-                <p className="mt-2 text-xs text-gray-500">
-                  Binocular PD: <span className="font-medium text-gray-900">{customer.prescriptions[0].pdBinocular}</span>
-                </p>
-              )}
-            </div>
-          )}
+            )}
+
+            {/* Add External Prescription */}
+            <details className="group">
+              <summary className="cursor-pointer text-sm text-primary font-medium hover:underline list-none flex items-center gap-1.5">
+                <Plus className="w-3.5 h-3.5" />
+                Add External Prescription
+              </summary>
+              <div className="mt-3 border-t border-gray-100 pt-4">
+                <ExternalPrescriptionUpload customerId={customer.id} onSaved={undefined} />
+              </div>
+            </details>
+          </div>
 
           {/* Medical History */}
           <MedicalHistoryForm
@@ -559,6 +561,55 @@ export default async function CustomerDetailPage({
           </div>
         </div>
       </div>
+    </div>
+  );
+}
+
+function RxTable({ rx }: { rx: {
+  odSphere: number | null; odCylinder: number | null; odAxis: number | null;
+  odAdd: number | null; odPd: number | null;
+  osSphere: number | null; osCylinder: number | null; osAxis: number | null;
+  osAdd: number | null; osPd: number | null;
+  pdBinocular: number | null;
+  [key: string]: unknown;
+} }) {
+  return (
+    <div className="overflow-x-auto">
+      <table className="w-full text-sm">
+        <thead>
+          <tr className="text-xs text-gray-500 uppercase">
+            <th className="text-left pb-1.5">Eye</th>
+            <th className="text-center pb-1.5">Sph</th>
+            <th className="text-center pb-1.5">Cyl</th>
+            <th className="text-center pb-1.5">Axis</th>
+            <th className="text-center pb-1.5">Add</th>
+            <th className="text-center pb-1.5">PD</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td className="py-1 font-medium text-gray-700">OD (R)</td>
+            <td className="text-center py-1 font-mono">{formatRxValue(rx.odSphere)}</td>
+            <td className="text-center py-1 font-mono">{formatRxValue(rx.odCylinder)}</td>
+            <td className="text-center py-1 font-mono">{rx.odAxis ?? "—"}</td>
+            <td className="text-center py-1 font-mono">{formatRxValue(rx.odAdd)}</td>
+            <td className="text-center py-1 font-mono">{rx.odPd ?? "—"}</td>
+          </tr>
+          <tr>
+            <td className="py-1 font-medium text-gray-700">OS (L)</td>
+            <td className="text-center py-1 font-mono">{formatRxValue(rx.osSphere)}</td>
+            <td className="text-center py-1 font-mono">{formatRxValue(rx.osCylinder)}</td>
+            <td className="text-center py-1 font-mono">{rx.osAxis ?? "—"}</td>
+            <td className="text-center py-1 font-mono">{formatRxValue(rx.osAdd)}</td>
+            <td className="text-center py-1 font-mono">{rx.osPd ?? "—"}</td>
+          </tr>
+        </tbody>
+      </table>
+      {rx.pdBinocular && (
+        <p className="mt-1 text-xs text-gray-500">
+          Binocular PD: <span className="font-medium text-gray-900">{rx.pdBinocular}</span>
+        </p>
+      )}
     </div>
   );
 }

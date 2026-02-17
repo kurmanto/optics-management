@@ -48,9 +48,10 @@ src/lib/validations/       # Zod schemas
 
 ### Order Status Flow
 ```
-DRAFT → CONFIRMED → LAB_ORDERED → LAB_RECEIVED → READY → PICKED_UP
-                                                        ↘ CANCELLED (any stage)
+DRAFT → CONFIRMED → LAB_ORDERED → LAB_RECEIVED → VERIFIED → READY → PICKED_UP
+                                                                    ↘ CANCELLED (any stage)
 ```
+VERIFIED = Rx check by optician after lab receives order. PICKED_UP triggers PickupCompleteModal (review request, referral campaign, low-value flag).
 
 ### Prescription
 - One Rx can serve multiple orders (backup pairs)
@@ -96,7 +97,7 @@ Current version: **V1.0**
 | Auth | ✅ Complete |
 | Layout | ✅ Complete |
 | Customers CRUD | ✅ Complete |
-| Orders + Kanban | ✅ Complete |
+| Orders + Kanban | ✅ Complete (V1.3 upgrade: VERIFIED, 7-step wizard, lens config, work order, external Rx OCR) |
 | Inventory browser | ✅ Complete |
 | Dashboard | ✅ Complete |
 | Migration scripts | ✅ Scaffolded |

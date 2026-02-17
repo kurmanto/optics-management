@@ -3,7 +3,7 @@ import { verifySession } from "@/lib/dal";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { formatCurrency, formatDate } from "@/lib/utils/formatters";
-import { ChevronLeft } from "lucide-react";
+import { ChevronLeft, FileText } from "lucide-react";
 import { OrderStatus } from "@prisma/client";
 import { OrderStatusActions } from "@/components/orders/OrderStatusActions";
 
@@ -12,6 +12,7 @@ const STATUS_LABELS: Record<OrderStatus, string> = {
   CONFIRMED: "Confirmed",
   LAB_ORDERED: "Lab Ordered",
   LAB_RECEIVED: "Lab Received",
+  VERIFIED: "Verified (Rx Check)",
   READY: "Ready for Pickup",
   PICKED_UP: "Picked Up",
   CANCELLED: "Cancelled",
@@ -22,6 +23,7 @@ const STATUS_COLORS: Record<OrderStatus, string> = {
   CONFIRMED: "bg-blue-100 text-blue-700",
   LAB_ORDERED: "bg-orange-100 text-orange-700",
   LAB_RECEIVED: "bg-yellow-100 text-yellow-700",
+  VERIFIED: "bg-indigo-100 text-indigo-700",
   READY: "bg-green-100 text-green-700",
   PICKED_UP: "bg-gray-100 text-gray-500",
   CANCELLED: "bg-red-100 text-red-700",
@@ -32,7 +34,8 @@ const NEXT_STATUS: Partial<Record<OrderStatus, OrderStatus>> = {
   DRAFT: OrderStatus.CONFIRMED,
   CONFIRMED: OrderStatus.LAB_ORDERED,
   LAB_ORDERED: OrderStatus.LAB_RECEIVED,
-  LAB_RECEIVED: OrderStatus.READY,
+  LAB_RECEIVED: OrderStatus.VERIFIED,
+  VERIFIED: OrderStatus.READY,
   READY: OrderStatus.PICKED_UP,
 };
 
@@ -40,7 +43,8 @@ const NEXT_STATUS_LABELS: Partial<Record<OrderStatus, string>> = {
   DRAFT: "Confirm Order",
   CONFIRMED: "Send to Lab",
   LAB_ORDERED: "Mark Lab Received",
-  LAB_RECEIVED: "Mark Ready for Pickup",
+  LAB_RECEIVED: "Verify Rx",
+  VERIFIED: "Mark Ready for Pickup",
   READY: "Mark Picked Up",
 };
 
@@ -55,7 +59,7 @@ export default async function OrderDetailPage({
   const order = await prisma.order.findUnique({
     where: { id },
     include: {
-      customer: true,
+      customer: { select: { id: true, firstName: true, lastName: true, phone: true, marketingOptOut: true } },
       user: { select: { name: true } },
       prescription: true,
       insurancePolicy: true,
@@ -90,6 +94,16 @@ export default async function OrderDetailPage({
           </div>
         </div>
 
+        {/* Work Order Link */}
+        <div className="flex items-center gap-2">
+          <Link
+            href={`/orders/${order.id}/work-order`}
+            className="inline-flex items-center gap-1.5 text-xs text-gray-500 border border-gray-300 rounded-lg px-3 py-2 hover:bg-gray-50 transition-colors"
+          >
+            <FileText className="w-3.5 h-3.5" />
+            Work Order
+          </Link>
+
         {/* Status Advance Button */}
         {nextStatus && (
           <OrderStatusActions
@@ -97,8 +111,11 @@ export default async function OrderDetailPage({
             nextStatus={nextStatus}
             nextLabel={NEXT_STATUS_LABELS[order.status]!}
             currentStatus={order.status}
+            orderTotal={order.totalCustomer}
+            customerMarketingOptOut={order.customer.marketingOptOut ?? false}
           />
         )}
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
