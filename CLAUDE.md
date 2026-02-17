@@ -90,21 +90,26 @@ VERIFIED = Rx check by optician after lab receives order. PICKED_UP triggers Pic
 - `legacyCustomerId` is nullable — not all migrated records have it
 
 ## Version Status
-Current version: **V1.0**
+Current version: **V1.3 / Inventory V2** (2026-02-17)
 
 | Feature | Status |
 |---------|--------|
 | Auth | ✅ Complete |
 | Layout | ✅ Complete |
-| Customers CRUD | ✅ Complete |
-| Orders + Kanban | ✅ Complete (V1.3 upgrade: VERIFIED, 7-step wizard, lens config, work order, external Rx OCR) |
+| Customers CRUD + Medical History + Store Credit | ✅ Complete |
+| Orders + Kanban (7-step wizard, VERIFIED status, lens config, work order, AI OCR Rx, PickupCompleteModal) | ✅ Complete |
 | Inventory browser | ✅ Complete |
+| Vendors CRUD | ✅ Complete |
+| Purchase Orders (full lifecycle + receiving workflow) | ✅ Complete |
+| Inventory Ledger | ✅ Complete |
+| Inventory Analytics (ABC / dead stock / velocity) | ✅ Complete |
 | Dashboard | ✅ Complete |
 | Migration scripts | ✅ Scaffolded |
-| Digital Forms (V1) | ✅ Complete |
-| PDF invoices | 🔲 Pending |
+| Digital Forms (V1.2: 4 templates, intake packages, kiosk, AI review) | ✅ Complete |
+| PDF invoices | 🔲 V1.1 |
 | Staff management | 🔲 V1.1 |
 | Reporting | 🔲 V1.1 |
+| Notification system | 🔲 Next |
 | Walk-ins / Exams | 🔲 V2 |
 | SMS / Email | 🔲 V2.1 |
 
@@ -152,3 +157,4 @@ Required for V1:
 - `NEXT_PUBLIC_SUPABASE_URL`
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 - `SUPABASE_SERVICE_ROLE_KEY`
+- `ANTHROPIC_API_KEY` (required for AI Rx OCR — `ExternalPrescriptionUpload` component)

@@ -16,7 +16,7 @@ export default async function WorkOrderPage({
   const order = await prisma.order.findUnique({
     where: { id },
     include: {
-      customer: { select: { firstName: true, lastName: true, phone: true } },
+      customer: { select: { firstName: true, lastName: true, email: true, phone: true } },
       prescription: true,
     },
   });

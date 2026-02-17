@@ -1,7 +1,7 @@
 # Developer Reference
 ## Mint Vision Optique — Staff Portal
 
-**Last updated:** 2026-02-15
+**Last updated:** 2026-02-17
 
 ---
 
@@ -16,9 +16,14 @@
 | `src/lib/utils/cn.ts` | `cn()` — Tailwind class merging |
 | `src/lib/actions/auth.ts` | Login, logout, change password actions |
 | `src/lib/actions/customers.ts` | `createCustomer`, `updateCustomer`, `deleteCustomer` |
-| `src/lib/actions/orders.ts` | `createOrder`, `advanceOrderStatus`, `updateOrderNotes`, `addPayment` |
+| `src/lib/actions/orders.ts` | `createOrder`, `advanceOrderStatus`, `updateOrderNotes`, `addPayment`, `verifyOrder` |
+| `src/lib/actions/forms.ts` | `createFormSubmission`, `createIntakePackage`, `completeFormSubmission`, `completeIntakeStep`, `autoPopulateFromSubmission`, `applyIntakePackage` |
+| `src/lib/actions/inventory.ts` | `createInventoryItem`, `updateInventoryItem`, `deleteInventoryItem` |
+| `src/lib/actions/vendors.ts` | `createVendor`, `updateVendor`, `deleteVendor` |
+| `src/lib/actions/purchase-orders.ts` | `createPurchaseOrder`, `updatePOStatus`, `receivePOLineItems` |
 | `src/lib/validations/customer.ts` | `CustomerSchema` (Zod) |
 | `src/lib/validations/order.ts` | Order validation schemas (Zod) |
+| `src/lib/validations/forms.ts` | Form submission schemas (Zod) |
 | `src/middleware.ts` | Route guard — redirects unauthenticated users to `/login` |
 | `prisma/schema.prisma` | Full database schema |
 | `prisma.config.ts` | Prisma 7 datasource config (reads `DATABASE_URL`) |
@@ -88,15 +93,18 @@ formatRxValue(0)             // "Plano"
 ## Order Status Flow
 
 ```
-DRAFT → CONFIRMED → LAB_ORDERED → LAB_RECEIVED → READY → PICKED_UP
-                                                        ↘ CANCELLED (any stage)
+DRAFT → CONFIRMED → LAB_ORDERED → LAB_RECEIVED → VERIFIED → READY → PICKED_UP
+                                                                   ↘ CANCELLED (any stage)
 ```
 
 Status timestamps are auto-set when advancing:
 - `LAB_ORDERED` → sets `labOrderedAt`
 - `LAB_RECEIVED` → sets `labReceivedAt`
+- `VERIFIED` → sets `verifiedAt`
 - `READY` → sets `readyAt`
 - `PICKED_UP` → sets `pickedUpAt`
+
+VERIFIED = optician's Rx verification step. Moving to VERIFIED triggers no external action. Moving to PICKED_UP triggers `PickupCompleteModal`.
 
 ---
 
@@ -197,7 +205,7 @@ Format: `ORD-YYYY-NNN` (e.g. `ORD-2026-001`).
 ## Enum Reference
 
 ### OrderStatus
-`DRAFT | CONFIRMED | LAB_ORDERED | LAB_RECEIVED | READY | PICKED_UP | CANCELLED`
+`DRAFT | CONFIRMED | LAB_ORDERED | LAB_RECEIVED | VERIFIED | READY | PICKED_UP | CANCELLED`
 
 ### OrderType
 `GLASSES | CONTACTS | SUNGLASSES | ACCESSORIES | EXAM_ONLY`
@@ -219,3 +227,48 @@ Format: `ORD-YYYY-NNN` (e.g. `ORD-2026-001`).
 
 ### FrameGender
 `MENS | WOMENS | UNISEX | KIDS`
+
+### RimType
+`FULL_RIM | HALF_RIM | RIMLESS`
+
+### AbcCategory
+`A | B | C`
+
+### PurchaseOrderStatus
+`DRAFT | SENT | CONFIRMED | PARTIAL | RECEIVED | CANCELLED`
+
+### LedgerReason
+`PURCHASE_ORDER_RECEIVED | MANUAL_ADJUSTMENT | ORDER_COMMITTED | ORDER_FULFILLED | ORDER_CANCELLED | PHYSICAL_COUNT | DAMAGED | LOST | RETURN_FROM_CUSTOMER`
+
+### FormTemplateType
+`NEW_PATIENT | HIPAA_CONSENT | FRAME_REPAIR_WAIVER | INSURANCE_VERIFICATION`
+
+### FormStatus
+`PENDING | COMPLETED | EXPIRED`
+
+### PackageStatus
+`PENDING | IN_PROGRESS | COMPLETED`
+
+### CoverageType
+`VISION | OHIP | EXTENDED_HEALTH | COMBINED`
+
+---
+
+## Purchase Order Flow
+
+```
+DRAFT → SENT → CONFIRMED → (PARTIAL) → RECEIVED
+                         ↘ CANCELLED (any stage before RECEIVED)
+```
+
+- `PARTIAL` is auto-set when some but not all line items are received
+- `RECEIVED` is auto-set when all line items are received
+- Stock is updated via `InventoryLedger` on each line item receipt (reason: `PURCHASE_ORDER_RECEIVED`)
+
+---
+
+## Form Token Flow
+
+Individual forms: `FormSubmission.token` (UUID) → `/f/[token]`
+Intake packages: `FormPackage.token` (UUID) → `/intake/[token]`
+In-person: `/intake/[token]?handoff=1` → shows welcome/handoff screen before starting

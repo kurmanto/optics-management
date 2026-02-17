@@ -3,8 +3,8 @@ import { verifySession } from "@/lib/dal";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { formatCurrency, formatDate } from "@/lib/utils/formatters";
-import { ChevronLeft, FileText } from "lucide-react";
-import { OrderStatus } from "@prisma/client";
+import { ChevronLeft, FileText, Receipt } from "lucide-react";
+import { OrderStatus, InvoiceType } from "@prisma/client";
 import { OrderStatusActions } from "@/components/orders/OrderStatusActions";
 
 const STATUS_LABELS: Record<OrderStatus, string> = {
@@ -56,18 +56,24 @@ export default async function OrderDetailPage({
   await verifySession();
   const { id } = await params;
 
-  const order = await prisma.order.findUnique({
-    where: { id },
-    include: {
-      customer: { select: { id: true, firstName: true, lastName: true, phone: true, marketingOptOut: true } },
-      user: { select: { name: true } },
-      prescription: true,
-      insurancePolicy: true,
-      lineItems: { orderBy: { createdAt: "asc" } },
-      payments: { orderBy: { paidAt: "desc" } },
-      statusHistory: { orderBy: { createdAt: "asc" } },
-    },
-  });
+  const [order, issuedInvoice] = await Promise.all([
+    prisma.order.findUnique({
+      where: { id },
+      include: {
+        customer: { select: { id: true, firstName: true, lastName: true, phone: true, marketingOptOut: true } },
+        user: { select: { name: true } },
+        prescription: true,
+        insurancePolicy: true,
+        lineItems: { orderBy: { createdAt: "asc" } },
+        payments: { orderBy: { paidAt: "desc" } },
+        statusHistory: { orderBy: { createdAt: "asc" } },
+      },
+    }),
+    prisma.invoice.findFirst({
+      where: { orderId: id, type: InvoiceType.CUSTOMER },
+      select: { generatedAt: true },
+    }),
+  ]);
 
   if (!order) notFound();
 
@@ -96,6 +102,16 @@ export default async function OrderDetailPage({
 
         {/* Work Order Link */}
         <div className="flex items-center gap-2">
+          <Link
+            href={`/orders/${order.id}/invoice`}
+            className="inline-flex items-center gap-1.5 text-xs border rounded-lg px-3 py-2 transition-colors hover:bg-gray-50 text-gray-500 border-gray-300"
+          >
+            <Receipt className="w-3.5 h-3.5" />
+            Invoice
+            {issuedInvoice && (
+              <span className="ml-1 text-green-600 font-semibold">✓</span>
+            )}
+          </Link>
           <Link
             href={`/orders/${order.id}/work-order`}
             className="inline-flex items-center gap-1.5 text-xs text-gray-500 border border-gray-300 rounded-lg px-3 py-2 hover:bg-gray-50 transition-colors"

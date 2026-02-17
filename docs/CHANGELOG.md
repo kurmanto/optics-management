@@ -108,6 +108,81 @@ Format: `[Version] — Date`
 
 ---
 
+## [1.3.0] — 2026-02-17
+
+### Added — Orders Upgrade
+
+#### VERIFIED Status
+- Added `VERIFIED` as a mandatory step between `LAB_RECEIVED` and `READY`
+- Status flow is now: `DRAFT → CONFIRMED → LAB_ORDERED → LAB_RECEIVED → VERIFIED → READY → PICKED_UP`
+- `verifiedAt` timestamp set on verification
+- New **VERIFIED** Kanban column added to board view
+
+#### 7-Step Order Wizard
+- Expanded from 5 to 7 steps: Customer → Prescription → Frame → Lens Type → Lens Config → Review → Payment
+- Step 4 (Lens Type): select lens material, index, design (single vision, bifocal, progressive)
+- Step 5 (Lens Config): coatings (AR, blue light, photochromic), tints, UV, prism notes
+
+#### Work Order View
+- `/orders/[id]/work-order` — printable work order page
+- Displays: patient name, Rx values (OD/OS), frame details, lens specs, coatings, lab notes
+- Designed for handing off to optical lab
+
+#### External Prescription Upload (AI OCR)
+- `ExternalPrescriptionUpload` component in `src/components/customers/`
+- Upload a photo/scan of a paper Rx from an external doctor
+- AI (Claude via `@anthropic-ai/sdk`) extracts: OD/OS sphere, cylinder, axis, add, PD, expiry, doctor name/clinic
+- Parsed values pre-fill the prescription form — staff review and confirm before saving
+
+#### Pickup Complete Modal
+- `PickupCompleteModal` triggered automatically when order is moved to `PICKED_UP`
+- Prompts staff to: flag if low-value order (< threshold), capture referral source, note if patient asked about next exam
+- Post-pickup workflow embeds best-practice retention prompts into the status transition
+
+---
+
+## [2.0.0] — 2026-02-17
+
+### Added — Inventory V2
+
+#### Vendors
+- New `Vendor` model with full contact info: name, email, phone, address, website
+- Fields: `repName`, `repEmail`, `repPhone`, `paymentTerms` (Net 30 / Net 60 / COD / Prepaid), `leadTimeDays`
+- Full CRUD: list, create, edit, view, soft-delete
+- Routes: `/inventory/vendors`, `/inventory/vendors/new`, `/inventory/vendors/[id]`, `/inventory/vendors/[id]/edit`
+
+#### Purchase Orders
+- New `PurchaseOrder` and `PurchaseOrderLineItem` models
+- Full lifecycle: `DRAFT → SENT → CONFIRMED → PARTIAL → RECEIVED → CANCELLED`
+- Create PO with multiple line items (frame, qty, unit cost)
+- **Receiving workflow**: mark individual line items received with actual quantities — partial receipt handled automatically
+- Status auto-advances: all items received → `RECEIVED`, some received → `PARTIAL`
+- Routes: `/inventory/purchase-orders`, `/inventory/purchase-orders/new`, `/inventory/purchase-orders/[id]`
+
+#### Inventory Ledger
+- New `InventoryLedger` model — immutable transaction log for every stock movement
+- Reasons tracked: `PURCHASE_ORDER_RECEIVED`, `MANUAL_ADJUSTMENT`, `ORDER_COMMITTED`, `ORDER_FULFILLED`, `ORDER_CANCELLED`, `PHYSICAL_COUNT`, `DAMAGED`, `LOST`, `RETURN_FROM_CUSTOMER`
+- Quantity delta (`+` or `−`) recorded per transaction with reference to source (PO, Order)
+
+#### Inventory Item Enhancements
+- New fields added to `InventoryItem`: `upc`, `colorCode`, `styleTags` (array), `vendorId` (FK to Vendor)
+- Stock tracking split into: `stockQty`, `committedQty` (reserved for open orders), `onOrderQty` (on active POs)
+- Costing fields: `wholesaleCost`, `landedCost` (wholesale + freight + duty)
+- ABC classification: `abcCategory` (A/B/C) — manually set or derived from analytics
+
+#### Inventory Analytics
+- New `/inventory/analytics` page with 4 analysis panels:
+  - **Dead Stock** — items with no sales movement in 90+ days; sorted by cost exposure
+  - **Best Sellers** — top items by units sold in trailing 90 days
+  - **Worst Sellers** — items with lowest velocity
+  - **ABC Analysis** — A (top 80% of revenue), B (next 15%), C (bottom 5%); category breakdown table
+
+#### Redesigned Filter UI
+- Inventory browser filter panel redesigned: collapsible sidebar with brand, category, gender, vendor, price range, stock level, ABC category filters
+- Active filter chips show applied filters with one-click clear
+
+---
+
 ## Upcoming
 
 ### [1.1.0] — Planned
@@ -115,4 +190,6 @@ Format: `[Version] — Date`
 - Staff management UI (Admin only)
 - Reporting page (revenue, orders by status)
 - Data migration (run customer + inventory import)
-- Notification system (new form submissions, order status changes, payments)
+
+### Next (no version assigned yet)
+- Notification system — bell icon in header; surface new form submissions, order status changes, PO receipts requiring action

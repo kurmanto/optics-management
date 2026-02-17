@@ -15,6 +15,7 @@ import {
   Truck,
   ClipboardList,
   BarChart2,
+  Receipt,
 } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { logout } from "@/lib/actions/auth";
@@ -42,6 +43,7 @@ const navItems = [
     children: [
       { title: "All Orders", href: "/orders" },
       { title: "Fulfillment Board", href: "/orders/board" },
+      { title: "Invoices", href: "/invoices" },
     ],
   },
   {
@@ -80,7 +82,9 @@ export function Sidebar({ userName, userRole }: Props) {
 
   function isGroupActive(item: NavItem) {
     if (item.href === "/dashboard") return pathname === "/dashboard";
-    return pathname.startsWith(item.href);
+    if (pathname.startsWith(item.href)) return true;
+    // Also active if a child route matches (e.g. /invoices under Orders)
+    return item.children?.some((c) => pathname.startsWith(c.href)) ?? false;
   }
 
   function isChildActive(child: NavChild) {

@@ -1,11 +1,11 @@
 # Project Status
 ## Mint Vision Optique — Staff Portal
 
-**Last updated:** 2026-02-16 (forms-impl)
+**Last updated:** 2026-02-17
 
 ---
 
-## Current Version: V1.0
+## Current Version: V1.3 / Inventory V2
 
 ---
 
@@ -25,8 +25,8 @@
 | Customer detail page | ✅ Complete | |
 | Order wizard (multi-step) | ✅ Complete | |
 | Order detail page | ✅ Complete | |
-| Order status flow | ✅ Complete | DRAFT → CONFIRMED → LAB_ORDERED → LAB_RECEIVED → READY → PICKED_UP |
-| Kanban board | ✅ Complete | |
+| Order status flow | ✅ Complete | DRAFT → CONFIRMED → LAB_ORDERED → LAB_RECEIVED → VERIFIED → READY → PICKED_UP |
+| Kanban board | ✅ Complete | Includes VERIFIED column |
 | Order notes + lab notes | ✅ Complete | |
 | Payment recording | ✅ Complete | |
 | Inventory browser | ✅ Complete | |
@@ -61,6 +61,40 @@
 | Needs Review queue on Forms Hub | ✅ Complete | Completed-but-unapplied packages surfaced |
 | Completed forms browser (search/filter) | ✅ Complete | |
 | Forms & Documents on customer detail | ✅ Complete | |
+
+---
+
+### V1.3 — Orders Upgrade (Complete)
+
+| Feature | Status | Notes |
+|---------|--------|-------|
+| VERIFIED status in order flow | ✅ Complete | Rx check step between LAB_RECEIVED and READY |
+| VERIFIED Kanban column | ✅ Complete | |
+| 7-step order wizard | ✅ Complete | Added Lens Type + Lens Config steps |
+| Lens material / index / design selection | ✅ Complete | |
+| Coatings + tints config step | ✅ Complete | AR, blue light, photochromic, UV, prism |
+| Work Order view | ✅ Complete | `/orders/[id]/work-order` printable page |
+| External Rx upload (AI OCR) | ✅ Complete | Claude AI parses paper Rx photo |
+| PickupCompleteModal | ✅ Complete | Post-pickup retention workflow |
+
+---
+
+### Inventory V2 (Complete)
+
+| Feature | Status | Notes |
+|---------|--------|-------|
+| Vendors CRUD | ✅ Complete | Contact info, payment terms, lead time, rep |
+| Purchase Order creation | ✅ Complete | Multi-line PO with draft/send |
+| PO lifecycle (DRAFT→RECEIVED) | ✅ Complete | 6-state flow |
+| Receiving workflow | ✅ Complete | Per-line-item partial receipt |
+| Inventory Ledger | ✅ Complete | Immutable stock movement log |
+| Item: vendorId, UPC, colorCode, styleTags | ✅ Complete | |
+| Item: committedQty / onOrderQty | ✅ Complete | Separate from raw stockQty |
+| Item: landedCost / abcCategory | ✅ Complete | |
+| ABC analysis page | ✅ Complete | A/B/C revenue segmentation |
+| Dead stock report | ✅ Complete | 90-day no-movement items |
+| Best/worst sellers report | ✅ Complete | Unit velocity trailing 90 days |
+| Redesigned filter UI | ✅ Complete | Collapsible sidebar + active filter chips |
 
 ---
 
@@ -113,9 +147,9 @@
 
 ---
 
-## Immediate Next Steps (V1.1)
+## Immediate Next Steps
 
-1. **Notification system** — bell icon in header; surface new form submissions, order status changes, payments requiring action
+1. **Notification system** — bell icon in header; surface new form submissions, PO receipts, order status changes, payments requiring action
 2. **PDF invoices** — most operationally critical; staff need to hand invoices to customers
 3. **Run data migration** — export Customer Master CSV, run `migrate-customers.ts`
 4. **Staff management** — settings page is a stub; need staff list + create/deactivate
@@ -129,5 +163,6 @@
 | Settings page is a stub | Medium | Placeholder only |
 | `addPayment` action updates only `*Customer` fields, not `*Real` | Medium | Should update both when not dual invoice |
 | No input validation on order wizard line item prices | Low | Easy to enter bad data |
-| No pagination on customer/order lists | Low | Fine until data grows |
+| No pagination on customer/order/inventory lists | Low | Fine until data grows |
 | Migration scripts not tested with real data | High | Need to test before running on prod |
+| `committedQty` / `onOrderQty` on InventoryItem not auto-synced on order state changes | Medium | Currently manual or batch process |
