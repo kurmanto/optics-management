@@ -76,6 +76,10 @@ model Customer {
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
 
+  hearAboutUs    String? @map("hear_about_us")
+  referredByName String? @map("referred_by_name")
+  occupation     String?
+
   familyId String?
   family   Family? @relation(fields: [familyId], references: [id])
 
@@ -91,6 +95,8 @@ model Customer {
   appointments        Appointment[]
   formSubmissions     FormSubmission[]
   formPackages        FormPackage[]
+  medicalHistory      MedicalHistory?
+  storeCredits        StoreCredit[]
 
   @@index([lastName, firstName])
   @@index([phone])
@@ -136,6 +142,10 @@ model Prescription {
 
   // Combined PD
   pdBinocular Float?
+
+  // Segment heights
+  odSegmentHeight Float? @map("od_segment_height")
+  osSegmentHeight Float? @map("os_segment_height")
 
   doctorName String?
   notes      String?
@@ -409,6 +419,8 @@ model InsurancePolicy {
   maxLenses    Float?
   maxContacts  Float?
   maxExam      Float?
+  lastClaimDate             DateTime? @map("last_claim_date")
+  eligibilityIntervalMonths Int       @default(24) @map("eligibility_interval_months")
   notes        String?
   isActive     Boolean      @default(true)
   createdAt    DateTime     @default(now())
@@ -766,4 +778,55 @@ enum PackageStatus {
   PENDING
   IN_PROGRESS
   COMPLETED
+}
+
+// ─────────────────────────────────────────
+// MEDICAL HISTORY
+// ─────────────────────────────────────────
+
+model MedicalHistory {
+  id                 String   @id @default(cuid())
+  customerId         String   @unique @map("customer_id")
+  eyeConditions      String[] @default([]) @map("eye_conditions")
+  systemicConditions String[] @default([]) @map("systemic_conditions")
+  medications        String?
+  allergies          String?
+  familyGlaucoma     Boolean  @default(false) @map("family_glaucoma")
+  familyAmd          Boolean  @default(false) @map("family_amd")
+  familyHighMyopia   Boolean  @default(false) @map("family_high_myopia")
+  familyColorblind   Boolean  @default(false) @map("family_colorblind")
+  hadLasik           Boolean  @default(false) @map("had_lasik")
+  wearsContacts      Boolean  @default(false) @map("wears_contacts")
+  contactType        String?  @map("contact_type")
+  primaryUse         String?  @map("primary_use")
+  screenTimeDaily    Float?   @map("screen_time_daily")
+  notes              String?
+  createdAt          DateTime @default(now()) @map("created_at")
+  updatedAt          DateTime @updatedAt @map("updated_at")
+
+  customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@map("medical_histories")
+}
+
+// ─────────────────────────────────────────
+// STORE CREDITS
+// ─────────────────────────────────────────
+
+model StoreCredit {
+  id          String    @id @default(cuid())
+  customerId  String    @map("customer_id")
+  type        String    // REFERRAL, INSURANCE, PROMOTION, REFUND
+  amount      Float
+  usedAmount  Float     @default(0) @map("used_amount")
+  description String?
+  expiresAt   DateTime? @map("expires_at")
+  isActive    Boolean   @default(true) @map("is_active")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@index([customerId])
+  @@map("store_credits")
 }

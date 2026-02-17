@@ -3,8 +3,21 @@ import { verifySession } from "@/lib/dal";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { formatPhone, formatDate, formatCurrency, formatRxValue } from "@/lib/utils/formatters";
-import { ChevronLeft, Edit, Plus, FileText, PenLine, CheckCircle2, Clock } from "lucide-react";
+import { ChevronLeft, Edit, Plus, FileText, PenLine, CheckCircle2, Clock, AlertTriangle, TrendingUp, Shield, Calendar } from "lucide-react";
 import { OrderStatus, FormTemplateType } from "@prisma/client";
+import {
+  computeCustomerType,
+  computeLTV,
+  computeOutstandingBalance,
+  computeInsuranceEligibility,
+  isUnder21,
+  hasExamOnlyHistory,
+  CUSTOMER_TYPE_LABELS,
+  CUSTOMER_TYPE_COLORS,
+  HEAR_ABOUT_US_LABELS,
+} from "@/lib/utils/customer";
+import { MedicalHistoryForm } from "@/components/customers/MedicalHistoryForm";
+import { StoreCreditManager } from "@/components/customers/StoreCreditManager";
 
 const FORM_TYPE_LABELS: Record<FormTemplateType, string> = {
   NEW_PATIENT: "New Patient Registration",
@@ -60,13 +73,51 @@ export default async function CustomerDetailPage({
         orderBy: { createdAt: "desc" },
         include: { template: true },
       },
+      medicalHistory: true,
+      storeCredits: {
+        where: { isActive: true },
+        orderBy: { createdAt: "desc" },
+      },
     },
   });
 
   if (!customer) notFound();
 
+  // Computed signals
+  const orderSummaries = customer.orders.map((o) => ({
+    status: o.status,
+    type: o.type,
+    totalReal: o.totalReal,
+    balanceReal: o.balanceReal,
+    createdAt: o.createdAt,
+    pickedUpAt: o.pickedUpAt,
+  }));
+
+  const customerType = computeCustomerType(orderSummaries, customer.createdAt);
+  const ltv = computeLTV(orderSummaries);
+  const outstandingBalance = computeOutstandingBalance(orderSummaries);
+  const under21 = isUnder21(customer.dateOfBirth);
+  const examOnly = hasExamOnlyHistory(orderSummaries);
+  const latestRx = customer.prescriptions[0] ?? null;
+
+  // Insurance eligibility (first active policy with lastClaimDate)
+  const policyWithClaim = customer.insurancePolicies.find((p) => p.lastClaimDate);
+  const eligibility = policyWithClaim
+    ? computeInsuranceEligibility(policyWithClaim)
+    : null;
+
+  // Order stats
+  const pickedUpOrders = customer.orders.filter((o) => o.status === "PICKED_UP");
+  const avgOrderValue = pickedUpOrders.length > 0 ? ltv / pickedUpOrders.length : 0;
+  const firstPurchase = pickedUpOrders.length > 0
+    ? pickedUpOrders.reduce((min, o) => (o.pickedUpAt ?? o.createdAt) < min ? (o.pickedUpAt ?? o.createdAt) : min, pickedUpOrders[0].pickedUpAt ?? pickedUpOrders[0].createdAt)
+    : null;
+  const lastPurchase = pickedUpOrders.length > 0
+    ? pickedUpOrders.reduce((max, o) => (o.pickedUpAt ?? o.createdAt) > max ? (o.pickedUpAt ?? o.createdAt) : max, new Date(0))
+    : null;
+
   return (
-    <div className="p-6 max-w-4xl mx-auto space-y-5">
+    <div className="p-6 max-w-6xl mx-auto space-y-5">
       {/* Header */}
       <div className="flex items-start justify-between">
         <div className="flex items-center gap-3">
@@ -77,10 +128,13 @@ export default async function CustomerDetailPage({
             <ChevronLeft className="w-5 h-5" />
           </Link>
           <div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
               <h1 className="text-2xl font-bold text-gray-900">
                 {customer.firstName} {customer.lastName}
               </h1>
+              <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${CUSTOMER_TYPE_COLORS[customerType]}`}>
+                {CUSTOMER_TYPE_LABELS[customerType]}
+              </span>
               {customer.isOnboarded ? (
                 <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700">
                   <CheckCircle2 className="w-3 h-3" /> Onboarded
@@ -114,9 +168,46 @@ export default async function CustomerDetailPage({
         </div>
       </div>
 
+      {/* Alert Banners */}
+      {(examOnly || (under21 && latestRx) || outstandingBalance > 0 || eligibility?.isEligibleSoon) && (
+        <div className="space-y-2">
+          {examOnly && ltv < 100 && (
+            <div className="flex items-center gap-3 px-4 py-3 bg-red-50 border border-red-200 rounded-xl text-sm">
+              <AlertTriangle className="w-4 h-4 text-red-500 flex-shrink-0" />
+              <span className="text-red-700 font-medium">Exam-only customer</span>
+              <span className="text-red-600">— no optical purchases on record. Opportunity to convert.</span>
+            </div>
+          )}
+          {under21 && latestRx && (
+            <div className="flex items-center gap-3 px-4 py-3 bg-amber-50 border border-amber-200 rounded-xl text-sm">
+              <AlertTriangle className="w-4 h-4 text-amber-500 flex-shrink-0" />
+              <span className="text-amber-700 font-medium">PD may be outdated</span>
+              <span className="text-amber-600">— patient is under 21, PD changes frequently.</span>
+            </div>
+          )}
+          {outstandingBalance > 0 && (
+            <div className="flex items-center gap-3 px-4 py-3 bg-red-50 border border-red-200 rounded-xl text-sm">
+              <AlertTriangle className="w-4 h-4 text-red-500 flex-shrink-0" />
+              <span className="text-red-700 font-medium">Outstanding balance: {formatCurrency(outstandingBalance)}</span>
+              <span className="text-red-600">— payment pending on active orders.</span>
+            </div>
+          )}
+          {eligibility?.isEligibleSoon && eligibility.daysUntil !== null && (
+            <div className="flex items-center gap-3 px-4 py-3 bg-green-50 border border-green-200 rounded-xl text-sm">
+              <Shield className="w-4 h-4 text-green-500 flex-shrink-0" />
+              <span className="text-green-700 font-medium">
+                Insurance eligible {eligibility.daysUntil <= 0 ? "now" : `in ${eligibility.daysUntil} days`}
+              </span>
+              <span className="text-green-600">— ready to use benefits.</span>
+            </div>
+          )}
+        </div>
+      )}
+
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-        {/* Left: Contact Info */}
+        {/* ── Left column ── */}
         <div className="space-y-4">
+          {/* Contact Info */}
           <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
             <h2 className="font-semibold text-gray-900 mb-4">Contact</h2>
             <dl className="space-y-3 text-sm">
@@ -132,6 +223,7 @@ export default async function CustomerDetailPage({
                 <dt className="text-gray-500">Date of Birth</dt>
                 <dd className="text-gray-900 font-medium mt-0.5">
                   {formatDate(customer.dateOfBirth)}
+                  {under21 && <span className="ml-1.5 text-xs text-amber-600 font-medium">Under 21</span>}
                 </dd>
               </div>
               {(customer.city || customer.province) && (
@@ -148,25 +240,75 @@ export default async function CustomerDetailPage({
                   <dd className="text-gray-900 font-medium mt-0.5">{customer.family.name}</dd>
                 </div>
               )}
+              {(customer as any).occupation && (
+                <div>
+                  <dt className="text-gray-500">Occupation</dt>
+                  <dd className="text-gray-900 font-medium mt-0.5">{(customer as any).occupation}</dd>
+                </div>
+              )}
+              {(customer as any).hearAboutUs && (
+                <div>
+                  <dt className="text-gray-500">Source</dt>
+                  <dd className="text-gray-900 font-medium mt-0.5">
+                    {HEAR_ABOUT_US_LABELS[(customer as any).hearAboutUs] || (customer as any).hearAboutUs}
+                    {(customer as any).referredByName && (
+                      <span className="text-gray-500 font-normal"> · by {(customer as any).referredByName}</span>
+                    )}
+                  </dd>
+                </div>
+              )}
             </dl>
           </div>
 
           {/* Insurance */}
           {customer.insurancePolicies.length > 0 && (
             <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
-              <h2 className="font-semibold text-gray-900 mb-3">Insurance</h2>
-              <div className="space-y-2">
-                {customer.insurancePolicies.map((policy) => (
-                  <div key={policy.id} className="text-sm">
-                    <p className="font-medium text-gray-900">{policy.providerName}</p>
-                    {policy.policyNumber && (
-                      <p className="text-gray-500 text-xs">Policy: {policy.policyNumber}</p>
-                    )}
-                  </div>
-                ))}
+              <h2 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                <Shield className="w-4 h-4 text-gray-400" />
+                Insurance
+              </h2>
+              <div className="space-y-4">
+                {customer.insurancePolicies.map((policy) => {
+                  const elig = computeInsuranceEligibility(policy);
+                  return (
+                    <div key={policy.id} className="text-sm space-y-1.5">
+                      <p className="font-medium text-gray-900">{policy.providerName}</p>
+                      {policy.policyNumber && (
+                        <p className="text-gray-500 text-xs">Policy: {policy.policyNumber}</p>
+                      )}
+                      {policy.lastClaimDate && (
+                        <p className="text-gray-500 text-xs">
+                          Last claim: {formatDate(policy.lastClaimDate)}
+                        </p>
+                      )}
+                      {elig.nextDate && (
+                        <div className={`text-xs px-2.5 py-1 rounded-lg inline-flex items-center gap-1.5 ${
+                          elig.isEligibleSoon ? "bg-green-50 text-green-700" : "bg-gray-50 text-gray-600"
+                        }`}>
+                          <Calendar className="w-3 h-3" />
+                          Next eligible: {formatDate(elig.nextDate)}
+                          {elig.daysUntil !== null && (
+                            <span className="font-medium">
+                              {elig.daysUntil <= 0 ? " (now!)" : ` (${elig.daysUntil}d)`}
+                            </span>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             </div>
           )}
+
+          {/* Store Credits */}
+          <StoreCreditManager
+            customerId={customer.id}
+            credits={customer.storeCredits.map((c) => ({
+              ...c,
+              expiresAt: c.expiresAt,
+            }))}
+          />
 
           {/* Notes */}
           {customer.notes && (
@@ -191,8 +333,58 @@ export default async function CustomerDetailPage({
           )}
         </div>
 
-        {/* Right: Prescriptions + Orders */}
+        {/* ── Right column (2/3 wide) ── */}
         <div className="lg:col-span-2 space-y-5">
+          {/* Lifecycle & Journey */}
+          <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
+            <div className="flex items-center gap-2 mb-4">
+              <TrendingUp className="w-4 h-4 text-gray-400" />
+              <h2 className="font-semibold text-gray-900">Lifecycle & Journey</h2>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+              <div className="text-center">
+                <p className="text-2xl font-bold text-gray-900">{formatCurrency(ltv)}</p>
+                <p className="text-xs text-gray-500 mt-0.5">Lifetime Value</p>
+              </div>
+              <div className="text-center">
+                <p className="text-2xl font-bold text-gray-900">{formatCurrency(avgOrderValue)}</p>
+                <p className="text-xs text-gray-500 mt-0.5">Avg Order</p>
+              </div>
+              <div className="text-center">
+                <p className="text-2xl font-bold text-gray-900">{pickedUpOrders.length}</p>
+                <p className="text-xs text-gray-500 mt-0.5">Completed Orders</p>
+              </div>
+              <div className="text-center">
+                <p className="text-2xl font-bold text-gray-900">{customer.orders.length}</p>
+                <p className="text-xs text-gray-500 mt-0.5">Total Orders</p>
+              </div>
+            </div>
+            <div className="mt-4 pt-4 border-t border-gray-100 grid grid-cols-2 gap-3 text-sm">
+              <div>
+                <span className="text-gray-500">First contact:</span>{" "}
+                <span className="font-medium">{formatDate(customer.createdAt)}</span>
+              </div>
+              {firstPurchase && (
+                <div>
+                  <span className="text-gray-500">First purchase:</span>{" "}
+                  <span className="font-medium">{formatDate(firstPurchase)}</span>
+                </div>
+              )}
+              {lastPurchase && lastPurchase.getTime() > 0 && (
+                <div>
+                  <span className="text-gray-500">Last purchase:</span>{" "}
+                  <span className="font-medium">{formatDate(lastPurchase)}</span>
+                </div>
+              )}
+              {outstandingBalance > 0 && (
+                <div>
+                  <span className="text-gray-500">Outstanding:</span>{" "}
+                  <span className="font-semibold text-red-600">{formatCurrency(outstandingBalance)}</span>
+                </div>
+              )}
+            </div>
+          </div>
+
           {/* Latest Prescription */}
           {customer.prescriptions.length > 0 && (
             <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
@@ -212,6 +404,7 @@ export default async function CustomerDetailPage({
                       <th className="text-center pb-2">Axis</th>
                       <th className="text-center pb-2">Add</th>
                       <th className="text-center pb-2">PD</th>
+                      <th className="text-center pb-2">Seg Ht</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -222,6 +415,9 @@ export default async function CustomerDetailPage({
                       <td className="text-center py-1">{customer.prescriptions[0].odAxis ?? "—"}</td>
                       <td className="text-center py-1">{formatRxValue(customer.prescriptions[0].odAdd)}</td>
                       <td className="text-center py-1">{customer.prescriptions[0].odPd ?? "—"}</td>
+                      <td className="text-center py-1 font-medium text-primary">
+                        {(customer.prescriptions[0] as any).odSegmentHeight ?? "—"}
+                      </td>
                     </tr>
                     <tr>
                       <td className="py-1 font-medium text-gray-700">OS (L)</td>
@@ -230,12 +426,26 @@ export default async function CustomerDetailPage({
                       <td className="text-center py-1">{customer.prescriptions[0].osAxis ?? "—"}</td>
                       <td className="text-center py-1">{formatRxValue(customer.prescriptions[0].osAdd)}</td>
                       <td className="text-center py-1">{customer.prescriptions[0].osPd ?? "—"}</td>
+                      <td className="text-center py-1 font-medium text-primary">
+                        {(customer.prescriptions[0] as any).osSegmentHeight ?? "—"}
+                      </td>
                     </tr>
                   </tbody>
                 </table>
               </div>
+              {customer.prescriptions[0].pdBinocular && (
+                <p className="mt-2 text-xs text-gray-500">
+                  Binocular PD: <span className="font-medium text-gray-900">{customer.prescriptions[0].pdBinocular}</span>
+                </p>
+              )}
             </div>
           )}
+
+          {/* Medical History */}
+          <MedicalHistoryForm
+            customerId={customer.id}
+            initialData={customer.medicalHistory}
+          />
 
           {/* Orders */}
           <div className="bg-white rounded-xl border border-gray-100 shadow-sm">
@@ -257,7 +467,12 @@ export default async function CustomerDetailPage({
                     className="flex items-center justify-between px-5 py-3.5 hover:bg-gray-50 transition-colors"
                   >
                     <div>
-                      <p className="text-sm font-medium text-gray-900">{order.orderNumber}</p>
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm font-medium text-gray-900">{order.orderNumber}</p>
+                        {order.type === "EXAM_ONLY" && (
+                          <span className="text-xs bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded">Exam only</span>
+                        )}
+                      </div>
                       <p className="text-xs text-gray-400">{formatDate(order.createdAt)}</p>
                     </div>
                     <div className="flex items-center gap-3">
