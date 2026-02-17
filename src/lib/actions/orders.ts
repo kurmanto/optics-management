@@ -1,10 +1,9 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { verifySession } from "@/lib/dal";
-import { OrderStatus, LineItemType, OrderType } from "@prisma/client";
+import { OrderStatus, LineItemType, OrderType, PrescriptionSource } from "@prisma/client";
 import { generateOrderNumber } from "@/lib/utils/formatters";
 
 export type OrderFormState = {
@@ -28,14 +27,23 @@ type CreateOrderInput = {
   insurancePolicyId?: string;
   type: OrderType;
   orderTypes: string[];
+  orderCategory?: string;
   isDualInvoice: boolean;
   frameBrand?: string;
   frameModel?: string;
   frameColor?: string;
   frameSku?: string;
   frameWholesale?: number;
+  frameEyeSize?: string;
+  frameBridge?: string;
+  frameTemple?: string;
+  frameColourCode?: string;
   lensType?: string;
   lensCoating?: string;
+  lensDesign?: string;
+  lensAddOns?: string[];
+  insuranceCoverage?: number;
+  referralCredit?: number;
   depositCustomer: number;
   depositReal: number;
   notes?: string;
@@ -47,15 +55,20 @@ type CreateOrderInput = {
 export async function createOrder(input: CreateOrderInput): Promise<{ id: string } | { error: string }> {
   const session = await verifySession();
 
-  // Calculate totals
-  const totalCustomer = input.lineItems.reduce(
+  // Calculate totals from line items
+  const lineTotal = input.lineItems.reduce(
     (sum, item) => sum + item.unitPriceCustomer * item.quantity,
     0
   );
-  const totalReal = input.lineItems.reduce(
+  const lineTotalReal = input.lineItems.reduce(
     (sum, item) => sum + item.unitPriceReal * item.quantity,
     0
   );
+
+  // Apply deductions
+  const deductions = (input.insuranceCoverage ?? 0) + (input.referralCredit ?? 0);
+  const totalCustomer = Math.max(0, lineTotal - deductions);
+  const totalReal = Math.max(0, lineTotalReal - deductions);
 
   const orderNumber = generateOrderNumber();
 
@@ -69,6 +82,7 @@ export async function createOrder(input: CreateOrderInput): Promise<{ id: string
         insurancePolicyId: input.insurancePolicyId || null,
         type: input.type,
         orderTypes: input.orderTypes,
+        orderCategory: input.orderCategory || null,
         status: OrderStatus.DRAFT,
         isDualInvoice: input.isDualInvoice,
         totalCustomer,
@@ -82,8 +96,16 @@ export async function createOrder(input: CreateOrderInput): Promise<{ id: string
         frameColor: input.frameColor || null,
         frameSku: input.frameSku || null,
         frameWholesale: input.frameWholesale || null,
+        frameEyeSize: input.frameEyeSize || null,
+        frameBridge: input.frameBridge || null,
+        frameTemple: input.frameTemple || null,
+        frameColourCode: input.frameColourCode || null,
         lensType: input.lensType || null,
         lensCoating: input.lensCoating || null,
+        lensDesign: input.lensDesign || null,
+        lensAddOns: input.lensAddOns || [],
+        insuranceCoverage: input.insuranceCoverage || null,
+        referralCredit: input.referralCredit || null,
         notes: input.notes || null,
         labNotes: input.labNotes || null,
         dueDate: input.dueDate ? new Date(input.dueDate) : null,
@@ -127,6 +149,7 @@ export async function advanceOrderStatus(
   const statusTimestamps: Partial<Record<OrderStatus, object>> = {
     LAB_ORDERED: { labOrderedAt: new Date() },
     LAB_RECEIVED: { labReceivedAt: new Date() },
+    VERIFIED: { verifiedAt: new Date() },
     READY: { readyAt: new Date() },
     PICKED_UP: { pickedUpAt: new Date() },
   };
@@ -149,6 +172,200 @@ export async function advanceOrderStatus(
   revalidatePath(`/orders/${orderId}`);
   revalidatePath("/orders");
   revalidatePath("/orders/board");
+}
+
+type PickupCompleteOptions = {
+  sendReviewRequest: boolean;
+  enrollInReferralCampaign: boolean;
+  markAsLowValue: boolean;
+  notes?: string;
+};
+
+export async function handlePickupComplete(
+  orderId: string,
+  options: PickupCompleteOptions
+): Promise<{ success: true } | { error: string }> {
+  const session = await verifySession();
+
+  try {
+    const order = await prisma.order.findUnique({
+      where: { id: orderId },
+      select: { customerId: true, totalCustomer: true },
+    });
+    if (!order) return { error: "Order not found" };
+
+    await prisma.$transaction(async (tx) => {
+      await tx.order.update({
+        where: { id: orderId },
+        data: {
+          status: OrderStatus.PICKED_UP,
+          pickedUpAt: new Date(),
+          reviewRequestSent: options.sendReviewRequest,
+          referralCampaignEnrolled: options.enrollInReferralCampaign,
+          pickupNotes: options.notes || null,
+          statusHistory: {
+            create: {
+              status: OrderStatus.PICKED_UP,
+              note: options.notes || null,
+              createdBy: session.name,
+            },
+          },
+        },
+      });
+
+      if (options.markAsLowValue) {
+        await tx.customer.update({
+          where: { id: order.customerId },
+          data: {
+            marketingOptOut: true,
+            optOutReason: "Marked low-value at pickup",
+            optOutDate: new Date(),
+            optOutBy: session.name,
+          },
+        });
+      }
+    });
+
+    // SMS placeholder — Twilio integration later
+    if (options.sendReviewRequest) {
+      console.log(`[SMS PLACEHOLDER] Review request for order ${orderId}, customer ${order.customerId}`);
+    }
+    if (options.enrollInReferralCampaign) {
+      console.log(`[SMS PLACEHOLDER] Referral campaign enrollment for customer ${order.customerId} (starts in 3 days)`);
+    }
+
+    revalidatePath(`/orders/${orderId}`);
+    revalidatePath("/orders");
+    revalidatePath("/orders/board");
+
+    return { success: true };
+  } catch (e) {
+    console.error(e);
+    return { error: "Failed to complete pickup" };
+  }
+}
+
+type ExternalPrescriptionInput = {
+  customerId: string;
+  doctorName?: string;
+  doctorLicense?: string;
+  rxDate?: string;
+  notes?: string;
+  odSphere?: number;
+  odCylinder?: number;
+  odAxis?: number;
+  odAdd?: number;
+  odPd?: number;
+  osSphere?: number;
+  osCylinder?: number;
+  osAxis?: number;
+  osAdd?: number;
+  osPd?: number;
+  pdBinocular?: number;
+  imageUrl?: string;
+};
+
+export async function addExternalPrescription(
+  input: ExternalPrescriptionInput
+): Promise<{ id: string } | { error: string }> {
+  await verifySession();
+
+  try {
+    const prescription = await prisma.prescription.create({
+      data: {
+        customerId: input.customerId,
+        source: PrescriptionSource.EXTERNAL,
+        date: input.rxDate ? new Date(input.rxDate) : new Date(),
+        doctorName: input.doctorName || null,
+        externalDoctor: input.doctorName || null,
+        externalLicense: input.doctorLicense || null,
+        externalRxDate: input.rxDate ? new Date(input.rxDate) : null,
+        externalImageUrl: input.imageUrl || null,
+        externalNotes: input.notes || null,
+        odSphere: input.odSphere ?? null,
+        odCylinder: input.odCylinder ?? null,
+        odAxis: input.odAxis ?? null,
+        odAdd: input.odAdd ?? null,
+        odPd: input.odPd ?? null,
+        osSphere: input.osSphere ?? null,
+        osCylinder: input.osCylinder ?? null,
+        osAxis: input.osAxis ?? null,
+        osAdd: input.osAdd ?? null,
+        osPd: input.osPd ?? null,
+        pdBinocular: input.pdBinocular ?? null,
+      },
+    });
+
+    revalidatePath(`/customers/${input.customerId}`);
+    return { id: prescription.id };
+  } catch (e) {
+    console.error(e);
+    return { error: "Failed to save prescription" };
+  }
+}
+
+type TranscribeResult = {
+  doctorName: string | null;
+  doctorLicense: string | null;
+  date: string | null;
+  notes: string | null;
+  OD: { sphere: string | null; cylinder: string | null; axis: string | null; add: string | null; prism: string | null };
+  OS: { sphere: string | null; cylinder: string | null; axis: string | null; add: string | null; prism: string | null };
+  PD: { distance: string | null; near: string | null };
+};
+
+export async function transcribePrescriptionImage(
+  base64Image: string,
+  mimeType: string = "image/jpeg"
+): Promise<{ data: TranscribeResult } | { error: string }> {
+  await verifySession();
+
+  try {
+    const Anthropic = (await import("@anthropic-ai/sdk")).default;
+    const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+
+    const response = await client.messages.create({
+      model: "claude-opus-4-6",
+      max_tokens: 1024,
+      messages: [
+        {
+          role: "user",
+          content: [
+            {
+              type: "image",
+              source: {
+                type: "base64",
+                media_type: mimeType as "image/jpeg" | "image/png" | "image/gif" | "image/webp",
+                data: base64Image,
+              },
+            },
+            {
+              type: "text",
+              text: `You are an optical prescription reader. Extract all values from this prescription image.
+Return ONLY valid JSON with this structure:
+{
+  "doctorName": "",
+  "doctorLicense": "",
+  "date": "YYYY-MM-DD",
+  "notes": "",
+  "OD": {"sphere": "", "cylinder": "", "axis": "", "add": "", "prism": ""},
+  "OS": {"sphere": "", "cylinder": "", "axis": "", "add": "", "prism": ""},
+  "PD": {"distance": "", "near": ""}
+}
+Use null for any field that cannot be read clearly. Return ONLY the JSON object, no markdown, no explanation.`,
+            },
+          ],
+        },
+      ],
+    });
+
+    const text = response.content[0].type === "text" ? response.content[0].text : "";
+    const data = JSON.parse(text) as TranscribeResult;
+    return { data };
+  } catch (e) {
+    console.error(e);
+    return { error: "Failed to transcribe prescription image" };
+  }
 }
 
 export async function updateOrderNotes(

@@ -4,13 +4,17 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createOrder } from "@/lib/actions/orders";
 import { formatCurrency } from "@/lib/utils/formatters";
-import { Plus, Trash2, ChevronRight, ChevronLeft, Search } from "lucide-react";
+import {
+  Plus, Trash2, ChevronRight, ChevronLeft, Search, X,
+  Glasses, Sun, RefreshCw, Eye, Printer, Mail
+} from "lucide-react";
 
 type Customer = {
   id: string;
   firstName: string;
   lastName: string;
   phone: string | null;
+  email?: string | null;
 };
 
 type Prescription = {
@@ -18,6 +22,7 @@ type Prescription = {
   date: Date;
   odSphere: number | null;
   osSphere: number | null;
+  source?: string;
 };
 
 type InsurancePolicy = {
@@ -27,7 +32,7 @@ type InsurancePolicy = {
 };
 
 type LineItem = {
-  type: "FRAME" | "LENS" | "COATING" | "CONTACT_LENS" | "EXAM" | "ACCESSORY" | "DISCOUNT" | "OTHER";
+  type: "FRAME" | "LENS" | "COATING" | "CONTACT_LENS" | "EXAM" | "ACCESSORY" | "OTHER";
   description: string;
   quantity: number;
   unitPriceCustomer: number;
@@ -43,6 +48,9 @@ type InventoryItem = {
   sku: string | null;
   retailPrice: number | null;
   wholesaleCost: number | null;
+  eyeSize?: number | null;
+  bridgeSize?: number | null;
+  templeLength?: number | null;
 };
 
 type Props = {
@@ -60,84 +68,151 @@ const LINE_ITEM_TYPES = [
   { value: "CONTACT_LENS", label: "Contact Lenses" },
   { value: "EXAM", label: "Exam" },
   { value: "ACCESSORY", label: "Accessory" },
-  { value: "DISCOUNT", label: "Discount" },
   { value: "OTHER", label: "Other" },
 ] as const;
 
-const ORDER_TYPES = [
-  { value: "GLASSES", label: "Glasses" },
-  { value: "CONTACTS", label: "Contact Lenses" },
-  { value: "SUNGLASSES", label: "Sunglasses" },
-  { value: "ACCESSORIES", label: "Accessories" },
-  { value: "EXAM_ONLY", label: "Exam Only" },
+const ORDER_CATEGORIES = [
+  { value: "complete", label: "Complete (Frame + Lens)", icon: Glasses, desc: "Frame with prescription lenses" },
+  { value: "rx_sunglasses", label: "Rx Sunglasses", icon: Sun, desc: "Sunglasses with prescription" },
+  { value: "non_rx_sunglasses", label: "Non-Rx Sunglasses", icon: Sun, desc: "Sunglasses, no prescription" },
+  { value: "lens_update", label: "Lens Update", icon: RefreshCw, desc: "New lenses for existing frame" },
+  { value: "contact_lenses", label: "Contact Lenses", icon: Eye, desc: "Contact lens order" },
+  { value: "eye_exam", label: "Eye Exam", icon: Eye, desc: "Exam only" },
 ] as const;
 
-const PAYMENT_METHODS = [
-  "CASH", "DEBIT", "CREDIT_VISA", "CREDIT_MASTERCARD", "CREDIT_AMEX",
-  "CHEQUE", "E_TRANSFER", "INSURANCE", "OTHER"
-];
+const LENS_TYPES = [
+  { value: "single_vision", label: "Single Vision" },
+  { value: "progressive", label: "Progressive" },
+] as const;
 
-export function NewOrderWizard({ customer, allCustomers, prescriptions = [], insurancePolicies = [], inventoryItems = [] }: Props) {
+const LENS_DESIGNS = [
+  { value: "entry", label: "Entry", desc: "Standard lens" },
+  { value: "signature", label: "Signature", desc: "Mid-tier premium" },
+  { value: "elite", label: "Elite", desc: "Top tier premium" },
+] as const;
+
+const LENS_ADDONS = [
+  { value: "crizal_blue_light", label: "Crizal Blue Light (Screen Protect)" },
+  { value: "max_clarity", label: "Max Clarity (AR)" },
+  { value: "lens_thinning_basic", label: "Lens Thinning Basic" },
+  { value: "lens_thinning_signature", label: "Lens Thinning Signature" },
+  { value: "lens_thinning_elite", label: "Lens Thinning Elite" },
+  { value: "blue_select", label: "BlueSelect" },
+  { value: "crizal_sun_protect", label: "Crizal SunProtect" },
+  { value: "transitions", label: "Transitions" },
+] as const;
+
+const NEEDS_LENS_CONFIG = ["complete", "rx_sunglasses", "lens_update"];
+const NEEDS_FRAME = ["complete", "rx_sunglasses", "non_rx_sunglasses", "lens_update"];
+
+function getOrderType(category: string): "GLASSES" | "CONTACTS" | "SUNGLASSES" | "ACCESSORIES" | "EXAM_ONLY" {
+  if (category === "contact_lenses") return "CONTACTS";
+  if (category === "eye_exam") return "EXAM_ONLY";
+  if (category === "rx_sunglasses" || category === "non_rx_sunglasses") return "SUNGLASSES";
+  return "GLASSES";
+}
+
+export function NewOrderWizard({
+  customer,
+  allCustomers,
+  prescriptions = [],
+  insurancePolicies = [],
+  inventoryItems = [],
+}: Props) {
   const router = useRouter();
   const [step, setStep] = useState(1);
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
   const [inventorySearches, setInventorySearches] = useState<Record<number, string>>({});
+  const [showNewCustomerForm, setShowNewCustomerForm] = useState(false);
 
   // Step 1: Customer
   const [selectedCustomerId, setSelectedCustomerId] = useState(customer?.id || "");
   const [customerSearch, setCustomerSearch] = useState(
     customer ? `${customer.lastName}, ${customer.firstName}` : ""
   );
-
-  // Step 2: Order Details
-  const [orderTypes, setOrderTypes] = useState<string[]>(["GLASSES"]);
+  const [isDualInvoice, setIsDualInvoice] = useState(false);
   const [prescriptionId, setPrescriptionId] = useState("");
   const [insurancePolicyId, setInsurancePolicyId] = useState("");
-  const [isDualInvoice, setIsDualInvoice] = useState(false);
   const [dueDate, setDueDate] = useState("");
 
-  // Step 3: Line Items
+  // Step 2: Order Category
+  const [orderCategory, setOrderCategory] = useState("");
+
+  // Step 3: Lens config
+  const [lensType, setLensType] = useState("");
+  const [lensDesign, setLensDesign] = useState("");
+  const [lensAddOns, setLensAddOns] = useState<string[]>([]);
+
+  // Step 4: Frame details
+  const [frameBrand, setFrameBrand] = useState("");
+  const [frameModel, setFrameModel] = useState("");
+  const [frameColor, setFrameColor] = useState("");
+  const [frameColourCode, setFrameColourCode] = useState("");
+  const [frameEyeSize, setFrameEyeSize] = useState("");
+  const [frameBridge, setFrameBridgeState] = useState("");
+  const [frameTemple, setFrameTemple] = useState("");
+  const [frameWholesale, setFrameWholesale] = useState("");
+  const [frameSku, setFrameSku] = useState("");
+  const [frameInventorySearch, setFrameInventorySearch] = useState("");
+
+  // Step 5: Line Items
   const [lineItems, setLineItems] = useState<LineItem[]>([
     { type: "FRAME", description: "", quantity: 1, unitPriceCustomer: 0, unitPriceReal: 0 },
     { type: "LENS", description: "", quantity: 1, unitPriceCustomer: 0, unitPriceReal: 0 },
   ]);
 
-  // Step 4: Frame Details
-  const [frameBrand, setFrameBrand] = useState("");
-  const [frameModel, setFrameModel] = useState("");
-  const [frameColor, setFrameColor] = useState("");
-  const [lensType, setLensType] = useState("");
-  const [lensCoating, setLensCoating] = useState("");
-  const [frameWholesale, setFrameWholesale] = useState("");
-
-  // Step 5: Payment
+  // Step 6: Payment
   const [depositCustomer, setDepositCustomer] = useState(0);
   const [depositReal, setDepositReal] = useState(0);
+  const [insuranceCoverage, setInsuranceCoverage] = useState(0);
+  const [referralCredit, setReferralCredit] = useState(0);
   const [notes, setNotes] = useState("");
   const [labNotes, setLabNotes] = useState("");
 
-  const totalCustomer = lineItems.reduce(
-    (sum, item) => sum + item.unitPriceCustomer * item.quantity, 0
-  );
-  const totalReal = lineItems.reduce(
-    (sum, item) => sum + item.unitPriceReal * item.quantity, 0
-  );
+  // Step 7: Completion
+  const [printInvoice, setPrintInvoice] = useState(false);
+  const [emailInvoice, setEmailInvoice] = useState(false);
+  const [printWorkOrder, setPrintWorkOrder] = useState(true);
 
-  const filteredCustomers = allCustomers.filter((c) =>
-    customerSearch.length === 0 ||
-    `${c.lastName} ${c.firstName}`.toLowerCase().includes(customerSearch.toLowerCase()) ||
-    (c.phone && c.phone.includes(customerSearch.replace(/\D/g, "")))
-  ).slice(0, 10);
+  const selectedCustomer = allCustomers.find((c) => c.id === selectedCustomerId);
+
+  const lineTotal = lineItems.reduce((s, i) => s + i.unitPriceCustomer * i.quantity, 0);
+  const lineTotalReal = lineItems.reduce((s, i) => s + i.unitPriceReal * i.quantity, 0);
+  const deductions = insuranceCoverage + referralCredit;
+  const totalCustomer = Math.max(0, lineTotal - deductions);
+  const totalReal = Math.max(0, lineTotalReal - deductions);
+  const balanceDue = Math.max(0, totalCustomer - depositCustomer);
+
+  const needsLensConfig = NEEDS_LENS_CONFIG.includes(orderCategory);
+  const needsFrame = NEEDS_FRAME.includes(orderCategory);
+
+  // Compute actual wizard steps based on category
+  const steps = [
+    { n: 1, label: "Customer" },
+    { n: 2, label: "Order Type" },
+    ...(needsLensConfig ? [{ n: 3, label: "Lens Config" }] : []),
+    ...(needsFrame ? [{ n: needsLensConfig ? 4 : 3, label: "Frame" }] : []),
+    { n: needsLensConfig && needsFrame ? 5 : needsLensConfig || needsFrame ? 4 : 3, label: "Items" },
+    { n: needsLensConfig && needsFrame ? 6 : needsLensConfig || needsFrame ? 5 : 4, label: "Payment" },
+    { n: needsLensConfig && needsFrame ? 7 : needsLensConfig || needsFrame ? 6 : 5, label: "Review" },
+  ];
+
+  // Flat step navigation: map visual step to logical step
+  // We just track step as a flat number 1-N
+  const maxStep = steps[steps.length - 1].n;
+
+  const filteredCustomers = allCustomers
+    .filter(
+      (c) =>
+        customerSearch.length === 0 ||
+        `${c.lastName} ${c.firstName}`.toLowerCase().includes(customerSearch.toLowerCase()) ||
+        (c.phone && c.phone.includes(customerSearch.replace(/\D/g, "")))
+    )
+    .slice(0, 10);
 
   function addLineItem() {
-    setLineItems([...lineItems, {
-      type: "OTHER",
-      description: "",
-      quantity: 1,
-      unitPriceCustomer: 0,
-      unitPriceReal: 0,
-    }]);
+    setLineItems([...lineItems, { type: "OTHER", description: "", quantity: 1, unitPriceCustomer: 0, unitPriceReal: 0 }]);
   }
 
   function removeLineItem(index: number) {
@@ -150,15 +225,55 @@ export function NewOrderWizard({ customer, allCustomers, prescriptions = [], ins
     setLineItems(updated);
   }
 
+  function toggleAddon(addon: string) {
+    setLensAddOns((prev) =>
+      prev.includes(addon) ? prev.filter((a) => a !== addon) : [...prev, addon]
+    );
+  }
+
+  function selectInventoryFrame(inv: InventoryItem) {
+    setFrameBrand(inv.brand);
+    setFrameModel(inv.model);
+    setFrameColor(inv.color || "");
+    setFrameSku(inv.sku || "");
+    setFrameWholesale(inv.wholesaleCost ? String(inv.wholesaleCost) : "");
+    if (inv.eyeSize) setFrameEyeSize(String(inv.eyeSize));
+    if (inv.bridgeSize) setFrameBridgeState(String(inv.bridgeSize));
+    if (inv.templeLength) setFrameTemple(String(inv.templeLength));
+
+    // Auto-fill frame line item
+    const frameDesc = `${inv.brand} ${inv.model}${inv.color ? ` — ${inv.color}` : ""}`;
+    const frameIdx = lineItems.findIndex((i) => i.type === "FRAME");
+    if (frameIdx >= 0) {
+      const updated = [...lineItems];
+      updated[frameIdx] = {
+        ...updated[frameIdx],
+        description: frameDesc,
+        unitPriceCustomer: inv.retailPrice ?? 0,
+        unitPriceReal: isDualInvoice ? (inv.wholesaleCost ?? 0) : (inv.retailPrice ?? 0),
+      };
+      setLineItems(updated);
+    }
+    setFrameInventorySearch("");
+  }
+
+  function handleNext() {
+    if (step === 1 && !selectedCustomerId) {
+      setError("Please select a customer first");
+      return;
+    }
+    if (step === 2 && !orderCategory) {
+      setError("Please select an order type");
+      return;
+    }
+    setError("");
+    setStep((s) => s + 1);
+  }
+
   async function handleSubmit() {
     if (!selectedCustomerId) {
       setError("Please select a customer");
       setStep(1);
-      return;
-    }
-    if (lineItems.length === 0 || lineItems.every((i) => !i.description)) {
-      setError("Please add at least one line item");
-      setStep(3);
       return;
     }
 
@@ -169,15 +284,25 @@ export function NewOrderWizard({ customer, allCustomers, prescriptions = [], ins
       customerId: selectedCustomerId,
       prescriptionId: prescriptionId || undefined,
       insurancePolicyId: insurancePolicyId || undefined,
-      type: (orderTypes[0] || "GLASSES") as any,
-      orderTypes,
+      type: getOrderType(orderCategory),
+      orderTypes: [getOrderType(orderCategory)],
+      orderCategory,
       isDualInvoice,
       frameBrand: frameBrand || undefined,
       frameModel: frameModel || undefined,
       frameColor: frameColor || undefined,
+      frameSku: frameSku || undefined,
       frameWholesale: frameWholesale ? parseFloat(frameWholesale) : undefined,
+      frameEyeSize: frameEyeSize || undefined,
+      frameBridge: frameBridge || undefined,
+      frameTemple: frameTemple || undefined,
+      frameColourCode: frameColourCode || undefined,
       lensType: lensType || undefined,
-      lensCoating: lensCoating || undefined,
+      lensCoating: undefined,
+      lensDesign: lensDesign || undefined,
+      lensAddOns,
+      insuranceCoverage: insuranceCoverage || undefined,
+      referralCredit: referralCredit || undefined,
       depositCustomer,
       depositReal: isDualInvoice ? depositReal : depositCustomer,
       notes: notes || undefined,
@@ -195,23 +320,15 @@ export function NewOrderWizard({ customer, allCustomers, prescriptions = [], ins
     router.push(`/orders/${result.id}`);
   }
 
-  const steps = [
-    { n: 1, label: "Customer" },
-    { n: 2, label: "Details" },
-    { n: 3, label: "Items" },
-    { n: 4, label: "Frame & Lens" },
-    { n: 5, label: "Payment" },
-  ];
-
   return (
     <div className="space-y-5">
       {/* Step indicator */}
-      <div className="flex items-center gap-2">
+      <div className="flex items-center">
         {steps.map((s, i) => (
-          <div key={s.n} className="flex items-center gap-2">
+          <div key={s.n} className="flex items-center flex-1 last:flex-none">
             <button
               onClick={() => s.n < step && setStep(s.n)}
-              className={`flex items-center gap-2 ${s.n < step ? "cursor-pointer" : "cursor-default"}`}
+              className={`flex flex-col items-center gap-1 flex-shrink-0 ${s.n < step ? "cursor-pointer" : "cursor-default"}`}
             >
               <div
                 className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition-colors ${
@@ -222,19 +339,17 @@ export function NewOrderWizard({ customer, allCustomers, prescriptions = [], ins
                     : "bg-gray-100 text-gray-400"
                 }`}
               >
-                {s.n}
+                {s.n < step ? "✓" : s.n}
               </div>
               <span
-                className={`text-sm font-medium hidden sm:block ${
+                className={`text-[10px] font-medium whitespace-nowrap ${
                   s.n === step ? "text-gray-900" : "text-gray-400"
                 }`}
               >
                 {s.label}
               </span>
             </button>
-            {i < steps.length - 1 && (
-              <div className="w-8 h-px bg-gray-200 flex-shrink-0" />
-            )}
+            {i < steps.length - 1 && <div className="flex-1 h-px bg-gray-200 mx-1.5 mb-4" />}
           </div>
         ))}
       </div>
@@ -245,12 +360,11 @@ export function NewOrderWizard({ customer, allCustomers, prescriptions = [], ins
         </div>
       )}
 
-      {/* Step 1: Customer */}
+      {/* ── STEP 1: Customer ── */}
       {step === 1 && (
-        <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6 space-y-3">
+        <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6 space-y-4">
           <h2 className="font-semibold text-gray-900">Select Customer</h2>
 
-          {/* Search */}
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
             <input
@@ -264,10 +378,21 @@ export function NewOrderWizard({ customer, allCustomers, prescriptions = [], ins
             />
           </div>
 
-          {/* Customer list — always visible */}
-          <div className="border border-gray-100 rounded-lg overflow-hidden max-h-64 overflow-y-auto">
+          <div className="border border-gray-100 rounded-lg overflow-hidden max-h-60 overflow-y-auto">
             {filteredCustomers.length === 0 ? (
-              <p className="text-xs text-gray-400 text-center py-6">No customers match your search.</p>
+              <div className="py-8 text-center space-y-3">
+                <p className="text-sm text-gray-500">No customers match your search.</p>
+                {customerSearch && (
+                  <button
+                    type="button"
+                    onClick={() => setShowNewCustomerForm(true)}
+                    className="inline-flex items-center gap-1.5 text-sm text-primary font-medium hover:underline"
+                  >
+                    <Plus className="w-4 h-4" />
+                    Add &ldquo;{customerSearch}&rdquo; as new customer
+                  </button>
+                )}
+              </div>
             ) : (
               filteredCustomers.map((c) => {
                 const isSelected = selectedCustomerId === c.id;
@@ -277,7 +402,7 @@ export function NewOrderWizard({ customer, allCustomers, prescriptions = [], ins
                     type="button"
                     onClick={() => {
                       setSelectedCustomerId(c.id);
-                      setCustomerSearch("");
+                      setCustomerSearch(`${c.lastName}, ${c.firstName}`);
                     }}
                     className={`w-full flex items-center gap-3 px-4 py-3 text-sm border-b border-gray-50 last:border-0 text-left transition-colors ${
                       isSelected ? "bg-primary/5" : "hover:bg-gray-50"
@@ -287,104 +412,101 @@ export function NewOrderWizard({ customer, allCustomers, prescriptions = [], ins
                     <div className="flex-1 min-w-0">
                       <span className="font-medium text-gray-900">{c.lastName}, {c.firstName}</span>
                     </div>
-                    {c.phone && (
-                      <span className="text-xs text-gray-400 flex-shrink-0">{c.phone}</span>
-                    )}
+                    {c.phone && <span className="text-xs text-gray-400 flex-shrink-0">{c.phone}</span>}
                   </button>
                 );
               })
             )}
           </div>
 
-          <div className="flex items-center justify-between">
-            {selectedCustomerId ? (
-              <p className="text-sm text-green-600 font-medium">
-                ✓ {allCustomers.find(c => c.id === selectedCustomerId)?.lastName}, {allCustomers.find(c => c.id === selectedCustomerId)?.firstName}
+          {/* New customer inline form */}
+          {showNewCustomerForm && (
+            <div className="border border-primary/20 rounded-xl p-4 bg-primary/5 space-y-3">
+              <div className="flex items-center justify-between">
+                <h3 className="text-sm font-semibold text-gray-900">Quick Add Customer</h3>
+                <button type="button" onClick={() => setShowNewCustomerForm(false)}>
+                  <X className="w-4 h-4 text-gray-400" />
+                </button>
+              </div>
+              <p className="text-xs text-gray-500">
+                Add the customer to PMS first, then search for them here.
               </p>
+              <a
+                href="/customers/new"
+                target="_blank"
+                className="inline-flex items-center gap-2 text-sm text-primary font-medium hover:underline"
+              >
+                Open New Customer form →
+              </a>
+            </div>
+          )}
+
+          <div className="flex items-center justify-between pt-1">
+            {selectedCustomer ? (
+              <div className="space-y-0.5">
+                <p className="text-sm text-green-600 font-medium">
+                  ✓ {selectedCustomer.lastName}, {selectedCustomer.firstName}
+                </p>
+                {selectedCustomer.phone && (
+                  <p className="text-xs text-gray-400">{selectedCustomer.phone}</p>
+                )}
+              </div>
             ) : (
               <p className="text-sm text-gray-400">No customer selected</p>
             )}
-            <a href="/customers/new" target="_blank" className="text-xs text-primary hover:underline">
-              + New customer
-            </a>
-          </div>
-        </div>
-      )}
-
-      {/* Step 2: Order Details */}
-      {step === 2 && (
-        <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6 space-y-4">
-          <h2 className="font-semibold text-gray-900">Order Details</h2>
-
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <label className="block text-sm font-medium text-gray-700">Order Type</label>
-              <span className="text-xs text-gray-400">Select all that apply</span>
-            </div>
-            <div className="grid grid-cols-3 gap-2">
-              {ORDER_TYPES.map((t) => {
-                const selected = orderTypes.includes(t.value);
-                return (
-                  <button
-                    key={t.value}
-                    type="button"
-                    onClick={() => {
-                      setOrderTypes((prev) =>
-                        selected
-                          ? prev.filter((v) => v !== t.value).length > 0
-                            ? prev.filter((v) => v !== t.value)
-                            : prev // keep at least one selected
-                          : [...prev, t.value]
-                      );
-                    }}
-                    className={`relative px-3 py-2.5 rounded-lg text-sm font-medium border transition-colors text-left ${
-                      selected
-                        ? "bg-primary text-white border-primary"
-                        : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
-                    }`}
-                  >
-                    {selected && (
-                      <span className="absolute top-1.5 right-1.5 w-4 h-4 bg-white/30 rounded-full flex items-center justify-center text-[10px] font-bold">
-                        ✓
-                      </span>
-                    )}
-                    {t.label}
-                  </button>
-                );
-              })}
-            </div>
-            {orderTypes.length > 1 && (
-              <p className="text-xs text-primary mt-2 font-medium">
-                {orderTypes.length} types selected
-              </p>
+            {!showNewCustomerForm && (
+              <button
+                type="button"
+                onClick={() => setShowNewCustomerForm(true)}
+                className="text-xs text-primary hover:underline"
+              >
+                + New customer
+              </button>
             )}
           </div>
 
-          {prescriptions.length > 0 && (
+          {/* Dual invoice toggle */}
+          <div className="border border-gray-200 rounded-xl p-4">
+            <label className="flex items-start gap-3 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={isDualInvoice}
+                onChange={(e) => setIsDualInvoice(e.target.checked)}
+                className="mt-0.5 rounded border-gray-300 text-primary focus:ring-primary"
+              />
+              <div>
+                <span className="text-sm font-semibold text-gray-900">Dual Invoice</span>
+                <p className="text-xs text-gray-500 mt-0.5">
+                  Generate separate customer-facing and internal invoices with different prices.
+                  Use for insurance billing where customer price differs from actual cost.
+                </p>
+              </div>
+            </label>
+          </div>
+
+          {/* Prescription + Insurance (if customer selected) */}
+          {selectedCustomerId && prescriptions.length > 0 && (
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Prescription (optional)
-              </label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Prescription</label>
               <select
                 value={prescriptionId}
                 onChange={(e) => setPrescriptionId(e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary bg-white"
               >
-                <option value="">No prescription selected</option>
+                <option value="">No prescription</option>
                 {prescriptions.map((rx) => (
                   <option key={rx.id} value={rx.id}>
                     {new Date(rx.date).toLocaleDateString()} — OD: {rx.odSphere ?? "—"} / OS: {rx.osSphere ?? "—"}
+                    {rx.source === "EXTERNAL" ? " [External]" : ""}
                   </option>
                 ))}
               </select>
             </div>
           )}
 
-          {insurancePolicies.length > 0 && (
+          {selectedCustomerId && insurancePolicies.length > 0 && (
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Insurance Policy (optional)
-              </label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Insurance Policy</label>
               <select
                 value={insurancePolicyId}
                 onChange={(e) => setInsurancePolicyId(e.target.value)}
@@ -409,40 +531,230 @@ export function NewOrderWizard({ customer, allCustomers, prescriptions = [], ins
               className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary"
             />
           </div>
-
-          <label className="flex items-center gap-2 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={isDualInvoice}
-              onChange={(e) => setIsDualInvoice(e.target.checked)}
-              className="rounded border-gray-300 text-primary focus:ring-primary"
-            />
-            <div>
-              <span className="text-sm font-medium text-gray-700">Dual invoice</span>
-              <p className="text-xs text-gray-500">Generate separate customer and internal invoices</p>
-            </div>
-          </label>
         </div>
       )}
 
-      {/* Step 3: Line Items */}
-      {step === 3 && (
+      {/* ── STEP 2: Order Type ── */}
+      {step === 2 && (
+        <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6 space-y-4">
+          <h2 className="font-semibold text-gray-900">What type of order is this?</h2>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+            {ORDER_CATEGORIES.map((cat) => {
+              const Icon = cat.icon;
+              const selected = orderCategory === cat.value;
+              return (
+                <button
+                  key={cat.value}
+                  type="button"
+                  onClick={() => setOrderCategory(cat.value)}
+                  className={`flex flex-col items-start gap-2 p-4 rounded-xl border-2 text-left transition-all ${
+                    selected
+                      ? "border-primary bg-primary/5 shadow-sm"
+                      : "border-gray-200 hover:border-gray-300 hover:bg-gray-50"
+                  }`}
+                >
+                  <Icon className={`w-6 h-6 ${selected ? "text-primary" : "text-gray-400"}`} />
+                  <div>
+                    <p className={`text-sm font-semibold ${selected ? "text-primary" : "text-gray-900"}`}>
+                      {cat.label}
+                    </p>
+                    <p className="text-xs text-gray-500 mt-0.5">{cat.desc}</p>
+                  </div>
+                  {selected && (
+                    <div className="absolute top-2 right-2 w-5 h-5 rounded-full bg-primary flex items-center justify-center">
+                      <span className="text-white text-[10px] font-bold">✓</span>
+                    </div>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* ── STEP 3: Lens Configuration (conditional) ── */}
+      {step === 3 && needsLensConfig && (
+        <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6 space-y-6">
+          <h2 className="font-semibold text-gray-900">Lens Configuration</h2>
+
+          {/* 3a: Lens Type */}
+          <div>
+            <h3 className="text-sm font-semibold text-gray-700 mb-3">Lens Type</h3>
+            <div className="grid grid-cols-2 gap-3">
+              {LENS_TYPES.map((lt) => (
+                <button
+                  key={lt.value}
+                  type="button"
+                  onClick={() => setLensType(lt.value)}
+                  className={`py-4 rounded-xl border-2 text-sm font-semibold transition-all ${
+                    lensType === lt.value
+                      ? "border-primary bg-primary/5 text-primary"
+                      : "border-gray-200 text-gray-700 hover:border-gray-300"
+                  }`}
+                >
+                  {lt.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* 3b: Lens Design */}
+          <div>
+            <h3 className="text-sm font-semibold text-gray-700 mb-3">Lens Design</h3>
+            <div className="grid grid-cols-3 gap-3">
+              {LENS_DESIGNS.map((ld) => (
+                <button
+                  key={ld.value}
+                  type="button"
+                  onClick={() => setLensDesign(ld.value)}
+                  className={`flex flex-col items-center gap-1.5 py-4 px-2 rounded-xl border-2 text-sm transition-all ${
+                    lensDesign === ld.value
+                      ? "border-primary bg-primary/5"
+                      : "border-gray-200 hover:border-gray-300"
+                  }`}
+                >
+                  <span className={`font-bold text-base ${lensDesign === ld.value ? "text-primary" : "text-gray-700"}`}>
+                    {ld.label}
+                  </span>
+                  <span className="text-xs text-gray-500">{ld.desc}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* 3c: Add-ons */}
+          <div>
+            <h3 className="text-sm font-semibold text-gray-700 mb-3">Add-Ons (optional)</h3>
+            <div className="space-y-2">
+              {LENS_ADDONS.map((addon) => (
+                <label key={addon.value} className="flex items-center gap-3 p-3 rounded-lg border border-gray-200 cursor-pointer hover:bg-gray-50 transition-colors">
+                  <input
+                    type="checkbox"
+                    checked={lensAddOns.includes(addon.value)}
+                    onChange={() => toggleAddon(addon.value)}
+                    className="rounded border-gray-300 text-primary focus:ring-primary"
+                  />
+                  <span className="text-sm text-gray-700">{addon.label}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── STEP 3 or 4: Frame Details (conditional) ── */}
+      {step === (needsLensConfig ? 4 : 3) && needsFrame && (
+        <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6 space-y-4">
+          <h2 className="font-semibold text-gray-900">Frame Details</h2>
+          <p className="text-xs text-gray-500">
+            Copied to the order at time of sale. Remains fixed if inventory changes.
+          </p>
+
+          {/* Inventory browser */}
+          {inventoryItems.length > 0 && (
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-gray-700">Browse Inventory</label>
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
+                <input
+                  value={frameInventorySearch}
+                  onChange={(e) => setFrameInventorySearch(e.target.value)}
+                  placeholder="Search frames..."
+                  className="w-full pl-9 pr-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                />
+              </div>
+              {frameInventorySearch && (
+                <div className="border border-gray-100 rounded-lg overflow-hidden max-h-48 overflow-y-auto">
+                  {inventoryItems
+                    .filter((inv) =>
+                      `${inv.brand} ${inv.model} ${inv.color || ""} ${inv.sku || ""}`
+                        .toLowerCase()
+                        .includes(frameInventorySearch.toLowerCase())
+                    )
+                    .slice(0, 8)
+                    .map((inv) => (
+                      <button
+                        key={inv.id}
+                        type="button"
+                        onClick={() => selectInventoryFrame(inv)}
+                        className="w-full flex items-center gap-3 px-3 py-2.5 text-sm border-b border-gray-50 last:border-0 text-left hover:bg-gray-50"
+                      >
+                        <div className="flex-1 min-w-0">
+                          <span className="font-medium text-gray-900">{inv.brand} {inv.model}</span>
+                          {inv.color && <span className="text-gray-400 text-xs ml-1.5">{inv.color}</span>}
+                          {inv.sku && <span className="text-gray-400 text-xs ml-1.5">· {inv.sku}</span>}
+                        </div>
+                        {inv.retailPrice && (
+                          <span className="text-xs font-semibold text-gray-700">{formatCurrency(inv.retailPrice)}</span>
+                        )}
+                      </button>
+                    ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-medium text-gray-700 mb-1">Brand</label>
+              <input value={frameBrand} onChange={(e) => setFrameBrand(e.target.value)} placeholder="Ray-Ban" className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-700 mb-1">Model</label>
+              <input value={frameModel} onChange={(e) => setFrameModel(e.target.value)} placeholder="RB5154" className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-700 mb-1">Colour</label>
+              <input value={frameColor} onChange={(e) => setFrameColor(e.target.value)} placeholder="Matte Black" className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-700 mb-1">Colour Code</label>
+              <input value={frameColourCode} onChange={(e) => setFrameColourCode(e.target.value)} placeholder="e.g. 2000" className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-700 mb-1">Eye Size</label>
+              <input value={frameEyeSize} onChange={(e) => setFrameEyeSize(e.target.value)} placeholder="e.g. 54" className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-700 mb-1">Bridge</label>
+              <input value={frameBridge} onChange={(e) => setFrameBridgeState(e.target.value)} placeholder="e.g. 18" className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-700 mb-1">Temple</label>
+              <input value={frameTemple} onChange={(e) => setFrameTemple(e.target.value)} placeholder="e.g. 145" className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-700 mb-1">Wholesale Cost</label>
+              <input type="number" min="0" step="0.01" value={frameWholesale} onChange={(e) => setFrameWholesale(e.target.value)} placeholder="0.00" className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-xs font-medium text-gray-700 mb-1">Lab Notes</label>
+            <textarea value={labNotes} onChange={(e) => setLabNotes(e.target.value)} rows={2} placeholder="Instructions for the lab..." className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary resize-none" />
+          </div>
+        </div>
+      )}
+
+      {/* ── STEP: Line Items ── */}
+      {step === (needsLensConfig && needsFrame ? 5 : needsLensConfig || needsFrame ? 4 : 3) && (
         <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6 space-y-4">
           <h2 className="font-semibold text-gray-900">Line Items</h2>
 
           <div className="space-y-4">
             {lineItems.map((item, i) => {
               const search = inventorySearches[i] || "";
-              const filtered = inventoryItems.filter((inv) =>
-                search.length === 0 ||
-                `${inv.brand} ${inv.model} ${inv.color || ""} ${inv.sku || ""}`.toLowerCase().includes(search.toLowerCase())
-              ).slice(0, 8);
+              const filtered = inventoryItems
+                .filter((inv) =>
+                  search.length === 0 ||
+                  `${inv.brand} ${inv.model} ${inv.color || ""} ${inv.sku || ""}`.toLowerCase().includes(search.toLowerCase())
+                )
+                .slice(0, 8);
 
               return (
                 <div key={i} className="border border-gray-200 rounded-xl overflow-hidden">
-                  {/* Header row: type + remove */}
                   <div className="flex items-center gap-3 px-4 py-3 bg-gray-50 border-b border-gray-100">
-                    <label className="text-xs font-medium text-gray-500 whitespace-nowrap">Item type</label>
+                    <label className="text-xs font-medium text-gray-500 whitespace-nowrap">Type</label>
                     <select
                       value={item.type}
                       onChange={(e) => updateLineItem(i, "type", e.target.value)}
@@ -467,7 +779,6 @@ export function NewOrderWizard({ customer, allCustomers, prescriptions = [], ins
                   </div>
 
                   <div className="p-4 space-y-3">
-                    {/* Inventory picker — always visible if there are items */}
                     {inventoryItems.length > 0 && (
                       <div className="space-y-2">
                         <div className="relative">
@@ -479,59 +790,54 @@ export function NewOrderWizard({ customer, allCustomers, prescriptions = [], ins
                             className="w-full pl-9 pr-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary bg-white"
                           />
                         </div>
-                        <div className="border border-gray-100 rounded-lg overflow-hidden max-h-44 overflow-y-auto">
-                          {filtered.length === 0 ? (
-                            <p className="text-xs text-gray-400 text-center py-4">No items match your search.</p>
-                          ) : (
-                            filtered.map((inv) => {
-                              const desc = `${inv.brand} ${inv.model}${inv.color ? ` — ${inv.color}` : ""}`;
-                              const isSelected = item.description === desc;
-                              return (
-                                <button
-                                  key={inv.id}
-                                  type="button"
-                                  onClick={() => {
-                                    updateLineItem(i, "description", desc);
-                                    updateLineItem(i, "type", "FRAME");
-                                    updateLineItem(i, "unitPriceCustomer", inv.retailPrice ?? 0);
-                                    updateLineItem(i, "unitPriceReal", isDualInvoice ? (inv.wholesaleCost ?? 0) : (inv.retailPrice ?? 0));
-                                  }}
-                                  className={`w-full flex items-center gap-3 px-3 py-2.5 text-sm border-b border-gray-50 last:border-0 text-left transition-colors ${
-                                    isSelected ? "bg-primary/5" : "hover:bg-gray-50"
-                                  }`}
-                                >
-                                  <div className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${isSelected ? "bg-primary" : "bg-gray-200"}`} />
-                                  <div className="flex-1 min-w-0">
-                                    <span className="font-medium text-gray-900">{inv.brand} {inv.model}</span>
-                                    {inv.color && <span className="text-gray-400 text-xs ml-1.5">{inv.color}</span>}
-                                    {inv.sku && <span className="text-gray-400 text-xs ml-1.5">· {inv.sku}</span>}
-                                  </div>
-                                  {inv.retailPrice && (
-                                    <span className="text-xs font-semibold text-gray-700 flex-shrink-0">{formatCurrency(inv.retailPrice)}</span>
-                                  )}
-                                </button>
-                              );
-                            })
-                          )}
-                        </div>
+                        {search && (
+                          <div className="border border-gray-100 rounded-lg overflow-hidden max-h-44 overflow-y-auto">
+                            {filtered.length === 0 ? (
+                              <p className="text-xs text-gray-400 text-center py-4">No items match.</p>
+                            ) : (
+                              filtered.map((inv) => {
+                                const desc = `${inv.brand} ${inv.model}${inv.color ? ` — ${inv.color}` : ""}`;
+                                return (
+                                  <button
+                                    key={inv.id}
+                                    type="button"
+                                    onClick={() => {
+                                      updateLineItem(i, "description", desc);
+                                      updateLineItem(i, "type", "FRAME");
+                                      updateLineItem(i, "unitPriceCustomer", inv.retailPrice ?? 0);
+                                      updateLineItem(i, "unitPriceReal", isDualInvoice ? (inv.wholesaleCost ?? 0) : (inv.retailPrice ?? 0));
+                                      setInventorySearches((prev) => ({ ...prev, [i]: "" }));
+                                    }}
+                                    className="w-full flex items-center gap-3 px-3 py-2.5 text-sm border-b border-gray-50 last:border-0 text-left hover:bg-gray-50"
+                                  >
+                                    <div className="flex-1 min-w-0">
+                                      <span className="font-medium text-gray-900">{inv.brand} {inv.model}</span>
+                                      {inv.color && <span className="text-gray-400 text-xs ml-1.5">{inv.color}</span>}
+                                    </div>
+                                    {inv.retailPrice && (
+                                      <span className="text-xs font-semibold text-gray-700">{formatCurrency(inv.retailPrice)}</span>
+                                    )}
+                                  </button>
+                                );
+                              })
+                            )}
+                          </div>
+                        )}
                       </div>
                     )}
 
-                    {/* Description (custom / overrideable) */}
                     <input
                       value={item.description}
                       onChange={(e) => updateLineItem(i, "description", e.target.value)}
-                      placeholder="Description (auto-filled from selection, or type custom)"
+                      placeholder="Description"
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary bg-white"
                     />
 
-                    {/* Qty + Price */}
                     <div className="grid grid-cols-3 gap-3">
                       <div>
                         <label className="block text-xs text-gray-500 mb-1">Qty</label>
                         <input
-                          type="number"
-                          min="1"
+                          type="number" min="1"
                           value={item.quantity}
                           onChange={(e) => updateLineItem(i, "quantity", parseInt(e.target.value) || 1)}
                           className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary bg-white"
@@ -542,9 +848,7 @@ export function NewOrderWizard({ customer, allCustomers, prescriptions = [], ins
                           {isDualInvoice ? "Price (Customer)" : "Price"}
                         </label>
                         <input
-                          type="number"
-                          min="0"
-                          step="0.01"
+                          type="number" min="0" step="0.01"
                           value={item.unitPriceCustomer || ""}
                           onChange={(e) => {
                             const val = parseFloat(e.target.value) || 0;
@@ -559,9 +863,7 @@ export function NewOrderWizard({ customer, allCustomers, prescriptions = [], ins
                         <div>
                           <label className="block text-xs text-gray-500 mb-1">Price (Internal)</label>
                           <input
-                            type="number"
-                            min="0"
-                            step="0.01"
+                            type="number" min="0" step="0.01"
                             value={item.unitPriceReal || ""}
                             onChange={(e) => updateLineItem(i, "unitPriceReal", parseFloat(e.target.value) || 0)}
                             placeholder="0.00"
@@ -570,7 +872,6 @@ export function NewOrderWizard({ customer, allCustomers, prescriptions = [], ins
                         </div>
                       )}
                     </div>
-
                     <div className="text-xs text-right text-gray-500">
                       Subtotal: <span className="font-medium text-gray-900">{formatCurrency(item.unitPriceCustomer * item.quantity)}</span>
                     </div>
@@ -580,144 +881,84 @@ export function NewOrderWizard({ customer, allCustomers, prescriptions = [], ins
             })}
           </div>
 
-          <button
-            type="button"
-            onClick={addLineItem}
-            className="inline-flex items-center gap-2 h-8 px-3 rounded-lg text-sm text-primary border border-dashed border-primary/40 hover:bg-primary/5 font-medium transition-colors"
-          >
+          <button type="button" onClick={addLineItem} className="inline-flex items-center gap-2 h-8 px-3 rounded-lg text-sm text-primary border border-dashed border-primary/40 hover:bg-primary/5 font-medium transition-colors">
             <Plus className="w-4 h-4" />
             Add item
           </button>
 
           <div className="border-t border-gray-100 pt-3 flex justify-between text-sm font-semibold">
-            <span className="text-gray-700">Total</span>
-            <span className="text-gray-900">{formatCurrency(totalCustomer)}</span>
+            <span className="text-gray-700">Subtotal</span>
+            <span className="text-gray-900">{formatCurrency(lineTotal)}</span>
           </div>
         </div>
       )}
 
-      {/* Step 4: Frame & Lens Details */}
-      {step === 4 && (
-        <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6 space-y-4">
-          <h2 className="font-semibold text-gray-900">Frame & Lens Details</h2>
-          <p className="text-xs text-gray-500">
-            These details are copied to the order record and remain fixed even if inventory changes.
-          </p>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Brand</label>
-              <input
-                value={frameBrand}
-                onChange={(e) => setFrameBrand(e.target.value)}
-                placeholder="e.g. Ray-Ban"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Model</label>
-              <input
-                value={frameModel}
-                onChange={(e) => setFrameModel(e.target.value)}
-                placeholder="e.g. RB5154"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Color</label>
-              <input
-                value={frameColor}
-                onChange={(e) => setFrameColor(e.target.value)}
-                placeholder="e.g. Matte Black"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Wholesale Cost</label>
-              <input
-                type="number"
-                min="0"
-                step="0.01"
-                value={frameWholesale}
-                onChange={(e) => setFrameWholesale(e.target.value)}
-                placeholder="0.00"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-              />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Lens Type</label>
-              <input
-                value={lensType}
-                onChange={(e) => setLensType(e.target.value)}
-                placeholder="e.g. Progressive, Single Vision"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Lens Coating</label>
-              <input
-                value={lensCoating}
-                onChange={(e) => setLensCoating(e.target.value)}
-                placeholder="e.g. AR, Blue Light, Transitions"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-              />
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Lab Notes</label>
-            <textarea
-              value={labNotes}
-              onChange={(e) => setLabNotes(e.target.value)}
-              rows={3}
-              placeholder="Instructions for the lab..."
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary resize-none"
-            />
-          </div>
-        </div>
-      )}
-
-      {/* Step 5: Payment & Summary */}
-      {step === 5 && (
+      {/* ── STEP: Payment ── */}
+      {step === (needsLensConfig && needsFrame ? 6 : needsLensConfig || needsFrame ? 5 : 4) && (
         <div className="space-y-4">
-          {/* Summary */}
-          <div className="bg-gray-50 rounded-xl border border-gray-200 p-5 space-y-2">
-            <h2 className="font-semibold text-gray-900 mb-3">Order Summary</h2>
-            {lineItems.filter((i) => i.description).map((item, i) => (
-              <div key={i} className="flex justify-between text-sm">
-                <span className="text-gray-600">{item.description}</span>
-                <span className="font-medium">{formatCurrency(item.unitPriceCustomer * item.quantity)}</span>
-              </div>
-            ))}
-            <div className="border-t border-gray-200 pt-2 flex justify-between font-semibold">
-              <span>Total</span>
-              <span>{formatCurrency(totalCustomer)}</span>
-            </div>
-            {isDualInvoice && (
-              <div className="flex justify-between text-xs text-gray-500">
-                <span>Internal Total</span>
-                <span>{formatCurrency(totalReal)}</span>
-              </div>
-            )}
-          </div>
-
-          {/* Deposit */}
+          {/* Deductions */}
           <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6 space-y-4">
-            <h2 className="font-semibold text-gray-900">Deposit / Payment</h2>
+            <h2 className="font-semibold text-gray-900">Payment</h2>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="bg-gray-50 rounded-lg p-4 space-y-1 text-sm">
+              <div className="flex justify-between">
+                <span className="text-gray-600">Subtotal</span>
+                <span className="font-medium">{formatCurrency(lineTotal)}</span>
+              </div>
+              {insuranceCoverage > 0 && (
+                <div className="flex justify-between text-green-700">
+                  <span>Insurance Coverage</span>
+                  <span>−{formatCurrency(insuranceCoverage)}</span>
+                </div>
+              )}
+              {referralCredit > 0 && (
+                <div className="flex justify-between text-green-700">
+                  <span>Referral / Promo Credit</span>
+                  <span>−{formatCurrency(referralCredit)}</span>
+                </div>
+              )}
+              <div className="flex justify-between font-bold pt-1 border-t border-gray-200">
+                <span>Total</span>
+                <span>{formatCurrency(totalCustomer)}</span>
+              </div>
+              {isDualInvoice && (
+                <div className="flex justify-between text-xs text-gray-500">
+                  <span>Internal Total</span>
+                  <span>{formatCurrency(totalReal)}</span>
+                </div>
+              )}
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  {isDualInvoice ? "Deposit (Customer)" : "Deposit Amount"}
+                <label className="block text-xs font-medium text-gray-700 mb-1">Insurance Coverage ($)</label>
+                <input
+                  type="number" min="0" step="0.01"
+                  value={insuranceCoverage || ""}
+                  onChange={(e) => setInsuranceCoverage(parseFloat(e.target.value) || 0)}
+                  placeholder="0.00"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">Referral / Promo Credit ($)</label>
+                <input
+                  type="number" min="0" step="0.01"
+                  value={referralCredit || ""}
+                  onChange={(e) => setReferralCredit(parseFloat(e.target.value) || 0)}
+                  placeholder="0.00"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">
+                  {isDualInvoice ? "Deposit (Customer)" : "Deposit"}
                 </label>
                 <input
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  max={totalCustomer}
+                  type="number" min="0" step="0.01" max={totalCustomer}
                   value={depositCustomer || ""}
                   onChange={(e) => {
                     const val = parseFloat(e.target.value) || 0;
@@ -730,13 +971,9 @@ export function NewOrderWizard({ customer, allCustomers, prescriptions = [], ins
               </div>
               {isDualInvoice && (
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Deposit (Internal)
-                  </label>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">Deposit (Internal)</label>
                   <input
-                    type="number"
-                    min="0"
-                    step="0.01"
+                    type="number" min="0" step="0.01"
                     value={depositReal || ""}
                     onChange={(e) => setDepositReal(parseFloat(e.target.value) || 0)}
                     placeholder="0.00"
@@ -747,26 +984,93 @@ export function NewOrderWizard({ customer, allCustomers, prescriptions = [], ins
             </div>
 
             {depositCustomer > 0 && (
-              <div className="text-sm text-gray-600">
-                Balance due: <span className="font-semibold text-gray-900">
-                  {formatCurrency(totalCustomer - depositCustomer)}
-                </span>
+              <div className="flex justify-between text-sm font-semibold text-primary bg-primary/5 rounded-lg px-4 py-2">
+                <span>Balance Due</span>
+                <span>{formatCurrency(balanceDue)}</span>
               </div>
             )}
           </div>
 
-          {/* Notes */}
-          <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6 space-y-4">
-            <h2 className="font-semibold text-gray-900">Notes</h2>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Internal Notes</label>
-              <textarea
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                rows={3}
-                placeholder="Staff-only notes..."
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary resize-none"
-              />
+          <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
+            <h3 className="text-sm font-semibold text-gray-900 mb-3">Notes</h3>
+            <textarea
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              rows={2}
+              placeholder="Internal notes..."
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary resize-none"
+            />
+          </div>
+        </div>
+      )}
+
+      {/* ── STEP: Review & Complete ── */}
+      {step === maxStep && (
+        <div className="space-y-4">
+          {/* Summary */}
+          <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6 space-y-3">
+            <h2 className="font-semibold text-gray-900">Order Summary</h2>
+            <dl className="space-y-2 text-sm">
+              <div className="flex justify-between">
+                <dt className="text-gray-500">Customer</dt>
+                <dd className="font-medium">{selectedCustomer?.lastName}, {selectedCustomer?.firstName}</dd>
+              </div>
+              <div className="flex justify-between">
+                <dt className="text-gray-500">Type</dt>
+                <dd className="font-medium capitalize">{orderCategory.replace(/_/g, " ")}</dd>
+              </div>
+              {lensType && (
+                <div className="flex justify-between">
+                  <dt className="text-gray-500">Lens</dt>
+                  <dd className="font-medium capitalize">{lensType.replace("_", " ")} {lensDesign && `— ${lensDesign}`}</dd>
+                </div>
+              )}
+              {frameBrand && (
+                <div className="flex justify-between">
+                  <dt className="text-gray-500">Frame</dt>
+                  <dd className="font-medium">{frameBrand} {frameModel}</dd>
+                </div>
+              )}
+              <div className="border-t border-gray-100 pt-2 flex justify-between font-semibold">
+                <dt>Total</dt>
+                <dd>{formatCurrency(totalCustomer)}</dd>
+              </div>
+              {depositCustomer > 0 && (
+                <>
+                  <div className="flex justify-between text-gray-500">
+                    <dt>Deposit</dt>
+                    <dd>−{formatCurrency(depositCustomer)}</dd>
+                  </div>
+                  <div className="flex justify-between font-semibold text-primary">
+                    <dt>Balance Due</dt>
+                    <dd>{formatCurrency(balanceDue)}</dd>
+                  </div>
+                </>
+              )}
+            </dl>
+          </div>
+
+          {/* Invoice options */}
+          <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6 space-y-3">
+            <h2 className="font-semibold text-gray-900">Invoice Actions</h2>
+            <p className="text-xs text-gray-500">Select what to do after creating this order.</p>
+            <div className="space-y-2">
+              <label className="flex items-center gap-3 p-3 rounded-lg border border-gray-200 cursor-pointer hover:bg-gray-50">
+                <input type="checkbox" checked={printInvoice} onChange={(e) => setPrintInvoice(e.target.checked)} className="rounded border-gray-300 text-primary focus:ring-primary" />
+                <Printer className="w-4 h-4 text-gray-400" />
+                <span className="text-sm text-gray-700">Print Invoice</span>
+              </label>
+              <label className="flex items-center gap-3 p-3 rounded-lg border border-gray-200 cursor-pointer hover:bg-gray-50">
+                <input type="checkbox" checked={emailInvoice} onChange={(e) => setEmailInvoice(e.target.checked)} className="rounded border-gray-300 text-primary focus:ring-primary" />
+                <Mail className="w-4 h-4 text-gray-400" />
+                <span className="text-sm text-gray-700">Email Invoice to Customer</span>
+              </label>
+              <label className="flex items-center gap-3 p-3 rounded-lg border border-gray-200 cursor-pointer hover:bg-gray-50">
+                <input type="checkbox" checked={printWorkOrder} onChange={(e) => setPrintWorkOrder(e.target.checked)} className="rounded border-gray-300 text-primary focus:ring-primary" />
+                <Printer className="w-4 h-4 text-gray-400" />
+                <span className="text-sm text-gray-700">Print Work Order</span>
+                <span className="text-xs text-primary font-medium ml-auto">Recommended</span>
+              </label>
             </div>
           </div>
         </div>
@@ -784,17 +1088,10 @@ export function NewOrderWizard({ customer, allCustomers, prescriptions = [], ins
           Back
         </button>
 
-        {step < 5 ? (
+        {step < maxStep ? (
           <button
             type="button"
-            onClick={() => {
-              if (step === 1 && !selectedCustomerId) {
-                setError("Please select a customer first");
-                return;
-              }
-              setError("");
-              setStep(step + 1);
-            }}
+            onClick={handleNext}
             className="inline-flex items-center gap-2 bg-primary text-white px-4 h-9 rounded-lg text-sm font-medium shadow-sm hover:bg-primary/90 active:scale-[0.98] transition-all duration-150"
           >
             Next

@@ -80,6 +80,11 @@ model Customer {
   referredByName String? @map("referred_by_name")
   occupation     String?
 
+  marketingOptOut Boolean   @default(false) @map("marketing_opt_out")
+  optOutReason    String?   @map("opt_out_reason")
+  optOutDate      DateTime? @map("opt_out_date")
+  optOutBy        String?   @map("opt_out_by")
+
   familyId String?
   family   Family? @relation(fields: [familyId], references: [id])
 
@@ -116,11 +121,19 @@ enum Gender {
 // ─────────────────────────────────────────
 
 model Prescription {
-  id         String           @id @default(cuid())
+  id         String              @id @default(cuid())
   customerId String
   examId     String?
-  type       PrescriptionType @default(GLASSES)
+  type       PrescriptionType    @default(GLASSES)
+  source     PrescriptionSource  @default(INTERNAL) @map("source")
   date       DateTime
+
+  // External prescription fields
+  externalDoctor   String?   @map("external_doctor")
+  externalLicense  String?   @map("external_license")
+  externalRxDate   DateTime? @map("external_rx_date")
+  externalImageUrl String?   @map("external_image_url")
+  externalNotes    String?   @map("external_notes")
 
   // OD (Right Eye)
   odSphere   Float?
@@ -164,6 +177,11 @@ model Prescription {
 enum PrescriptionType {
   GLASSES
   CONTACTS
+}
+
+enum PrescriptionSource {
+  INTERNAL
+  EXTERNAL
 }
 
 // ─────────────────────────────────────────
@@ -263,6 +281,28 @@ model Order {
   lensCoating String?
   lensSku     String?
 
+  // Enhanced frame fields
+  frameEyeSize    String?  @map("frame_eye_size")
+  frameBridge     String?  @map("frame_bridge")
+  frameTemple     String?  @map("frame_temple")
+  frameColourCode String?  @map("frame_colour_code")
+
+  // Lens configuration
+  lensDesign    String?  @map("lens_design")
+  lensAddOns    String[] @default([]) @map("lens_add_ons")
+  orderCategory String?  @map("order_category")
+
+  // Payment/deduction fields
+  insuranceCoverage Float? @map("insurance_coverage")
+  referralCredit    Float? @map("referral_credit")
+
+  // Post-pickup marketing
+  reviewRequestSent        Boolean   @default(false) @map("review_request_sent")
+  referralCampaignEnrolled Boolean   @default(false) @map("referral_campaign_enrolled")
+  pickupNotes              String?   @map("pickup_notes")
+
+  verifiedAt DateTime? @map("verified_at")
+
   notes         String? // internal notes
   labNotes      String? // notes sent to lab
   labOrderedAt  DateTime?
@@ -295,6 +335,7 @@ enum OrderStatus {
   CONFIRMED
   LAB_ORDERED
   LAB_RECEIVED
+  VERIFIED
   READY
   PICKED_UP
   CANCELLED
