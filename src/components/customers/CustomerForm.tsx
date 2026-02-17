@@ -1,17 +1,18 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import { CustomerFormState } from "@/lib/actions/customers";
 import { Customer, Family } from "@prisma/client";
 
 type Props = {
   action: (state: CustomerFormState, formData: FormData) => Promise<CustomerFormState>;
-  customer?: Customer;
+  customer?: Customer & { hearAboutUs?: string | null; referredByName?: string | null; occupation?: string | null };
   families?: Family[];
 };
 
 export function CustomerForm({ action, customer, families = [] }: Props) {
   const [state, formAction, isPending] = useActionState(action, {});
+  const [hearAboutUs, setHearAboutUs] = useState(customer?.hearAboutUs || "");
 
   return (
     <form action={formAction} className="space-y-6">
@@ -165,6 +166,54 @@ export function CustomerForm({ action, customer, families = [] }: Props) {
             />
           </div>
         </div>
+      </div>
+
+      {/* How They Found Us */}
+      <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6 space-y-4">
+        <h2 className="font-semibold text-gray-900">How They Found Us</h2>
+
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Source</label>
+            <select
+              name="hearAboutUs"
+              value={hearAboutUs}
+              onChange={(e) => setHearAboutUs(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary bg-white"
+            >
+              <option value="">Not specified</option>
+              <option value="GOOGLE">Google</option>
+              <option value="INSTAGRAM">Instagram</option>
+              <option value="WALK_BY">Walk-by</option>
+              <option value="REFERRAL">Referral</option>
+              <option value="RETURNING">Returning patient</option>
+              <option value="DOCTOR_REFERRAL">Doctor referral</option>
+              <option value="OTHER">Other</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Occupation</label>
+            <input
+              name="occupation"
+              defaultValue={customer?.occupation || ""}
+              placeholder="e.g. Teacher, Nurse..."
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+            />
+          </div>
+        </div>
+
+        {hearAboutUs === "REFERRAL" && (
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Referred by (name)</label>
+            <input
+              name="referredByName"
+              defaultValue={customer?.referredByName || ""}
+              placeholder="e.g. Jane Smith"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+            />
+          </div>
+        )}
       </div>
 
       {/* Family & Notes */}

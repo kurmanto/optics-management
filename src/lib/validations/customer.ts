@@ -15,6 +15,40 @@ export const CustomerSchema = z.object({
   familyId: z.string().optional().or(z.literal("")),
   smsOptIn: z.boolean().default(true),
   emailOptIn: z.boolean().default(true),
+  hearAboutUs: z
+    .enum(["GOOGLE", "INSTAGRAM", "WALK_BY", "REFERRAL", "RETURNING", "DOCTOR_REFERRAL", "OTHER"])
+    .optional()
+    .or(z.literal("")),
+  referredByName: z.string().optional().or(z.literal("")),
+  occupation: z.string().optional().or(z.literal("")),
 });
 
 export type CustomerFormValues = z.infer<typeof CustomerSchema>;
+
+export const MedicalHistorySchema = z.object({
+  eyeConditions: z.array(z.string()).default([]),
+  systemicConditions: z.array(z.string()).default([]),
+  medications: z.string().optional().or(z.literal("")),
+  allergies: z.string().optional().or(z.literal("")),
+  familyGlaucoma: z.boolean().default(false),
+  familyAmd: z.boolean().default(false),
+  familyHighMyopia: z.boolean().default(false),
+  familyColorblind: z.boolean().default(false),
+  hadLasik: z.boolean().default(false),
+  wearsContacts: z.boolean().default(false),
+  contactType: z.string().optional().or(z.literal("")),
+  primaryUse: z.string().optional().or(z.literal("")),
+  screenTimeDaily: z.number().optional().nullable(),
+  notes: z.string().optional().or(z.literal("")),
+});
+
+export type MedicalHistoryFormValues = z.infer<typeof MedicalHistorySchema>;
+
+export const StoreCreditSchema = z.object({
+  type: z.enum(["REFERRAL", "INSURANCE", "PROMOTION", "REFUND"]),
+  amount: z.number().positive("Amount must be positive"),
+  description: z.string().optional().or(z.literal("")),
+  expiresAt: z.string().optional().or(z.literal("")),
+});
+
+export type StoreCreditFormValues = z.infer<typeof StoreCreditSchema>;

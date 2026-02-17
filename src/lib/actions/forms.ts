@@ -152,6 +152,9 @@ export async function autoPopulateFromSubmission(submissionId: string): Promise<
             province: data.province ? String(data.province) : null,
             postalCode: data.postalCode ? String(data.postalCode) : null,
             notes: data.notes ? String(data.notes) : null,
+            hearAboutUs: data.hearAboutUs ? String(data.hearAboutUs) : null,
+            referredByName: data.referredByName ? String(data.referredByName) : null,
+            occupation: data.occupation ? String(data.occupation) : null,
           };
 
           if (submission.customerId) {
@@ -261,6 +264,9 @@ export async function applyIntakePackage(
               province: data.province ? String(data.province) : null,
               postalCode: data.postalCode ? String(data.postalCode) : null,
               notes: data.notes ? String(data.notes) : null,
+              hearAboutUs: data.hearAboutUs ? String(data.hearAboutUs) : null,
+              referredByName: data.referredByName ? String(data.referredByName) : null,
+              occupation: data.occupation ? String(data.occupation) : null,
             };
             if (sub.customerId) {
               await tx.customer.update({ where: { id: sub.customerId }, data: customerData });
@@ -420,6 +426,9 @@ export async function completeIntakeStep(
         city: d.city ? String(d.city) : null,
         province: d.province ? String(d.province) : null,
         postalCode: d.postalCode ? String(d.postalCode) : null,
+        hearAboutUs: d.hearAboutUs ? String(d.hearAboutUs) : null,
+        referredByName: d.referredByName ? String(d.referredByName) : null,
+        occupation: d.occupation ? String(d.occupation) : null,
       },
     });
 

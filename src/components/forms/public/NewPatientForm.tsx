@@ -18,6 +18,7 @@ export function NewPatientForm({ token, prefillName, packageToken, redirectUrl }
   const [submitting, setSubmitting] = useState(false);
   const [signature, setSignature] = useState<string | null>(null);
   const [sigError, setSigError] = useState(false);
+  const [hearAboutUs, setHearAboutUs] = useState("");
 
   const nameParts = prefillName?.split(" ") ?? [];
   const prefillFirst = nameParts[0] ?? "";
@@ -200,19 +201,44 @@ export function NewPatientForm({ token, prefillName, packageToken, redirectUrl }
             />
           </div>
           <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Occupation</label>
+            <input
+              name="occupation"
+              placeholder="e.g. Teacher, Nurse, Student…"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+            />
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">How did you hear about us?</label>
             <select
-              name="referralSource"
+              name="hearAboutUs"
+              value={hearAboutUs}
+              onChange={(e) => setHearAboutUs(e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
             >
               <option value="">—</option>
-              <option value="Google">Google</option>
-              <option value="Referral">Friend / Family Referral</option>
-              <option value="Social Media">Social Media</option>
-              <option value="Walk-in">Walk-in</option>
-              <option value="Other">Other</option>
+              <option value="GOOGLE">Google</option>
+              <option value="INSTAGRAM">Instagram</option>
+              <option value="WALK_BY">Walk-by / Noticed the store</option>
+              <option value="REFERRAL">Friend / Family referral</option>
+              <option value="RETURNING">Returning patient</option>
+              <option value="DOCTOR_REFERRAL">Doctor referral</option>
+              <option value="OTHER">Other</option>
             </select>
           </div>
+          {hearAboutUs === "REFERRAL" && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Referred by (name)</label>
+              <input
+                name="referredByName"
+                placeholder="e.g. Jane Smith"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+              />
+            </div>
+          )}
         </div>
       </div>
 

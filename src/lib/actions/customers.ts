@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { verifySession } from "@/lib/dal";
-import { CustomerSchema } from "@/lib/validations/customer";
+import { CustomerSchema, MedicalHistorySchema, StoreCreditSchema } from "@/lib/validations/customer";
 import { Gender } from "@prisma/client";
 
 export type CustomerFormState = {
@@ -49,6 +49,9 @@ export async function createCustomer(
       familyId: data.familyId || null,
       smsOptIn: data.smsOptIn,
       emailOptIn: data.emailOptIn,
+      hearAboutUs: data.hearAboutUs || null,
+      referredByName: data.referredByName || null,
+      occupation: data.occupation || null,
     },
   });
 
@@ -95,6 +98,9 @@ export async function updateCustomer(
       familyId: data.familyId || null,
       smsOptIn: data.smsOptIn,
       emailOptIn: data.emailOptIn,
+      hearAboutUs: data.hearAboutUs || null,
+      referredByName: data.referredByName || null,
+      occupation: data.occupation || null,
     },
   });
 
@@ -112,4 +118,143 @@ export async function deleteCustomer(id: string) {
 
   revalidatePath("/customers");
   redirect("/customers");
+}
+
+export type MedicalHistoryFormState = {
+  error?: string;
+  success?: boolean;
+};
+
+export async function saveMedicalHistory(
+  customerId: string,
+  prevState: MedicalHistoryFormState,
+  formData: FormData
+): Promise<MedicalHistoryFormState> {
+  await verifySession();
+
+  const raw = Object.fromEntries(formData.entries());
+
+  // Parse array fields from multi-value form data
+  const eyeConditions = formData.getAll("eyeConditions").map(String);
+  const systemicConditions = formData.getAll("systemicConditions").map(String);
+
+  const parsed = MedicalHistorySchema.safeParse({
+    eyeConditions,
+    systemicConditions,
+    medications: raw.medications || "",
+    allergies: raw.allergies || "",
+    familyGlaucoma: raw.familyGlaucoma === "on" || raw.familyGlaucoma === "true",
+    familyAmd: raw.familyAmd === "on" || raw.familyAmd === "true",
+    familyHighMyopia: raw.familyHighMyopia === "on" || raw.familyHighMyopia === "true",
+    familyColorblind: raw.familyColorblind === "on" || raw.familyColorblind === "true",
+    hadLasik: raw.hadLasik === "on" || raw.hadLasik === "true",
+    wearsContacts: raw.wearsContacts === "on" || raw.wearsContacts === "true",
+    contactType: raw.contactType || "",
+    primaryUse: raw.primaryUse || "",
+    screenTimeDaily: raw.screenTimeDaily ? parseFloat(raw.screenTimeDaily as string) : null,
+    notes: raw.notes || "",
+  });
+
+  if (!parsed.success) {
+    return { error: "Invalid data. Please check your entries." };
+  }
+
+  const data = parsed.data;
+
+  await prisma.medicalHistory.upsert({
+    where: { customerId },
+    create: {
+      customerId,
+      eyeConditions: data.eyeConditions,
+      systemicConditions: data.systemicConditions,
+      medications: data.medications || null,
+      allergies: data.allergies || null,
+      familyGlaucoma: data.familyGlaucoma,
+      familyAmd: data.familyAmd,
+      familyHighMyopia: data.familyHighMyopia,
+      familyColorblind: data.familyColorblind,
+      hadLasik: data.hadLasik,
+      wearsContacts: data.wearsContacts,
+      contactType: data.contactType || null,
+      primaryUse: data.primaryUse || null,
+      screenTimeDaily: data.screenTimeDaily ?? null,
+      notes: data.notes || null,
+    },
+    update: {
+      eyeConditions: data.eyeConditions,
+      systemicConditions: data.systemicConditions,
+      medications: data.medications || null,
+      allergies: data.allergies || null,
+      familyGlaucoma: data.familyGlaucoma,
+      familyAmd: data.familyAmd,
+      familyHighMyopia: data.familyHighMyopia,
+      familyColorblind: data.familyColorblind,
+      hadLasik: data.hadLasik,
+      wearsContacts: data.wearsContacts,
+      contactType: data.contactType || null,
+      primaryUse: data.primaryUse || null,
+      screenTimeDaily: data.screenTimeDaily ?? null,
+      notes: data.notes || null,
+    },
+  });
+
+  revalidatePath(`/customers/${customerId}`);
+  return { success: true };
+}
+
+export type StoreCreditFormState = {
+  error?: string;
+  success?: boolean;
+};
+
+export async function addStoreCredit(
+  customerId: string,
+  prevState: StoreCreditFormState,
+  formData: FormData
+): Promise<StoreCreditFormState> {
+  await verifySession();
+
+  const raw = Object.fromEntries(formData.entries());
+  const parsed = StoreCreditSchema.safeParse({
+    type: raw.type,
+    amount: raw.amount ? parseFloat(raw.amount as string) : 0,
+    description: raw.description || "",
+    expiresAt: raw.expiresAt || "",
+  });
+
+  if (!parsed.success) {
+    const errors = parsed.error.flatten().fieldErrors;
+    const first = Object.values(errors).flat()[0];
+    return { error: first || "Invalid data." };
+  }
+
+  const data = parsed.data;
+
+  await prisma.storeCredit.create({
+    data: {
+      customerId,
+      type: data.type,
+      amount: data.amount,
+      description: data.description || null,
+      expiresAt: data.expiresAt ? new Date(data.expiresAt) : null,
+    },
+  });
+
+  revalidatePath(`/customers/${customerId}`);
+  return { success: true };
+}
+
+export async function deactivateStoreCredit(creditId: string): Promise<{ error?: string }> {
+  await verifySession();
+
+  const credit = await prisma.storeCredit.findUnique({ where: { id: creditId } });
+  if (!credit) return { error: "Credit not found." };
+
+  await prisma.storeCredit.update({
+    where: { id: creditId },
+    data: { isActive: false },
+  });
+
+  revalidatePath(`/customers/${credit.customerId}`);
+  return {};
 }
