@@ -30,6 +30,7 @@ See [`docs/setup_guide.md`](docs/setup_guide.md) for full instructions.
 
 | Doc | Description |
 |-----|-------------|
+| [`docs/capabilities.md`](docs/capabilities.md) | **What the software does** — section-by-section feature guide |
 | [`docs/PRD.md`](docs/PRD.md) | Product requirements and feature roadmap |
 | [`docs/architecture.md`](docs/architecture.md) | Technical architecture and data flow |
 | [`docs/setup_guide.md`](docs/setup_guide.md) | Setup, environment, and migration guide |

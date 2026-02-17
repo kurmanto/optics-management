@@ -1,7 +1,7 @@
 # Architecture
 ## Mint Vision Optique — Staff Portal
 
-**Last updated:** 2026-02-15
+**Last updated:** 2026-02-17
 
 ---
 
@@ -45,29 +45,53 @@ optics_boutique/
 │   │   │   │       ├── page.tsx     # Customer detail
 │   │   │   │       └── edit/page.tsx
 │   │   │   ├── orders/
-│   │   │   │   ├── page.tsx         # Orders list
-│   │   │   │   ├── board/page.tsx   # Kanban board
-│   │   │   │   ├── new/page.tsx     # Order wizard
-│   │   │   │   └── [id]/page.tsx    # Order detail
-│   │   │   ├── inventory/page.tsx
+│   │   │   │   ├── page.tsx                    # Orders list
+│   │   │   │   ├── board/page.tsx              # Kanban board (7 columns)
+│   │   │   │   ├── new/page.tsx                # 7-step order wizard
+│   │   │   │   └── [id]/
+│   │   │   │       ├── page.tsx                # Order detail
+│   │   │   │       └── work-order/page.tsx     # Printable work order
+│   │   │   ├── inventory/
+│   │   │   │   ├── page.tsx                    # Inventory browser
+│   │   │   │   ├── new/page.tsx
+│   │   │   │   ├── [id]/page.tsx
+│   │   │   │   ├── [id]/edit/page.tsx
+│   │   │   │   ├── analytics/page.tsx          # Dead stock, ABC, velocity
+│   │   │   │   ├── vendors/                    # Vendor CRUD (4 routes)
+│   │   │   │   └── purchase-orders/            # PO lifecycle (3 routes)
+│   │   │   ├── forms/
+│   │   │   │   ├── page.tsx                    # Forms hub
+│   │   │   │   ├── [id]/page.tsx               # Form detail
+│   │   │   │   └── review/[packageId]/page.tsx # Intake review + apply
 │   │   │   └── settings/page.tsx
+│   │   ├── (forms)/                            # Public — no auth required
+│   │   │   ├── f/[token]/page.tsx              # Individual form fill
+│   │   │   ├── f/[token]/success/page.tsx
+│   │   │   └── intake/[token]/page.tsx         # Sequential intake flow
 │   │   ├── layout.tsx
 │   │   └── page.tsx           # Redirects to /dashboard
 │   ├── components/
 │   │   ├── auth/              # LoginForm, ChangePasswordForm
-│   │   ├── customers/         # CustomerForm
+│   │   ├── customers/         # CustomerForm, MedicalHistoryForm, ExternalPrescriptionUpload, StoreCreditManager
+│   │   ├── forms/             # FormsHub, SendFormModal, IntakePackageModal, InPersonIntakeButton
+│   │   │   └── public/        # NewPatientForm, HipaaConsentForm, InsuranceVerificationForm, FrameRepairWaiverForm, SignaturePad
+│   │   ├── inventory/         # InventoryForm, VendorForm, PurchaseOrderForm, POStatusButtons, ReceivingWorkflow
 │   │   ├── layout/            # Sidebar, Header
-│   │   ├── orders/            # KanbanBoard, NewOrderWizard, OrderStatusActions
-│   │   ├── shared/            # Reusable UI pieces
-│   │   └── ui/                # shadcn/ui components
+│   │   ├── orders/            # KanbanBoard, NewOrderWizard, OrderStatusActions, WorkOrderView, PickupCompleteModal
+│   │   └── ui/                # Button (with variants/sizes/loading state)
 │   ├── lib/
 │   │   ├── actions/           # Server Actions (mutations)
 │   │   │   ├── auth.ts
 │   │   │   ├── customers.ts
-│   │   │   └── orders.ts
+│   │   │   ├── orders.ts
+│   │   │   ├── forms.ts
+│   │   │   ├── inventory.ts
+│   │   │   ├── vendors.ts
+│   │   │   └── purchase-orders.ts
 │   │   ├── validations/       # Zod schemas
 │   │   │   ├── customer.ts
-│   │   │   └── order.ts
+│   │   │   ├── order.ts
+│   │   │   └── forms.ts
 │   │   ├── utils/
 │   │   │   ├── formatters.ts  # formatCurrency, formatDate, formatPhone, formatRxValue
 │   │   │   └── cn.ts          # Tailwind class merging
@@ -147,28 +171,37 @@ The Prisma singleton in `src/lib/prisma.ts` uses `@prisma/adapter-pg`.
 
 ### Models summary
 
-| Model | Purpose |
-|-------|---------|
-| `User` | Staff accounts |
-| `Family` | Groups customers by family unit |
-| `Customer` | Customer profiles |
-| `Prescription` | Eye Rx records (glasses or contacts) |
-| `InventoryItem` | Frame/product stock |
-| `Order` | Sales orders |
-| `OrderLineItem` | Line items within an order |
-| `OrderStatusHistory` | Audit trail of status changes |
-| `Payment` | Payments recorded against an order |
-| `Invoice` | Generated PDF invoice records |
-| `InsurancePolicy` | Customer insurance coverage |
-| `Exam` | Eye exam records (V2) |
-| `Walkin` | Walk-in visit log (V2) |
-| `Campaign` | Marketing campaigns (V2.1) |
-| `CampaignRecipient` | Campaign enrollment |
-| `Message` | SMS/email messages sent |
-| `Referral` | Customer referral tracking (V3) |
-| `Appointment` | Scheduled appointments (V4) |
-| `AuditLog` | General audit trail |
-| `SystemSetting` | Key-value store for app settings |
+| Model | Purpose | Status |
+|-------|---------|--------|
+| `User` | Staff accounts | ✅ Active |
+| `Family` | Groups customers by family unit | ✅ Active |
+| `Customer` | Customer profiles | ✅ Active |
+| `MedicalHistory` | Eye/systemic conditions, meds, allergies | ✅ Active |
+| `StoreCredit` | Customer store credit log | ✅ Active |
+| `Prescription` | Eye Rx records (glasses or contacts) | ✅ Active |
+| `InsurancePolicy` | Customer insurance coverage | ✅ Active |
+| `Vendor` | Supplier/vendor profiles | ✅ Active (Inv V2) |
+| `InventoryItem` | Frame/product stock | ✅ Active |
+| `PurchaseOrder` | Vendor purchase orders | ✅ Active (Inv V2) |
+| `PurchaseOrderLineItem` | Individual line items in a PO | ✅ Active (Inv V2) |
+| `InventoryLedger` | Immutable stock movement log | ✅ Active (Inv V2) |
+| `Order` | Sales orders | ✅ Active |
+| `OrderLineItem` | Line items within an order | ✅ Active |
+| `OrderStatusHistory` | Audit trail of status changes | ✅ Active |
+| `Payment` | Payments recorded against an order | ✅ Active |
+| `Invoice` | Generated PDF invoice records | ✅ Schema only |
+| `FormTemplate` | Form template definitions | ✅ Active (V1.2) |
+| `FormSubmission` | Patient form responses + signatures | ✅ Active (V1.2) |
+| `FormPackage` | 3-form intake bundle grouping | ✅ Active (V1.2) |
+| `Exam` | Eye exam records | 🔲 V2 |
+| `Walkin` | Walk-in visit log | 🔲 V2 |
+| `Campaign` | Marketing campaigns | 🔲 V2.1 |
+| `CampaignRecipient` | Campaign enrollment | 🔲 V2.1 |
+| `Message` | SMS/email messages sent | 🔲 V2.1 |
+| `Referral` | Customer referral tracking | 🔲 V3 |
+| `Appointment` | Scheduled appointments | 🔲 V4 |
+| `AuditLog` | General audit trail | ✅ Schema only |
+| `SystemSetting` | Key-value store for app settings | ✅ Schema only |
 
 ---
 
@@ -192,6 +225,21 @@ The Prisma singleton in `src/lib/prisma.ts` uses `@prisma/adapter-pg`.
 | `NEXT_PUBLIC_SUPABASE_URL` | Yes | Supabase project URL |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Yes | Supabase anon key |
 | `SUPABASE_SERVICE_ROLE_KEY` | Yes | Supabase service role (for admin operations) |
+| `ANTHROPIC_API_KEY` | Yes (V1.3+) | Claude AI for external prescription OCR |
+
+---
+
+## External Services
+
+| Service | Purpose | SDK/Package |
+|---------|---------|-------------|
+| Supabase (PostgreSQL) | Primary database + file storage | `pg`, `@supabase/supabase-js` |
+| Anthropic Claude API | AI OCR for external prescription photos | `@anthropic-ai/sdk` |
+
+### AI OCR (External Rx Upload)
+The `ExternalPrescriptionUpload` component calls Claude's vision API to parse prescription images. The prompt asks Claude to return structured JSON with OD/OS sphere, cylinder, axis, add, PD, expiry date, and prescribing doctor info. The response is validated before pre-filling the prescription form.
+
+Required env var: `ANTHROPIC_API_KEY`
 
 ---
 
