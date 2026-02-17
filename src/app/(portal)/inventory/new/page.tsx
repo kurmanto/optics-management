@@ -1,3 +1,4 @@
+import { prisma } from "@/lib/prisma";
 import { verifySession } from "@/lib/dal";
 import { createInventoryItem } from "@/lib/actions/inventory";
 import { InventoryForm } from "@/components/inventory/InventoryForm";
@@ -6,6 +7,12 @@ import { ChevronLeft } from "lucide-react";
 
 export default async function NewInventoryItemPage() {
   await verifySession();
+
+  const vendors = await prisma.vendor.findMany({
+    where: { isActive: true },
+    orderBy: { name: "asc" },
+    select: { id: true, name: true },
+  });
 
   return (
     <div className="p-6 max-w-3xl mx-auto space-y-5">
@@ -19,7 +26,7 @@ export default async function NewInventoryItemPage() {
         </div>
       </div>
 
-      <InventoryForm action={createInventoryItem} />
+      <InventoryForm action={createInventoryItem} vendors={vendors} />
     </div>
   );
 }

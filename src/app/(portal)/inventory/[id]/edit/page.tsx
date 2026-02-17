@@ -14,9 +14,14 @@ export default async function EditInventoryItemPage({
   await verifySession();
   const { id } = await params;
 
-  const item = await prisma.inventoryItem.findUnique({
-    where: { id, isActive: true },
-  });
+  const [item, vendors] = await Promise.all([
+    prisma.inventoryItem.findUnique({ where: { id, isActive: true } }),
+    prisma.vendor.findMany({
+      where: { isActive: true },
+      orderBy: { name: "asc" },
+      select: { id: true, name: true },
+    }),
+  ]);
 
   if (!item) notFound();
 
@@ -39,7 +44,7 @@ export default async function EditInventoryItemPage({
         </div>
       </div>
 
-      <InventoryForm action={action} item={item} />
+      <InventoryForm action={action} item={item} vendors={vendors} />
     </div>
   );
 }

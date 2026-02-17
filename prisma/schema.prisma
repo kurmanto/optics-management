@@ -188,36 +188,87 @@ enum PrescriptionSource {
 // INVENTORY
 // ─────────────────────────────────────────
 
+model Vendor {
+  id             String   @id @default(cuid())
+  name           String
+  contactName    String?  @map("contact_name")
+  email          String?
+  phone          String?
+  website        String?
+  address        String?
+  paymentTerms   String?  @map("payment_terms")
+  minOrderQty    Int?     @map("min_order_qty")
+  leadTimeDays   Int?     @map("lead_time_days")
+  paymentMethods String[] @default([]) @map("payment_methods")
+  returnPolicy   String?  @map("return_policy")
+  repName        String?  @map("rep_name")
+  repEmail       String?  @map("rep_email")
+  repPhone       String?  @map("rep_phone")
+  notes          String?
+  isActive       Boolean  @default(true) @map("is_active")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  inventoryItems InventoryItem[]
+  purchaseOrders PurchaseOrder[]
+
+  @@map("vendors")
+}
+
 model InventoryItem {
   id            String        @id @default(cuid())
   legacyItemId  String?       @unique
   brand         String
   model         String
   sku           String?       @unique
+  upc           String?       @unique
   category      FrameCategory
   gender        FrameGender
   color         String?
+  colorCode     String?       @map("color_code")
   material      String?
-  size          String? // e.g. "54-18-145"
+  size          String?
   eyeSize       Int?
   bridgeSize    Int?
   templeLength  Int?
   rimType       RimType?
+  styleTags     String[]      @default([]) @map("style_tags")
+  countryOfOrigin String?     @map("country_of_origin")
   wholesaleCost Float?
   retailPrice   Float?
+  landedCost    Float?        @map("landed_cost")
+  markdownPct   Int           @default(0) @map("markdown_pct")
   stockQuantity Int           @default(0)
+  committedQty  Int           @default(0) @map("committed_qty")
+  onOrderQty    Int           @default(0) @map("on_order_qty")
   reorderPoint  Int           @default(2)
+  abcCategory   AbcCategory?  @map("abc_category")
+  firstReceivedAt DateTime?   @map("first_received_at")
+  lastSoldAt    DateTime?     @map("last_sold_at")
+  totalUnitsSold Int          @default(0) @map("total_units_sold")
   isActive      Boolean       @default(true)
   notes         String?
   imageUrl      String?
+  additionalImageUrls String[] @default([]) @map("additional_image_urls")
+  vendorId      String?       @map("vendor_id")
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
 
-  orderLineItems OrderLineItem[]
+  vendor                 Vendor?                @relation(fields: [vendorId], references: [id])
+  orderLineItems         OrderLineItem[]
+  purchaseOrderLineItems PurchaseOrderLineItem[]
+  ledgerEntries          InventoryLedger[]
 
   @@index([brand])
   @@index([category, gender])
+  @@index([vendorId])
   @@map("inventory_items")
+}
+
+enum AbcCategory {
+  A
+  B
+  C
 }
 
 enum FrameCategory {
@@ -239,6 +290,87 @@ enum RimType {
   FULL_RIM
   HALF_RIM
   RIMLESS
+}
+
+enum PurchaseOrderStatus {
+  DRAFT
+  SENT
+  CONFIRMED
+  PARTIAL
+  RECEIVED
+  CANCELLED
+}
+
+model PurchaseOrder {
+  id         String              @id @default(cuid())
+  poNumber   String              @unique @map("po_number")
+  vendorId   String              @map("vendor_id")
+  status     PurchaseOrderStatus @default(DRAFT)
+  expectedAt DateTime?           @map("expected_at")
+  receivedAt DateTime?           @map("received_at")
+  subtotal   Float               @default(0)
+  shipping   Float               @default(0)
+  duties     Float               @default(0)
+  total      Float               @default(0)
+  notes      String?
+  createdBy  String              @map("created_by")
+  createdAt  DateTime            @default(now()) @map("created_at")
+  updatedAt  DateTime            @updatedAt @map("updated_at")
+
+  vendor    Vendor                 @relation(fields: [vendorId], references: [id])
+  lineItems PurchaseOrderLineItem[]
+
+  @@index([vendorId])
+  @@index([status])
+  @@map("purchase_orders")
+}
+
+model PurchaseOrderLineItem {
+  id               String    @id @default(cuid())
+  poId             String    @map("po_id")
+  inventoryItemId  String    @map("inventory_item_id")
+  quantityOrdered  Int       @map("quantity_ordered")
+  quantityReceived Int       @default(0) @map("quantity_received")
+  unitCost         Float     @map("unit_cost")
+  receivedAt       DateTime? @map("received_at")
+  conditionNotes   String?   @map("condition_notes")
+
+  po            PurchaseOrder @relation(fields: [poId], references: [id], onDelete: Cascade)
+  inventoryItem InventoryItem @relation(fields: [inventoryItemId], references: [id])
+
+  @@index([poId])
+  @@map("purchase_order_line_items")
+}
+
+enum LedgerReason {
+  PURCHASE_ORDER_RECEIVED
+  MANUAL_ADJUSTMENT
+  ORDER_COMMITTED
+  ORDER_FULFILLED
+  ORDER_CANCELLED
+  PHYSICAL_COUNT
+  DAMAGED
+  LOST
+  RETURN_FROM_CUSTOMER
+}
+
+model InventoryLedger {
+  id              String       @id @default(cuid())
+  inventoryItemId String       @map("inventory_item_id")
+  reason          LedgerReason
+  quantityChange  Int          @map("quantity_change")
+  quantityAfter   Int          @map("quantity_after")
+  unitCost        Float?       @map("unit_cost")
+  referenceId     String?      @map("reference_id")
+  referenceType   String?      @map("reference_type")
+  notes           String?
+  createdBy       String?      @map("created_by")
+  createdAt       DateTime     @default(now()) @map("created_at")
+
+  inventoryItem InventoryItem @relation(fields: [inventoryItemId], references: [id])
+
+  @@index([inventoryItemId])
+  @@map("inventory_ledger")
 }
 
 // ─────────────────────────────────────────
