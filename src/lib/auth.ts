@@ -12,6 +12,7 @@ export type SessionUser = {
   name: string;
   role: string;
   mustChangePassword: boolean;
+  fontSizePreference: 'SMALL' | 'MEDIUM' | 'LARGE';
 };
 
 // Create a signed session token (simple HMAC with session secret)
@@ -77,6 +78,7 @@ export async function getSession(): Promise<SessionUser | null> {
       name: true,
       role: true,
       mustChangePassword: true,
+      fontSizePreference: true,
     },
   });
 
@@ -88,6 +90,7 @@ export async function getSession(): Promise<SessionUser | null> {
     name: user.name,
     role: user.role,
     mustChangePassword: user.mustChangePassword,
+    fontSizePreference: user.fontSizePreference,
   };
 }
 
