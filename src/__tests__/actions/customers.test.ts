@@ -177,3 +177,97 @@ describe("deactivateStoreCredit", () => {
     );
   });
 });
+
+// ── Scan Rx actions ───────────────────────────────────────────────────────────
+
+describe("searchCustomers", () => {
+  it("returns empty array for blank query", async () => {
+    const { searchCustomers } = await import("@/lib/actions/customers");
+    const result = await searchCustomers("   ");
+    expect(result).toEqual([]);
+  });
+
+  it("returns empty array for empty string", async () => {
+    const { searchCustomers } = await import("@/lib/actions/customers");
+    const result = await searchCustomers("");
+    expect(result).toEqual([]);
+  });
+
+  it("queries prisma with OR filter and returns results", async () => {
+    const prisma = await getPrisma();
+    prisma.customer.findMany.mockResolvedValue([
+      { id: "cust-1", firstName: "Jane", lastName: "Doe", phone: "4165550100", email: null },
+    ]);
+
+    const { searchCustomers } = await import("@/lib/actions/customers");
+    const result = await searchCustomers("Jane");
+
+    expect(prisma.customer.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          isActive: true,
+          OR: expect.arrayContaining([
+            expect.objectContaining({ firstName: expect.objectContaining({ contains: "Jane" }) }),
+          ]),
+        }),
+        take: 10,
+      })
+    );
+    expect(result).toHaveLength(1);
+    expect(result[0].firstName).toBe("Jane");
+  });
+});
+
+describe("quickCreateCustomer", () => {
+  it("returns error when firstName is missing", async () => {
+    const { quickCreateCustomer } = await import("@/lib/actions/customers");
+    const result = await quickCreateCustomer({ firstName: "", lastName: "Doe" });
+    expect("error" in result).toBe(true);
+    if ("error" in result) expect(result.error).toMatch(/required/i);
+  });
+
+  it("returns error when lastName is missing", async () => {
+    const { quickCreateCustomer } = await import("@/lib/actions/customers");
+    const result = await quickCreateCustomer({ firstName: "Jane", lastName: "  " });
+    expect("error" in result).toBe(true);
+  });
+
+  it("creates customer with minimal fields and returns id + name", async () => {
+    const prisma = await getPrisma();
+    prisma.customer.create.mockResolvedValue({ id: "cust-new" });
+
+    const { quickCreateCustomer } = await import("@/lib/actions/customers");
+    const result = await quickCreateCustomer({ firstName: "Jane", lastName: "Doe" });
+
+    expect("id" in result).toBe(true);
+    if ("id" in result) {
+      expect(result.id).toBe("cust-new");
+      expect(result.name).toBe("Jane Doe");
+    }
+    expect(prisma.customer.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ firstName: "Jane", lastName: "Doe" }),
+      })
+    );
+  });
+
+  it("strips non-digit chars from phone before saving", async () => {
+    const prisma = await getPrisma();
+    prisma.customer.create.mockResolvedValue({ id: "cust-2" });
+
+    const { quickCreateCustomer } = await import("@/lib/actions/customers");
+    await quickCreateCustomer({ firstName: "A", lastName: "B", phone: "416-555-0199" });
+
+    const callArgs = prisma.customer.create.mock.calls[0][0];
+    expect(callArgs.data.phone).toBe("4165550199");
+  });
+
+  it("returns error when prisma throws", async () => {
+    const prisma = await getPrisma();
+    prisma.customer.create.mockRejectedValue(new Error("DB error"));
+
+    const { quickCreateCustomer } = await import("@/lib/actions/customers");
+    const result = await quickCreateCustomer({ firstName: "Jane", lastName: "Doe" });
+    expect("error" in result).toBe(true);
+  });
+});

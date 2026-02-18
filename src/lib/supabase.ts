@@ -6,6 +6,7 @@ export const supabaseAdmin = createClient(
 );
 
 export const INVENTORY_BUCKET = "inventory-photos";
+export const PRESCRIPTION_SCANS_BUCKET = "prescription-scans";
 
 export async function ensureInventoryBucket() {
   await supabaseAdmin.storage.createBucket(INVENTORY_BUCKET, {
@@ -14,6 +15,42 @@ export async function ensureInventoryBucket() {
     allowedMimeTypes: ["image/jpeg", "image/png", "image/webp"],
   });
   // Ignore error — bucket likely already exists
+}
+
+export async function ensurePrescriptionBucket() {
+  await supabaseAdmin.storage.createBucket(PRESCRIPTION_SCANS_BUCKET, {
+    public: true,
+    fileSizeLimit: 10485760, // 10MB
+    allowedMimeTypes: ["image/jpeg", "image/png", "image/webp", "image/heic"],
+  });
+  // Ignore error — bucket likely already exists
+}
+
+export async function uploadPrescriptionScan(
+  base64: string,
+  mimeType: string,
+  customerId: string
+): Promise<string | null> {
+  await ensurePrescriptionBucket();
+
+  const ext = mimeType.split("/")[1]?.replace("jpeg", "jpg") || "jpg";
+  const path = `${customerId}/${Date.now()}.${ext}`;
+  const buffer = Buffer.from(base64, "base64");
+
+  const { data, error } = await supabaseAdmin.storage
+    .from(PRESCRIPTION_SCANS_BUCKET)
+    .upload(path, buffer, {
+      contentType: mimeType,
+      upsert: false,
+    });
+
+  if (error || !data) return null;
+
+  const { data: urlData } = supabaseAdmin.storage
+    .from(PRESCRIPTION_SCANS_BUCKET)
+    .getPublicUrl(data.path);
+
+  return urlData.publicUrl;
 }
 
 export async function uploadInventoryPhoto(

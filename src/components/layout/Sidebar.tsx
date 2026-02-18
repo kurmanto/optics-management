@@ -17,6 +17,7 @@ import {
   BarChart2,
   Receipt,
   BookOpen,
+  ScanLine,
 } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { logout } from "@/lib/actions/auth";
@@ -31,6 +32,10 @@ const navItems = [
     title: "Customers",
     href: "/customers",
     icon: Users,
+    children: [
+      { title: "All Customers", href: "/customers" },
+      { title: "Scan Rx", href: "/scan-rx", icon: ScanLine },
+    ],
   },
   {
     title: "Forms",
@@ -65,7 +70,7 @@ const navItems = [
   },
 ];
 
-type NavChild = { title: string; href: string };
+type NavChild = { title: string; href: string; icon?: React.ElementType };
 type NavItem = {
   title: string;
   href: string;
@@ -90,9 +95,10 @@ export function Sidebar({ userName, userRole }: Props) {
   }
 
   function isChildActive(child: NavChild) {
-    // Exact match for top-level children like "All Frames" at /inventory
+    // Exact match for top-level children like "All Frames" at /inventory or "All Customers" at /customers
     if (child.href === "/inventory") return pathname === "/inventory";
     if (child.href === "/orders") return pathname === "/orders";
+    if (child.href === "/customers") return pathname === "/customers" || pathname.startsWith("/customers/");
     return pathname.startsWith(child.href);
   }
 
@@ -135,20 +141,24 @@ export function Sidebar({ userName, userRole }: Props) {
                 </Link>
                 {isActive && (
                   <div className="mt-1 ml-4 pl-4 border-l border-gray-700 space-y-0.5">
-                    {item.children.map((child) => (
-                      <Link
-                        key={child.href}
-                        href={child.href}
-                        className={cn(
-                          "flex items-center px-3 py-2 rounded-lg text-sm transition-colors",
-                          isChildActive(child)
-                            ? "bg-primary text-white font-medium"
-                            : "text-gray-400 hover:text-white hover:bg-gray-800"
-                        )}
-                      >
-                        {child.title}
-                      </Link>
-                    ))}
+                    {item.children.map((child) => {
+                      const ChildIcon = child.icon;
+                      return (
+                        <Link
+                          key={child.href}
+                          href={child.href}
+                          className={cn(
+                            "flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors",
+                            isChildActive(child)
+                              ? "bg-primary text-white font-medium"
+                              : "text-gray-400 hover:text-white hover:bg-gray-800"
+                          )}
+                        >
+                          {ChildIcon && <ChildIcon className="w-3.5 h-3.5 flex-shrink-0" />}
+                          {child.title}
+                        </Link>
+                      );
+                    })}
                   </div>
                 )}
               </div>

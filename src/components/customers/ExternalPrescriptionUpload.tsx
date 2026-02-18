@@ -1,8 +1,8 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { transcribePrescriptionImage, addExternalPrescription } from "@/lib/actions/orders";
-import { Upload, Wand2, Check, AlertCircle, Camera } from "lucide-react";
+import { transcribePrescriptionImage, addExternalPrescription, uploadPrescriptionScanAction } from "@/lib/actions/orders";
+import { Wand2, Check, AlertCircle, Camera, ExternalLink } from "lucide-react";
 
 type RxValues = {
   odSphere: string;
@@ -44,6 +44,7 @@ export function ExternalPrescriptionUpload({ customerId, onSaved }: Props) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [saved, setSaved] = useState(false);
+  const [savedImageUrl, setSavedImageUrl] = useState<string | null>(null);
   const [hasTranscribed, setHasTranscribed] = useState(false);
 
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -102,6 +103,18 @@ export function ExternalPrescriptionUpload({ customerId, onSaved }: Props) {
     setSaving(true);
     setError("");
 
+    // Upload the scan image first (if one was captured)
+    let imageUrl: string | undefined;
+    if (imageBase64) {
+      const uploadResult = await uploadPrescriptionScanAction(imageBase64, imageMime, customerId);
+      if ("error" in uploadResult) {
+        setError(`Image upload failed: ${uploadResult.error}`);
+        setSaving(false);
+        return;
+      }
+      imageUrl = uploadResult.url;
+    }
+
     const result = await addExternalPrescription({
       customerId,
       doctorName: doctorName || undefined,
@@ -117,6 +130,7 @@ export function ExternalPrescriptionUpload({ customerId, onSaved }: Props) {
       osAxis: rxValues.osAxis ? parseInt(rxValues.osAxis) : undefined,
       osAdd: rxValues.osAdd ? parseFloat(rxValues.osAdd) : undefined,
       pdBinocular: rxValues.pdDistance ? parseFloat(rxValues.pdDistance) : undefined,
+      imageUrl,
     });
 
     if ("error" in result) {
@@ -126,6 +140,7 @@ export function ExternalPrescriptionUpload({ customerId, onSaved }: Props) {
     }
 
     setSaved(true);
+    setSavedImageUrl(imageUrl ?? null);
     setSaving(false);
     onSaved?.();
   }
@@ -299,9 +314,22 @@ export function ExternalPrescriptionUpload({ customerId, onSaved }: Props) {
 
       {/* Save */}
       {saved ? (
-        <div className="flex items-center gap-2 text-sm text-green-700 font-medium">
-          <Check className="w-4 h-4" />
-          Prescription saved successfully
+        <div className="space-y-2">
+          <div className="flex items-center gap-2 text-sm text-green-700 font-medium">
+            <Check className="w-4 h-4" />
+            Prescription saved successfully
+          </div>
+          {savedImageUrl && (
+            <a
+              href={savedImageUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 text-xs text-indigo-600 hover:text-indigo-700 hover:underline"
+            >
+              <ExternalLink className="w-3 h-3" />
+              View scan
+            </a>
+          )}
         </div>
       ) : (
         <button

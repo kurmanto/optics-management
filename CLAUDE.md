@@ -132,6 +132,35 @@ After every `/ship`, update ALL documentation files in `docs/` to reflect the cu
 
 This is a hard requirement, not optional.
 
+## Unit Tests — Required for Every Feature
+After implementing any new feature or server action, write unit tests immediately. Do not defer.
+
+**Test location:** `src/__tests__/actions/<entity>.test.ts` for server actions, `src/__tests__/lib/` for lib utilities.
+
+**Test runner:** `npm run test:run` (Vitest 4, no watch mode)
+
+**Patterns (follow exactly):**
+- Import mocks from `../mocks/session` and `../mocks/prisma`
+- `beforeEach`: `vi.clearAllMocks()` + `vi.mocked(verifySession).mockResolvedValue(mockSession)`
+- Dynamic imports inside each test/describe (not top-level) — required because `vi.mock` hoists
+- Supabase (`@/lib/supabase`) is mocked globally in `setup.ts` — mock individual functions with `vi.mocked(...).mockResolvedValue(...)`
+- Server actions that call `redirect()` after success will throw — wrap in `try/catch` and assert on side effects
+- Return type is `{ error: string }` on failure, or a success payload — always test both branches
+
+**What to test per action:**
+1. Auth guard: verifySession is called (implicit — mock is wired in setup)
+2. Happy path: correct Prisma method called with right args, success value returned
+3. Error path: Prisma throws → returns `{ error: "..." }`
+4. Input validation: empty/invalid args → returns `{ error: "..." }` without hitting DB
+
+## User Guide — Required for Every Feature
+After implementing any new feature, update `user-guide-site/index.html` immediately. Do not defer.
+
+- Add a TOC entry (sub-link under the relevant section)
+- Add a subsection with: what it does, how to use it step by step, any tips or warnings
+- Match the existing HTML style (use `<h2>`, `<h3>`, `<h4>`, `<ul>`, `<div class="box box-tip">`, etc.)
+- Redeploy after editing: `cd user-guide-site && vercel --prod`
+
 ## Running Locally
 
 ```bash
