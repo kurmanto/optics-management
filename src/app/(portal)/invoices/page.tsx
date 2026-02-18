@@ -2,7 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { verifySession } from "@/lib/dal";
 import Link from "next/link";
 import { formatCurrency, formatDate } from "@/lib/utils/formatters";
-import { Receipt, ExternalLink } from "lucide-react";
+import { Receipt, ExternalLink, Lock } from "lucide-react";
 import { InvoiceType } from "@prisma/client";
 
 export default async function InvoicesPage() {
@@ -18,6 +18,7 @@ export default async function InvoicesPage() {
           orderNumber: true,
           totalCustomer: true,
           balanceCustomer: true,
+          isDualInvoice: true,
           status: true,
           customer: {
             select: { firstName: true, lastName: true, email: true },
@@ -110,13 +111,25 @@ export default async function InvoicesPage() {
                     </span>
                   </td>
                   <td className="px-5 py-3.5 text-right">
-                    <Link
-                      href={`/orders/${inv.order.id}/invoice`}
-                      className="inline-flex items-center gap-1.5 text-xs text-primary border border-primary/30 rounded-lg px-3 py-1.5 hover:bg-primary/5 transition-colors"
-                    >
-                      <ExternalLink className="w-3 h-3" />
-                      View / Print
-                    </Link>
+                    <div className="flex items-center justify-end gap-2">
+                      <Link
+                        href={`/orders/${inv.order.id}/invoice`}
+                        className="inline-flex items-center gap-1.5 text-xs text-primary border border-primary/30 rounded-lg px-3 py-1.5 hover:bg-primary/5 transition-colors"
+                      >
+                        <ExternalLink className="w-3 h-3" />
+                        View / Print
+                      </Link>
+                      {inv.order.isDualInvoice && (
+                        <Link
+                          href={`/orders/${inv.order.id}/invoice?view=internal`}
+                          className="inline-flex items-center gap-1.5 text-xs text-amber-600 border border-amber-300 rounded-lg px-3 py-1.5 hover:bg-amber-50 transition-colors"
+                          title="Internal copy (Real amounts)"
+                        >
+                          <Lock className="w-3 h-3" />
+                          Internal
+                        </Link>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))}

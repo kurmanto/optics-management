@@ -2,18 +2,23 @@ import { prisma } from "@/lib/prisma";
 import { verifySession } from "@/lib/dal";
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { ChevronLeft } from "lucide-react";
+import { ChevronLeft, FileText, Lock } from "lucide-react";
 import { InvoiceView } from "@/components/orders/InvoiceView";
 import { IssueInvoiceButton } from "@/components/orders/IssueInvoiceButton";
 import { InvoiceType } from "@prisma/client";
 
 export default async function InvoicePage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ view?: string }>;
 }) {
   await verifySession();
   const { id } = await params;
+  const { view } = await searchParams;
+
+  const mode = view === "internal" ? "internal" : "customer";
 
   const [order, existingInvoice] = await Promise.all([
     prisma.order.findUnique({
@@ -32,6 +37,24 @@ export default async function InvoicePage({
         },
         user: { select: { name: true } },
         lineItems: { orderBy: { createdAt: "asc" } },
+        prescription: {
+          select: {
+            doctorName: true,
+            date: true,
+            source: true,
+            odSphere: true,
+            odCylinder: true,
+            odAxis: true,
+            odAdd: true,
+            odPd: true,
+            osSphere: true,
+            osCylinder: true,
+            osAxis: true,
+            osAdd: true,
+            osPd: true,
+            pdBinocular: true,
+          },
+        },
       },
     }),
     prisma.invoice.findFirst({
@@ -59,9 +82,45 @@ export default async function InvoicePage({
         />
       </div>
 
+      {/* Dual-invoice mode toggle — only when isDualInvoice is true */}
+      {order.isDualInvoice && (
+        <div className="print:hidden flex items-center gap-2 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3">
+          <Lock className="w-4 h-4 text-amber-600 flex-shrink-0" />
+          <p className="text-xs text-amber-700 font-medium flex-1">
+            Dual invoice — customer view and internal view available
+          </p>
+          <div className="flex rounded-lg overflow-hidden border border-amber-300 text-sm">
+            <Link
+              href={`/orders/${order.id}/invoice`}
+              className={`px-3 py-1.5 flex items-center gap-1.5 transition-colors ${
+                mode === "customer"
+                  ? "bg-amber-600 text-white"
+                  : "bg-white text-amber-700 hover:bg-amber-50"
+              }`}
+            >
+              <FileText className="w-3.5 h-3.5" />
+              Customer
+            </Link>
+            <Link
+              href={`/orders/${order.id}/invoice?view=internal`}
+              className={`px-3 py-1.5 flex items-center gap-1.5 transition-colors ${
+                mode === "internal"
+                  ? "bg-amber-600 text-white"
+                  : "bg-white text-amber-700 hover:bg-amber-50"
+              }`}
+            >
+              <Lock className="w-3.5 h-3.5" />
+              Internal
+            </Link>
+          </div>
+        </div>
+      )}
+
       <InvoiceView
         orderNumber={order.orderNumber}
         createdAt={order.createdAt}
+        mode={mode}
+        isDualInvoice={order.isDualInvoice}
         customer={order.customer}
         user={order.user}
         lineItems={order.lineItems.map((item) => ({
@@ -69,13 +128,19 @@ export default async function InvoicePage({
           quantity: item.quantity,
           unitPriceCustomer: item.unitPriceCustomer,
           totalCustomer: item.totalCustomer,
+          unitPriceReal: item.unitPriceReal,
+          totalReal: item.totalReal,
         }))}
         totalCustomer={order.totalCustomer}
         depositCustomer={order.depositCustomer}
         balanceCustomer={order.balanceCustomer}
+        totalReal={order.totalReal}
+        depositReal={order.depositReal}
+        balanceReal={order.balanceReal}
         insuranceCoverage={order.insuranceCoverage}
         referralCredit={order.referralCredit}
         notes={order.notes}
+        prescription={order.prescription}
       />
     </div>
   );
