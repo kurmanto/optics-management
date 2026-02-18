@@ -5,7 +5,7 @@
 
 ---
 
-## Current Version: V1.3 / Inventory V2
+## Current Version: V1.5 — Notification System
 
 ---
 
@@ -98,6 +98,24 @@
 
 ---
 
+### V1.5 — Notification System (Complete)
+
+| Feature | Status | Notes |
+|---------|--------|-------|
+| Notification bell (Radix Popover) | ✅ Complete | Top-right of every portal page |
+| 30-second polling | ✅ Complete | useEffect + setInterval, no WebSocket |
+| Red badge with 9+ cap | ✅ Complete | |
+| 7 notification types | ✅ Complete | FORM_COMPLETED, INTAKE_COMPLETED, ORDER_READY, ORDER_CANCELLED, ORDER_LAB_RECEIVED, PO_RECEIVED, LOW_STOCK |
+| Actor exclusion (self-triggered) | ✅ Complete | Null-safe OR filter |
+| Per-user read tracking | ✅ Complete | NotificationRead join table |
+| Mark single / mark all read | ✅ Complete | |
+| Notification preferences in Settings | ✅ Complete | Radix Switch toggles per type |
+| Event injection — orders | ✅ Complete | advanceOrderStatus |
+| Event injection — forms | ✅ Complete | completeFormSubmission + completeIntakeStep |
+| Event injection — purchase orders | ✅ Complete | receivePOItems + LOW_STOCK check |
+
+---
+
 ### V1.1 — Staff & Reporting
 
 | Feature | Status | Notes |
@@ -149,10 +167,10 @@
 
 ## Immediate Next Steps
 
-1. **Notification system** — bell icon in header; surface new form submissions, PO receipts, order status changes, payments requiring action
-2. **PDF invoices** — most operationally critical; staff need to hand invoices to customers
-3. **Run data migration** — export Customer Master CSV, run `migrate-customers.ts`
-4. **Staff management** — settings page is a stub; need staff list + create/deactivate
+1. **PDF invoices** — most operationally critical; staff need to hand invoices to customers
+2. **Run data migration** — export Customer Master CSV, run `migrate-customers.ts`
+3. **Staff management** — create/deactivate staff accounts (Admin only)
+4. **Reporting** — revenue by period, orders by status
 
 ---
 

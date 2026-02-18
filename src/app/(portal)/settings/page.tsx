@@ -1,15 +1,23 @@
 import { verifySession } from "@/lib/dal";
 import { prisma } from "@/lib/prisma";
 import { ChangePasswordForm } from "@/components/auth/ChangePasswordForm";
+import { NotificationPreferencesForm } from "@/components/settings/NotificationPreferencesForm";
+import { NotificationType } from "@prisma/client";
 
 export default async function SettingsPage() {
   const session = await verifySession();
 
-  const settings = await prisma.systemSetting.findMany({
-    orderBy: { key: "asc" },
-  });
+  const [settings, notifPrefs] = await Promise.all([
+    prisma.systemSetting.findMany({ orderBy: { key: "asc" } }),
+    prisma.notificationPreference.findMany({ where: { userId: session.id } }),
+  ]);
 
   const settingsMap = Object.fromEntries(settings.map((s) => [s.key, s.value]));
+
+  // Build a map of type → enabled (default true if no record exists)
+  const prefMap = Object.fromEntries(
+    notifPrefs.map((p) => [p.type, p.enabled])
+  ) as Partial<Record<NotificationType, boolean>>;
 
   return (
     <div className="p-6 max-w-2xl mx-auto space-y-6">
@@ -48,6 +56,17 @@ export default async function SettingsPage() {
             <dd className="font-medium text-right max-w-xs">{settingsMap.invoice_notes || "—"}</dd>
           </div>
         </dl>
+      </div>
+
+      {/* Notification Preferences */}
+      <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6 space-y-4">
+        <div>
+          <h2 className="font-semibold text-gray-900">Notification Preferences</h2>
+          <p className="text-sm text-gray-500 mt-1">
+            Choose which events show up in your notification bell. You will not see notifications for actions you take yourself.
+          </p>
+        </div>
+        <NotificationPreferencesForm initialPreferences={prefMap} />
       </div>
     </div>
   );
