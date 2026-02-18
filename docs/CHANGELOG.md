@@ -183,6 +183,38 @@ Format: `[Version] — Date`
 
 ---
 
+## [1.5.0] — 2026-02-17
+
+### Added — Notification System
+
+#### Database
+- New `Notification` model — global record per event (1 row shared across all staff, not per-user copy)
+- New `NotificationRead` join table — per-user read tracking with unique constraint `(notificationId, userId)`
+- New `NotificationPreference` table — per-user per-type on/off toggle
+- `NotificationType` enum: `FORM_COMPLETED`, `INTAKE_COMPLETED`, `ORDER_READY`, `ORDER_CANCELLED`, `ORDER_LAB_RECEIVED`, `PO_RECEIVED`, `LOW_STOCK`
+- SQL migration: `prisma/migrations/notifications_migration.sql`
+
+#### Event Injection
+- `orders.ts → advanceOrderStatus` — creates ORDER_READY, ORDER_CANCELLED, ORDER_LAB_RECEIVED notifications with actorId
+- `forms.ts → completeFormSubmission` — creates FORM_COMPLETED notification (actorId null — public action)
+- `forms.ts → completeIntakeStep` — creates INTAKE_COMPLETED notification when all 3 forms done
+- `purchase-orders.ts → receivePOItems` — creates PO_RECEIVED + per-line LOW_STOCK notifications after transaction commits
+- All notifications created after the primary write; errors swallowed so they never block the action
+
+#### UI
+- `NotificationBell` (client) — 30-second polling via `useEffect + setInterval`; Radix Popover dropdown; red badge with 9+ cap; unread blue dot per item; type icons (FileText/ShoppingBag/Package/AlertTriangle); click to mark read + navigate; "Mark all read" button; visible error state
+- `NotificationBar` (server wrapper) — `h-14` header bar added to `(portal)/layout.tsx`
+- `Header.tsx` — simplified to title-only div; static non-functional bell removed
+- `NotificationPreferencesForm` (client) — Radix Switch toggles for all 7 types with optimistic revert on error
+- Settings page — new "Notification Preferences" card
+
+#### Architecture Notes
+- Actor exclusion uses `OR: [{ actorId: null }, { actorId: { not: userId } }]` — null-safe so public form notifications always show for all staff
+- No WebSockets/SSE — simple polling is sufficient for a 2–5 person team
+- Notification failure never crashes the primary action (`createNotification` swallows all errors)
+
+---
+
 ## Upcoming
 
 ### [1.1.0] — Planned
@@ -190,6 +222,3 @@ Format: `[Version] — Date`
 - Staff management UI (Admin only)
 - Reporting page (revenue, orders by status)
 - Data migration (run customer + inventory import)
-
-### Next (no version assigned yet)
-- Notification system — bell icon in header; surface new form submissions, order status changes, PO receipts requiring action
