@@ -2,6 +2,7 @@ import { verifySession } from "@/lib/dal";
 import { prisma } from "@/lib/prisma";
 import { ChangePasswordForm } from "@/components/auth/ChangePasswordForm";
 import { NotificationPreferencesForm } from "@/components/settings/NotificationPreferencesForm";
+import { FontSizeForm } from "@/components/settings/FontSizeForm";
 import { NotificationType } from "@prisma/client";
 
 export default async function SettingsPage() {
@@ -56,6 +57,15 @@ export default async function SettingsPage() {
             <dd className="font-medium text-right max-w-xs">{settingsMap.invoice_notes || "—"}</dd>
           </div>
         </dl>
+      </div>
+
+      {/* Display Preferences */}
+      <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6">
+        <h2 className="text-lg font-semibold mb-1">Display Preferences</h2>
+        <p className="text-sm text-gray-500 mb-4">
+          Choose the text size that&apos;s most comfortable for you.
+        </p>
+        <FontSizeForm initialSize={session.fontSizePreference} />
       </div>
 
       {/* Notification Preferences */}

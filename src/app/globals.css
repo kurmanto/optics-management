@@ -56,3 +56,7 @@
     @apply bg-background text-foreground;
   }
 }
+
+html.font-small { font-size: 87.5%; }   /* ~14px base */
+html.font-large { font-size: 112.5%; }  /* ~18px base */
+/* MEDIUM = browser default 16px, no class needed */
