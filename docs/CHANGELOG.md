@@ -215,10 +215,24 @@ Format: `[Version] — Date`
 
 ---
 
+## [1.5.1] — 2026-02-18
+
+### Fixed — Orders Navigation & CI
+
+#### Orders Navigation
+- `/orders` no longer auto-redirects to `/orders/board` — the list view is now always reachable via the **All Orders** sidebar link and the **List View** toggle button
+- Sidebar Orders group: **Fulfillment Board** is now the primary link (`/orders/board`); **All Orders** is the secondary link (`/orders`)
+- `isGroupActive` checks children routes before the parent so the Orders group highlights correctly when on `/orders` or `/invoices`
+
+#### CI / Infrastructure
+- Added `"overrides"` in `package.json` to pin `magicast@^0.5.1` and `picomatch@^4.0.3`, resolving `npm ci` failures caused by `c12`'s optional peer dep (`magicast@^0.3.5`) and `fdir`'s `picomatch@^3||^4` requirement conflicting with the hoisted versions
+- Added GitHub Actions CI workflow (`npm ci` → `prisma generate` → `tsc` → `vitest run`) triggered on push/PR to `master`
+
+---
+
 ## Upcoming
 
 ### [1.1.0] — Planned
-- PDF invoice generation (print/download from order detail)
 - Staff management UI (Admin only)
 - Reporting page (revenue, orders by status)
 - Data migration (run customer + inventory import)

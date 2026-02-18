@@ -1,11 +1,11 @@
 # Project Status
 ## Mint Vision Optique — Staff Portal
 
-**Last updated:** 2026-02-17
+**Last updated:** 2026-02-18
 
 ---
 
-## Current Version: V1.5 — Notification System
+## Current Version: V1.5.1 — Orders Navigation Fix
 
 ---
 
@@ -167,10 +167,9 @@
 
 ## Immediate Next Steps
 
-1. **PDF invoices** — most operationally critical; staff need to hand invoices to customers
-2. **Run data migration** — export Customer Master CSV, run `migrate-customers.ts`
-3. **Staff management** — create/deactivate staff accounts (Admin only)
-4. **Reporting** — revenue by period, orders by status
+1. **Run data migration** — export Customer Master CSV, run `migrate-customers.ts`
+2. **Staff management** — create/deactivate staff accounts (Admin only)
+3. **Reporting** — revenue by period, orders by status
 
 ---
 

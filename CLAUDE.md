@@ -90,7 +90,7 @@ VERIFIED = Rx check by optician after lab receives order. PICKED_UP triggers Pic
 - `legacyCustomerId` is nullable — not all migrated records have it
 
 ## Version Status
-Current version: **V1.5 — Notification System** (2026-02-17)
+Current version: **V1.5.1 — Orders Navigation Fix** (2026-02-18)
 
 | Feature | Status |
 |---------|--------|
