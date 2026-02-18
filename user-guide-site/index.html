@@ -1,0 +1,1981 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mint Vision Optique — Staff Portal User Guide</title>
+<style>
+  /* ===== RESET & BASE ===== */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: Georgia, 'Times New Roman', serif;
+    font-size: 15px;
+    line-height: 1.7;
+    color: #1a1a1a;
+    background: #f5f5f5;
+  }
+
+  /* ===== LAYOUT ===== */
+  .wrapper {
+    display: flex;
+    max-width: 1280px;
+    margin: 0 auto;
+    background: white;
+    box-shadow: 0 0 40px rgba(0,0,0,0.08);
+  }
+
+  /* ===== SIDEBAR NAV ===== */
+  .toc-sidebar {
+    width: 260px;
+    min-width: 260px;
+    background: #1e293b;
+    color: #e2e8f0;
+    padding: 24px 0;
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    overflow-y: auto;
+    flex-shrink: 0;
+  }
+  .toc-sidebar h2 {
+    font-family: system-ui, sans-serif;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: #94a3b8;
+    padding: 0 20px 12px;
+    border-bottom: 1px solid #334155;
+    margin-bottom: 12px;
+  }
+  .toc-sidebar a {
+    display: block;
+    padding: 5px 20px;
+    color: #cbd5e1;
+    text-decoration: none;
+    font-family: system-ui, sans-serif;
+    font-size: 13px;
+    line-height: 1.4;
+    transition: color 0.15s, background 0.15s;
+  }
+  .toc-sidebar a:hover { color: #fff; background: #334155; }
+  .toc-sidebar a.section-link {
+    font-weight: 600;
+    color: #e2e8f0;
+    margin-top: 8px;
+  }
+  .toc-sidebar a.sub-link {
+    padding-left: 34px;
+    font-size: 12px;
+    color: #94a3b8;
+  }
+  .toc-brand {
+    padding: 0 20px 20px;
+    border-bottom: 1px solid #334155;
+    margin-bottom: 12px;
+  }
+  .toc-brand .brand-name {
+    font-family: system-ui, sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    color: #10b981;
+    letter-spacing: -0.01em;
+  }
+  .toc-brand .brand-sub {
+    font-family: system-ui, sans-serif;
+    font-size: 11px;
+    color: #64748b;
+    margin-top: 2px;
+  }
+
+  /* ===== MAIN CONTENT ===== */
+  .main-content {
+    flex: 1;
+    min-width: 0;
+    padding: 0;
+  }
+
+  /* ===== COVER PAGE ===== */
+  .cover-page {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    padding: 60px 40px;
+    background: linear-gradient(160deg, #0f172a 0%, #1e293b 60%, #0f4c35 100%);
+    color: white;
+    page-break-after: always;
+  }
+  .cover-logo {
+    font-family: system-ui, sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: #10b981;
+    margin-bottom: 40px;
+  }
+  .cover-title {
+    font-family: Georgia, serif;
+    font-size: 52px;
+    font-weight: normal;
+    line-height: 1.15;
+    margin-bottom: 16px;
+    color: #f8fafc;
+  }
+  .cover-subtitle {
+    font-family: system-ui, sans-serif;
+    font-size: 22px;
+    color: #94a3b8;
+    margin-bottom: 60px;
+    font-weight: 300;
+  }
+  .cover-divider {
+    width: 80px;
+    height: 3px;
+    background: #10b981;
+    margin: 0 auto 60px;
+  }
+  .cover-meta {
+    font-family: system-ui, sans-serif;
+    font-size: 14px;
+    color: #64748b;
+    line-height: 2;
+  }
+  .cover-meta strong { color: #94a3b8; }
+  .cover-confidential {
+    margin-top: 80px;
+    font-family: system-ui, sans-serif;
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #475569;
+    border: 1px solid #334155;
+    padding: 8px 20px;
+    border-radius: 4px;
+  }
+
+  /* ===== SECTION PAGES ===== */
+  .section {
+    padding: 60px 56px;
+    border-bottom: 1px solid #e2e8f0;
+    page-break-before: always;
+  }
+  .section:first-of-type { page-break-before: auto; }
+
+  .section-eyebrow {
+    font-family: system-ui, sans-serif;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: #10b981;
+    margin-bottom: 8px;
+  }
+  .section-number {
+    font-family: system-ui, sans-serif;
+    font-size: 72px;
+    font-weight: 800;
+    color: #f1f5f9;
+    line-height: 1;
+    margin-bottom: -20px;
+    margin-left: -4px;
+  }
+  h1.section-title {
+    font-family: Georgia, serif;
+    font-size: 38px;
+    font-weight: normal;
+    color: #0f172a;
+    margin-bottom: 8px;
+    line-height: 1.2;
+  }
+  .section-intro {
+    font-size: 16px;
+    color: #475569;
+    max-width: 680px;
+    margin-bottom: 40px;
+    border-left: 3px solid #10b981;
+    padding-left: 16px;
+  }
+
+  h2 {
+    font-family: Georgia, serif;
+    font-size: 24px;
+    font-weight: normal;
+    color: #0f172a;
+    margin-top: 48px;
+    margin-bottom: 16px;
+    padding-bottom: 8px;
+    border-bottom: 2px solid #e2e8f0;
+  }
+  h3 {
+    font-family: system-ui, sans-serif;
+    font-size: 16px;
+    font-weight: 700;
+    color: #1e293b;
+    margin-top: 32px;
+    margin-bottom: 10px;
+  }
+  h4 {
+    font-family: system-ui, sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    color: #334155;
+    margin-top: 20px;
+    margin-bottom: 6px;
+  }
+  p { margin-bottom: 14px; }
+  ul, ol { padding-left: 24px; margin-bottom: 14px; }
+  li { margin-bottom: 5px; }
+  strong { font-weight: 700; }
+  em { font-style: italic; color: #475569; }
+  code {
+    font-family: 'Courier New', monospace;
+    font-size: 13px;
+    background: #f1f5f9;
+    border: 1px solid #e2e8f0;
+    border-radius: 3px;
+    padding: 1px 5px;
+    color: #0f172a;
+  }
+
+  /* ===== INFO BOXES ===== */
+  .box {
+    border-radius: 8px;
+    padding: 16px 20px;
+    margin: 20px 0;
+    font-family: system-ui, sans-serif;
+    font-size: 14px;
+    line-height: 1.6;
+  }
+  .box-info {
+    background: #eff6ff;
+    border-left: 4px solid #3b82f6;
+    color: #1e3a5f;
+  }
+  .box-warning {
+    background: #fffbeb;
+    border-left: 4px solid #f59e0b;
+    color: #78350f;
+  }
+  .box-tip {
+    background: #f0fdf4;
+    border-left: 4px solid #10b981;
+    color: #14532d;
+  }
+  .box-alert {
+    background: #fef2f2;
+    border-left: 4px solid #ef4444;
+    color: #7f1d1d;
+  }
+  .box-label {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-bottom: 4px;
+    opacity: 0.7;
+  }
+
+  /* ===== SCREENSHOT PLACEHOLDER ===== */
+  .screenshot-placeholder {
+    border: 2px dashed #cbd5e1;
+    border-radius: 8px;
+    padding: 28px 20px;
+    text-align: center;
+    color: #94a3b8;
+    font-family: system-ui, sans-serif;
+    font-size: 13px;
+    background: #f8fafc;
+    margin: 20px 0;
+    min-height: 80px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* ===== TABLES ===== */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 20px 0;
+    font-family: system-ui, sans-serif;
+    font-size: 13.5px;
+  }
+  thead th {
+    background: #1e293b;
+    color: #e2e8f0;
+    padding: 10px 14px;
+    text-align: left;
+    font-weight: 600;
+    font-size: 12px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+  tbody tr:nth-child(even) { background: #f8fafc; }
+  tbody tr:hover { background: #eff6ff; }
+  td { padding: 9px 14px; border-bottom: 1px solid #e2e8f0; vertical-align: top; }
+
+  /* ===== STATUS BADGES ===== */
+  .badge {
+    display: inline-block;
+    padding: 2px 10px;
+    border-radius: 999px;
+    font-family: system-ui, sans-serif;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+  .badge-gray     { background: #e2e8f0; color: #475569; }
+  .badge-blue     { background: #dbeafe; color: #1e40af; }
+  .badge-orange   { background: #ffedd5; color: #9a3412; }
+  .badge-yellow   { background: #fef9c3; color: #713f12; }
+  .badge-indigo   { background: #e0e7ff; color: #3730a3; }
+  .badge-green    { background: #dcfce7; color: #166534; }
+  .badge-red      { background: #fee2e2; color: #991b1b; }
+  .badge-amber    { background: #fef3c7; color: #92400e; }
+  .badge-teal     { background: #ccfbf1; color: #0f766e; }
+  .badge-purple   { background: #ede9fe; color: #5b21b6; }
+
+  /* ===== STEP WIZARD ===== */
+  .wizard-steps {
+    counter-reset: wizard-step;
+    margin: 24px 0;
+  }
+  .wizard-step {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 16px;
+    align-items: flex-start;
+  }
+  .wizard-step-num {
+    flex-shrink: 0;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: #0f172a;
+    color: white;
+    font-family: system-ui, sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-top: 2px;
+  }
+  .wizard-step-body { flex: 1; }
+  .wizard-step-title {
+    font-family: system-ui, sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    color: #1e293b;
+    margin-bottom: 4px;
+  }
+  .wizard-step-desc {
+    font-family: system-ui, sans-serif;
+    font-size: 13px;
+    color: #64748b;
+    line-height: 1.5;
+  }
+
+  /* ===== STATUS FLOW ===== */
+  .status-flow {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    margin: 20px 0;
+    padding: 16px 20px;
+    background: #f8fafc;
+    border-radius: 8px;
+    border: 1px solid #e2e8f0;
+    font-family: system-ui, sans-serif;
+  }
+  .status-flow-arrow {
+    color: #94a3b8;
+    font-size: 16px;
+  }
+
+  /* ===== SIDEBAR PREVIEW ===== */
+  .sidebar-preview {
+    background: #1e293b;
+    border-radius: 10px;
+    padding: 20px;
+    width: 220px;
+    font-family: system-ui, sans-serif;
+    font-size: 13px;
+    margin: 24px 0;
+  }
+  .sidebar-preview .sp-brand {
+    color: #10b981;
+    font-weight: 700;
+    font-size: 14px;
+    margin-bottom: 4px;
+  }
+  .sidebar-preview .sp-subbrand {
+    color: #64748b;
+    font-size: 11px;
+    margin-bottom: 16px;
+  }
+  .sidebar-preview .sp-section {
+    color: #64748b;
+    font-size: 10px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-top: 12px;
+    margin-bottom: 4px;
+    font-weight: 700;
+  }
+  .sidebar-preview .sp-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 5px 8px;
+    border-radius: 6px;
+    color: #cbd5e1;
+    margin-bottom: 1px;
+    font-size: 13px;
+  }
+  .sidebar-preview .sp-item.active {
+    background: #334155;
+    color: #fff;
+  }
+  .sidebar-preview .sp-item .icon {
+    width: 16px;
+    text-align: center;
+    color: #94a3b8;
+    font-size: 14px;
+  }
+  .sidebar-preview .sp-subitem {
+    padding: 4px 8px 4px 32px;
+    color: #94a3b8;
+    font-size: 12px;
+    border-radius: 4px;
+  }
+  .sidebar-preview .sp-divider {
+    border: none;
+    border-top: 1px solid #334155;
+    margin: 12px 0;
+  }
+  .sidebar-preview .sp-logout {
+    color: #ef4444;
+    font-size: 12px;
+    padding: 4px 8px;
+    margin-top: 8px;
+  }
+
+  /* ===== LIFECYCLE CARDS ===== */
+  .lifecycle-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin: 20px 0;
+  }
+  .lifecycle-card {
+    padding: 14px 16px;
+    border-radius: 8px;
+    border: 1px solid #e2e8f0;
+    font-family: system-ui, sans-serif;
+  }
+  .lifecycle-card .lc-label {
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 4px;
+  }
+  .lifecycle-card .lc-def {
+    font-size: 13px;
+    color: #475569;
+    line-height: 1.5;
+  }
+
+  /* ===== QUICK REFERENCE ===== */
+  .quick-ref-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin: 20px 0;
+  }
+  .quick-ref-card {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 16px;
+    font-family: system-ui, sans-serif;
+  }
+  .quick-ref-card h4 {
+    font-size: 13px;
+    font-weight: 700;
+    color: #1e293b;
+    margin-bottom: 8px;
+    margin-top: 0;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .quick-ref-card ol {
+    padding-left: 18px;
+    margin: 0;
+  }
+  .quick-ref-card li {
+    font-size: 13px;
+    color: #475569;
+    margin-bottom: 3px;
+  }
+
+  /* ===== PRINT STYLES ===== */
+  @media print {
+    body { background: white; font-size: 13px; }
+    .toc-sidebar { display: none; }
+    .wrapper { box-shadow: none; display: block; max-width: 100%; }
+    .main-content { padding: 0; }
+    .section {
+      padding: 40px 48px;
+      page-break-before: always;
+      border-bottom: none;
+    }
+    .cover-page { min-height: 100vh; page-break-after: always; }
+    h2 { page-break-after: avoid; }
+    h3 { page-break-after: avoid; }
+    .screenshot-placeholder { page-break-inside: avoid; }
+    table { page-break-inside: avoid; }
+    .box { page-break-inside: avoid; }
+    .wizard-step { page-break-inside: avoid; }
+    .section-number { color: #f0f0f0; }
+    a { color: inherit; text-decoration: none; }
+    .status-flow { page-break-inside: avoid; }
+    .lifecycle-grid { page-break-inside: avoid; }
+    .quick-ref-grid { page-break-inside: avoid; }
+  }
+
+  @media (max-width: 768px) {
+    .toc-sidebar { display: none; }
+    .section { padding: 40px 24px; }
+    .lifecycle-grid { grid-template-columns: 1fr; }
+    .quick-ref-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<div class="wrapper">
+
+<!-- ===== SIDEBAR TABLE OF CONTENTS ===== -->
+<nav class="toc-sidebar">
+  <div class="toc-brand">
+    <div class="brand-name">Mint Vision Optique</div>
+    <div class="brand-sub">Staff Portal Guide v1.5</div>
+  </div>
+  <h2>Contents</h2>
+
+  <a href="#section-getting-started" class="section-link">1. Getting Started</a>
+  <a href="#sidebar-nav" class="sub-link">Sidebar Navigation</a>
+  <a href="#notifications-intro" class="sub-link">Notifications & Sign Out</a>
+
+  <a href="#section-dashboard" class="section-link">2. Dashboard</a>
+  <a href="#dashboard-scoreboard" class="sub-link">This Month Scoreboard</a>
+  <a href="#dashboard-money" class="sub-link">Money on the Table</a>
+  <a href="#dashboard-conversion" class="sub-link">Conversion Metrics</a>
+  <a href="#dashboard-admin" class="sub-link">Admin View</a>
+  <a href="#dashboard-recent" class="sub-link">Recent Orders</a>
+
+  <a href="#section-customers" class="section-link">3. Customers</a>
+  <a href="#customer-list" class="sub-link">Customer List</a>
+  <a href="#lifecycle-defs" class="sub-link">Lifecycle Definitions</a>
+  <a href="#customer-detail" class="sub-link">Customer Detail</a>
+  <a href="#customer-create" class="sub-link">Creating a Customer</a>
+
+  <a href="#section-orders" class="section-link">4. Orders</a>
+  <a href="#order-status-flow" class="sub-link">Status Flow</a>
+  <a href="#kanban-board" class="sub-link">Fulfillment Board</a>
+  <a href="#all-orders" class="sub-link">All Orders (List)</a>
+  <a href="#new-order-wizard" class="sub-link">New Order Wizard</a>
+  <a href="#order-detail" class="sub-link">Order Detail</a>
+  <a href="#pickup-modal" class="sub-link">Pickup Complete</a>
+  <a href="#work-order" class="sub-link">Work Order</a>
+
+  <a href="#section-invoices" class="section-link">5. Invoices</a>
+  <a href="#invoice-list" class="sub-link">Invoices List</a>
+  <a href="#invoice-view" class="sub-link">Invoice View & Print</a>
+  <a href="#dual-invoice" class="sub-link">Dual Invoice System</a>
+
+  <a href="#section-forms" class="section-link">6. Forms</a>
+  <a href="#forms-hub" class="sub-link">Forms Hub</a>
+  <a href="#send-form" class="sub-link">Sending a Form</a>
+  <a href="#intake-packages" class="sub-link">Intake Packages</a>
+  <a href="#kiosk-mode" class="sub-link">Kiosk Mode</a>
+  <a href="#form-review" class="sub-link">Reviewing Forms</a>
+
+  <a href="#section-inventory" class="section-link">7. Inventory</a>
+  <a href="#frames-browser" class="sub-link">All Frames Browser</a>
+  <a href="#frame-detail" class="sub-link">Frame Detail</a>
+  <a href="#add-frame" class="sub-link">Adding a Frame</a>
+  <a href="#vendors" class="sub-link">Vendors</a>
+  <a href="#purchase-orders" class="sub-link">Purchase Orders</a>
+  <a href="#inventory-analytics" class="sub-link">Analytics</a>
+
+  <a href="#section-notifications" class="section-link">8. Notifications</a>
+  <a href="#notification-types" class="sub-link">Notification Types</a>
+  <a href="#notification-prefs" class="sub-link">Preferences</a>
+
+  <a href="#section-settings" class="section-link">9. Settings</a>
+
+  <a href="#section-quick-ref" class="section-link">10. Quick Reference</a>
+  <a href="#cheat-sheet" class="sub-link">Status Cheat Sheet</a>
+  <a href="#common-tasks" class="sub-link">Common Tasks</a>
+</nav>
+
+<!-- ===== MAIN CONTENT ===== -->
+<main class="main-content">
+
+<!-- ==================== COVER PAGE ==================== -->
+<div class="cover-page">
+  <div class="cover-logo">Mint Vision Optique</div>
+  <h1 class="cover-title">Staff Portal<br>User Guide</h1>
+  <div class="cover-subtitle">Complete Reference for All Staff</div>
+  <div class="cover-divider"></div>
+  <div class="cover-meta">
+    <strong>Version:</strong> 1.5<br>
+    <strong>Date:</strong> February 2026<br>
+    <strong>Platform:</strong> Web — Chrome recommended<br>
+    <strong>Audience:</strong> All Mint Vision Staff
+  </div>
+  <div class="cover-confidential">Confidential — Internal Use Only</div>
+</div>
+
+
+<!-- ==================== SECTION 1: GETTING STARTED ==================== -->
+<section class="section" id="section-getting-started">
+  <div class="section-eyebrow">Section 1</div>
+  <div class="section-number">01</div>
+  <h1 class="section-title">Getting Started</h1>
+  <p class="section-intro">Everything you need to know to log in and navigate the portal for the first time.</p>
+
+  <h2>What Is the Staff Portal?</h2>
+  <p>The Mint Vision Optique Staff Portal is a web-based practice management system built exclusively for Mint Vision staff. It replaces several disconnected tools your team used previously:</p>
+  <table>
+    <thead><tr><th>Old Tool</th><th>Replaced By</th></tr></thead>
+    <tbody>
+      <tr><td>Paper patient cards &amp; intake sheets</td><td>Digital Forms + Customer profiles</td></tr>
+      <tr><td>Google Sheets order tracking</td><td>Orders — Fulfillment Board (Kanban)</td></tr>
+      <tr><td>Excel inventory spreadsheet</td><td>Inventory browser + Purchase Orders</td></tr>
+      <tr><td>Printed work orders</td><td>Digital Work Order (printable from portal)</td></tr>
+      <tr><td>Manual invoices</td><td>Invoices (auto-generated, PDF-ready)</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Accessing the Portal</h2>
+  <p>Open <strong>Google Chrome</strong> (required — other browsers are not supported for all features) and navigate to the portal URL provided by your manager. The portal is accessible from any device with an internet connection — desktop, laptop, or tablet.</p>
+
+  <div class="box box-info">
+    <div class="box-label">Browser Requirement</div>
+    Always use <strong>Google Chrome</strong>. Some features — specifically canvas signatures and print layouts — require Chrome for correct rendering.
+  </div>
+
+  <h2>Logging In</h2>
+  <p>On the login screen, enter your <strong>email address</strong> and <strong>password</strong> provided by your manager. Click <strong>Sign In</strong>.</p>
+
+  <div class="screenshot-placeholder">📷 Screenshot: Login page — email/password form, "Sign In" button, Mint Vision logo</div>
+
+  <ul>
+    <li>Your session stays active for <strong>7 days</strong>. You will be automatically logged out after 7 days of inactivity.</li>
+    <li>If you forget your password, contact your manager — they can reset it from the Settings page.</li>
+    <li>There is no self-service password reset link available to patients (patients do not have accounts).</li>
+  </ul>
+
+  <div class="box box-warning">
+    <div class="box-label">Important</div>
+    Never share your login credentials with anyone, including other staff members. Each staff member has their own account. Sharing accounts makes it impossible to track who performed which actions.
+  </div>
+
+  <h2 id="sidebar-nav">The Sidebar — Main Navigation</h2>
+  <p>After logging in, you will see a <strong>dark left panel</strong> — this is the sidebar. It is present on every page and is your primary way of navigating the portal.</p>
+
+  <div style="display:flex; gap:40px; align-items:flex-start; flex-wrap:wrap; margin:24px 0;">
+    <div class="sidebar-preview">
+      <div class="sp-brand">Mint Vision Optique</div>
+      <div class="sp-subbrand">Staff Portal</div>
+      <hr class="sp-divider">
+      <div class="sp-section">Main</div>
+      <div class="sp-item active"><span class="icon">⬛</span> Dashboard</div>
+      <div class="sp-item"><span class="icon">👥</span> Customers</div>
+      <div class="sp-item"><span class="icon">📋</span> Forms</div>
+      <div class="sp-section">Orders</div>
+      <div class="sp-item"><span class="icon">📌</span> Fulfillment Board</div>
+      <div class="sp-subitem">All Orders</div>
+      <div class="sp-subitem">Invoices</div>
+      <div class="sp-section">Inventory</div>
+      <div class="sp-item"><span class="icon">👓</span> All Frames</div>
+      <div class="sp-subitem">Vendors</div>
+      <div class="sp-subitem">Purchase Orders</div>
+      <div class="sp-subitem">Analytics</div>
+      <div class="sp-section">Account</div>
+      <div class="sp-item"><span class="icon">⚙️</span> Settings</div>
+      <hr class="sp-divider">
+      <div class="sp-logout">↩ Sign Out</div>
+    </div>
+    <div style="flex:1; min-width:280px;">
+      <h3 style="margin-top:0">Navigation Items Explained</h3>
+      <ul>
+        <li><strong>Dashboard</strong> — Home screen. Revenue snapshot, alerts, and recent activity.</li>
+        <li><strong>Customers</strong> — Full patient/customer database. Search, view, create, and edit records.</li>
+        <li><strong>Forms</strong> — Digital patient forms. Send, track, and review intake documents.</li>
+        <li><strong>Fulfillment Board</strong> — Kanban view of all active orders. Your daily workflow hub.</li>
+        <li><strong>All Orders</strong> — Full historical order list (including completed and cancelled).</li>
+        <li><strong>Invoices</strong> — All issued customer invoices.</li>
+        <li><strong>All Frames</strong> — Inventory browser for all frame stock.</li>
+        <li><strong>Vendors</strong> — Supplier contact management.</li>
+        <li><strong>Purchase Orders</strong> — Track orders placed with vendors.</li>
+        <li><strong>Analytics</strong> — Inventory health reports (dead stock, ABC analysis, etc.).</li>
+        <li><strong>Settings</strong> — Your account details and notification preferences.</li>
+      </ul>
+    </div>
+  </div>
+
+  <h2 id="notifications-intro">Notifications Bell</h2>
+  <p>In the top-right corner of every page, you will see a <strong>bell icon</strong>. When you have unread notifications, a <strong>red dot with a count</strong> appears. Click the bell to open a dropdown showing your recent notifications. The bell refreshes automatically every 30 seconds — you do not need to reload the page.</p>
+
+  <div class="box box-tip">
+    <div class="box-label">Tip</div>
+    Notifications tell you about things that need your attention: patient forms completed, orders ready for pickup, low stock alerts, and more. Keep an eye on the bell throughout your shift.
+  </div>
+
+  <h2>Signing Out</h2>
+  <p>Click the <strong>Sign Out</strong> button at the very bottom of the sidebar. Always sign out when leaving a shared computer or at the end of your shift.</p>
+</section>
+
+
+<!-- ==================== SECTION 2: DASHBOARD ==================== -->
+<section class="section" id="section-dashboard">
+  <div class="section-eyebrow">Section 2</div>
+  <div class="section-number">02</div>
+  <h1 class="section-title">Dashboard</h1>
+  <p class="section-intro">The dashboard is your daily command center — it shows key performance metrics, urgent alerts, and recent activity at a glance.</p>
+
+  <div class="screenshot-placeholder">📷 Screenshot: Full dashboard view — scoreboard at top, Money on the Table section, conversion metrics, recent orders strip</div>
+
+  <h2 id="dashboard-scoreboard">2.1 This Month Scoreboard</h2>
+  <p>At the very top of the dashboard, you will see three large numbers for the <strong>current calendar month</strong>:</p>
+
+  <table>
+    <thead><tr><th>Metric</th><th>What It Shows</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Revenue</strong></td><td>Total revenue collected this month (customer-facing prices)</td></tr>
+      <tr><td><strong>Avg Ticket</strong></td><td>Average dollar value per completed order this month</td></tr>
+      <tr><td><strong>Orders</strong></td><td>Total number of orders created this month</td></tr>
+    </tbody>
+  </table>
+
+  <p>Below the numbers, a <strong>Monthly Goal progress bar</strong> shows how close you are to hitting the monthly revenue target. The bar fills with green as revenue grows; the percentage complete is shown to the right.</p>
+
+  <div class="box box-tip">
+    <div class="box-label">Tip</div>
+    Share the scoreboard number with the whole team during morning huddles. When everyone can see the goal, they stay focused on it.
+  </div>
+
+  <h2 id="dashboard-money">2.2 Money on the Table</h2>
+  <p>This section only appears when there are open opportunities — things your team should follow up on today. Think of it as an automatic to-do list generated from your data.</p>
+
+  <div class="screenshot-placeholder">📷 Screenshot: "Money on the Table" section with expanded buckets showing patient names and amounts</div>
+
+  <h3>Deposit Taken — Not Picked Up</h3>
+  <p>Any order where a deposit was collected but the patient has not yet come in to pick up their glasses. These orders are marked <span class="badge badge-green">READY</span> and should be followed up on. Click any row to open the order directly.</p>
+
+  <h3>Exams Without Purchase</h3>
+  <p>Patients who had an exam but did not purchase frames or lenses. Grouped into three time buckets:</p>
+  <ul>
+    <li><strong>0–30 days</strong> — Freshest leads. A friendly follow-up call may be enough.</li>
+    <li><strong>31–60 days</strong> — Getting colder. Consider a promotion or personal outreach.</li>
+    <li><strong>61–90 days</strong> — Approaching 3 months. Last chance before they go elsewhere.</li>
+  </ul>
+
+  <h3>Due for Recall</h3>
+  <p>Patients whose last exam was <strong>1 to 2 years ago</strong> — they are due for their annual or biennial checkup. This list drives your recall outreach campaign.</p>
+
+  <h3>Contact Lens Drop-offs</h3>
+  <p>Contact lens patients who have had <strong>no contact lens order in 90+ days</strong>. These patients may be purchasing CL supplies elsewhere and represent a revenue recovery opportunity.</p>
+
+  <h2 id="dashboard-conversion">2.3 Conversion Metrics</h2>
+  <p>Two critical ratios appear as large cards with color-coded status:</p>
+
+  <table>
+    <thead><tr><th>Metric</th><th>Target</th><th>Red Alert If...</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Exam → Purchase Rate</strong></td><td>≥ 70%</td><td>Falls below 70%</td></tr>
+      <tr><td><strong>Avg Frames per Transaction</strong></td><td>≥ 1.3</td><td>Falls below 1.3</td></tr>
+    </tbody>
+  </table>
+
+  <p>When a metric is <span style="color:#dc2626;font-weight:700;">red</span>, it means the store is underperforming in that area this month. Review with your manager and discuss what's driving the gap.</p>
+
+  <div class="box box-info">
+    <div class="box-label">Understanding Avg Frames per Transaction</div>
+    A score of 1.3 means that on average, patients buy 1.3 pairs of frames per visit (e.g., some buy 2 pairs — distance + sunglasses). Recommending second-pair options during every fitting is the most effective way to raise this number.
+  </div>
+
+  <h2 id="dashboard-admin">2.4 Owner / Manager View <em>(Admin Role Only)</em></h2>
+  <p>Staff with the <strong>Admin</strong> role see an additional section below the conversion metrics with deeper business intelligence:</p>
+
+  <h3>Revenue Growth</h3>
+  <ul>
+    <li><strong>Month-over-Month (MoM)</strong>: This month vs. last month, with a trend arrow (↑ or ↓)</li>
+    <li><strong>Year-over-Year (YoY)</strong>: This month vs. same month last year</li>
+  </ul>
+
+  <h3>Revenue by Category (YTD)</h3>
+  <p>A horizontal bar chart showing year-to-date revenue split across five categories:</p>
+  <ul>
+    <li>Glasses</li>
+    <li>Contacts</li>
+    <li>Sunglasses</li>
+    <li>Accessories</li>
+    <li>Exam Only</li>
+  </ul>
+
+  <h3>Fulfillment Speed</h3>
+  <p>Average number of days from order creation to patient pickup. A lower number means faster turnaround and better patient experience. The benchmark is typically 10–14 days for lab orders.</p>
+
+  <div class="box box-warning">
+    <div class="box-label">Managers Note</div>
+    These admin metrics are only visible to accounts with the Admin role. Contact the system administrator to adjust staff role settings from the Settings page.
+  </div>
+
+  <h2 id="dashboard-recent">2.5 Recent Orders Strip</h2>
+  <p>At the bottom of the dashboard is a row of the <strong>6 most recently created orders</strong>. Each card shows the customer name, order number, status badge, and the order total. Click any card to jump directly to that order's detail page.</p>
+
+  <div class="screenshot-placeholder">📷 Screenshot: Recent orders strip — 6 cards in a horizontal row with status badges</div>
+</section>
+
+
+<!-- ==================== SECTION 3: CUSTOMERS ==================== -->
+<section class="section" id="section-customers">
+  <div class="section-eyebrow">Section 3</div>
+  <div class="section-number">03</div>
+  <h1 class="section-title">Customers</h1>
+  <p class="section-intro">The Customers section is your full patient database — every person who has ever visited, called, or been sent a form by Mint Vision.</p>
+
+  <h2 id="customer-list">3.1 Customer List</h2>
+
+  <div class="screenshot-placeholder">📷 Screenshot: Customer list page — search bar, lifecycle tabs, table with name/phone/lifecycle/LTV columns</div>
+
+  <h3>Search</h3>
+  <p>The search bar at the top accepts <strong>name</strong>, <strong>email address</strong>, or <strong>phone number</strong>. Results update as you type. Phone search works with partial numbers (e.g., searching "6476" will show any customer whose phone contains those digits).</p>
+
+  <h3>Lifecycle Tabs</h3>
+  <p>Seven filter tabs appear below the search bar to quickly segment your customer base:</p>
+  <div style="display:flex; flex-wrap:wrap; gap:8px; margin:12px 0 20px;">
+    <span class="badge badge-gray">All</span>
+    <span class="badge badge-purple">VIP</span>
+    <span class="badge badge-green">Active</span>
+    <span class="badge badge-blue">New</span>
+    <span class="badge badge-amber">Lapsed</span>
+    <span class="badge badge-red">Dormant</span>
+    <span class="badge badge-teal">Lead</span>
+  </div>
+
+  <h3>Table Columns</h3>
+  <table>
+    <thead><tr><th>Column</th><th>Description</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Name</strong></td><td>Full name. Shown in red if the customer has an outstanding balance.</td></tr>
+      <tr><td><strong>Phone</strong></td><td>Primary phone number. Click to call (on mobile).</td></tr>
+      <tr><td><strong>Lifecycle</strong></td><td>Colored badge indicating the customer's engagement status.</td></tr>
+      <tr><td><strong>LTV</strong></td><td>Lifetime Value — total revenue collected from this customer, all-time.</td></tr>
+      <tr><td><strong>Last Purchase</strong></td><td>Date of their most recent completed order.</td></tr>
+      <tr><td><strong># Orders</strong></td><td>Total number of orders (all statuses) associated with this customer.</td></tr>
+    </tbody>
+  </table>
+
+  <p>The list shows <strong>25 customers per page</strong>. Use the pagination controls at the bottom to navigate between pages.</p>
+
+  <h2 id="lifecycle-defs">3.2 Lifecycle Definitions</h2>
+  <p>Understanding lifecycle stages helps you prioritize outreach and identify revenue opportunities. These are calculated automatically based on purchase history.</p>
+
+  <div class="lifecycle-grid">
+    <div class="lifecycle-card" style="border-color:#8b5cf6; background:#faf5ff;">
+      <div class="lc-label" style="color:#6d28d9;">VIP</div>
+      <div class="lc-def">3 or more completed orders <em>OR</em> lifetime value over $2,000. Your highest-value patients — give them priority service.</div>
+    </div>
+    <div class="lifecycle-card" style="border-color:#10b981; background:#f0fdf4;">
+      <div class="lc-label" style="color:#059669;">Active</div>
+      <div class="lc-def">Made a purchase in the <strong>last 18 months</strong>. Regularly engaged patients — focus on recall timing and second-pair opportunities.</div>
+    </div>
+    <div class="lifecycle-card" style="border-color:#3b82f6; background:#eff6ff;">
+      <div class="lc-label" style="color:#1d4ed8;">New</div>
+      <div class="lc-def">Account created <strong>less than 6 months ago</strong> with 1 or fewer orders. Just getting started — focus on onboarding and building the relationship.</div>
+    </div>
+    <div class="lifecycle-card" style="border-color:#f59e0b; background:#fffbeb;">
+      <div class="lc-label" style="color:#b45309;">Lapsed</div>
+      <div class="lc-def">Last purchase was <strong>18 months to 3 years ago</strong>. At risk of going to a competitor — proactive outreach and a compelling reason to return is key.</div>
+    </div>
+    <div class="lifecycle-card" style="border-color:#ef4444; background:#fef2f2;">
+      <div class="lc-label" style="color:#b91c1c;">Dormant</div>
+      <div class="lc-def">No purchase in <strong>3+ years</strong>, or has an account but has never purchased. Long-term win-back campaign or data cleanup candidate.</div>
+    </div>
+    <div class="lifecycle-card" style="border-color:#14b8a6; background:#f0fdfa;">
+      <div class="lc-label" style="color:#0f766e;">Lead</div>
+      <div class="lc-def">Recently created record with no orders yet. May have been sent an intake form or called in. Follow up to convert to Active.</div>
+    </div>
+  </div>
+
+  <h2 id="customer-detail">3.3 Customer Detail Page</h2>
+  <p>Clicking on any customer's name opens their full profile. This is the single source of truth for everything about a patient.</p>
+
+  <div class="screenshot-placeholder">📷 Screenshot: Customer detail page — left column (contact card, insurance, notes) and right column (lifecycle, prescriptions, orders)</div>
+
+  <h3>Alert Banners (Top of Page)</h3>
+  <p>Up to four alert banners may appear at the top of the customer detail page:</p>
+  <ul>
+    <li><span class="badge badge-amber">Exam Only</span> &nbsp;This patient has had exams but no frame/lens purchases — <strong>conversion opportunity</strong>. Recommend second-pair or sunglasses.</li>
+    <li><span class="badge badge-blue">Under 21</span> &nbsp;Patients under 21 have growing eyes — their PD measurement may be outdated. Verify before ordering.</li>
+    <li><span class="badge badge-red">Outstanding Balance</span> &nbsp;The patient owes money. The amount is shown. Collect before releasing new orders.</li>
+    <li><span class="badge badge-green">Insurance Eligible Soon</span> &nbsp;Their insurance benefits renew within the next 30 days — great time to schedule an appointment.</li>
+  </ul>
+
+  <h3>Left Column — Contact & Insurance</h3>
+  <h4>Contact Card</h4>
+  <ul>
+    <li>Phone, email, date of birth (age calculated automatically)</li>
+    <li>City / Province</li>
+    <li>Family group (linked family members share records)</li>
+    <li>Occupation</li>
+    <li>Referral source (how they heard about Mint Vision)</li>
+  </ul>
+
+  <h4>Insurance Card</h4>
+  <ul>
+    <li>Insurance provider name</li>
+    <li>Policy / Member number</li>
+    <li>Last claim date</li>
+    <li>Next eligible date (when benefits reset)</li>
+  </ul>
+
+  <h4>Store Credits Card</h4>
+  <p>Shows any store credit balance available for this customer. Staff with appropriate permissions can add credits and set expiry dates.</p>
+
+  <h4>Notes</h4>
+  <p>A yellow sticky-note style area for free-form staff notes. Visible to all staff. Example uses: "prefers to be called Bob", "allergic to nickel frames", "always asks for Dr. Sharma".</p>
+
+  <h4>Tags</h4>
+  <p>Colorful pill-shaped labels for quick categorization (e.g., <code>VIP</code>, <code>Contact Lens Patient</code>, <code>Referred: Dr. Chen</code>). Click to add or remove tags.</p>
+
+  <h3>Right Column — Clinical &amp; Transaction History</h3>
+
+  <h4>Lifecycle &amp; Journey</h4>
+  <p>A summary card showing: Lifetime Value, Average Order Value, Completed Orders count, Total Orders count, first purchase date, and most recent purchase date.</p>
+
+  <h4>Prescriptions</h4>
+  <p>Shows all prescriptions on file, separated into two categories:</p>
+  <ul>
+    <li><span class="badge badge-blue">Our Rx</span> &nbsp;Prescriptions recorded directly in the portal (from an in-store exam).</li>
+    <li><span class="badge badge-orange">External Rx</span> &nbsp;Prescriptions brought in from an outside doctor.</li>
+  </ul>
+  <p>Each prescription row shows: <strong>OD</strong> and <strong>OS</strong> values for Sphere (Sph), Cylinder (Cyl), Axis, Add (for bifocals/progressives), and PD (pupillary distance).</p>
+
+  <h4>Add External Prescription</h4>
+  <p>An expandable section with two options:</p>
+  <ul>
+    <li><strong>Manual entry</strong> — type in the Rx values field by field.</li>
+    <li><strong>AI OCR</strong> — upload a photo of the Rx slip. The system reads the values automatically using AI and pre-fills the form for you to verify.</li>
+  </ul>
+
+  <div class="box box-tip">
+    <div class="box-label">AI OCR Tip</div>
+    For best results with AI prescription scanning, photograph the Rx in good lighting with the text flat and fully in frame. Always verify the AI-extracted values against the original paper before saving.
+  </div>
+
+  <h4>Medical History</h4>
+  <p>An inline-editable form for health conditions relevant to vision care (e.g., diabetes, glaucoma, dry eye, medication list). Click any field to edit directly — no separate "edit mode" required.</p>
+
+  <h4>Orders</h4>
+  <p>All orders associated with this customer, listed in reverse chronological order. Each row shows the order number (clickable), status badge, date, and total.</p>
+
+  <h4>Forms &amp; Documents</h4>
+  <p>All digital forms sent to or completed by this patient. Status badges:</p>
+  <div style="display:flex; flex-wrap:wrap; gap:8px; margin:8px 0;">
+    <span class="badge badge-amber">Pending</span>
+    <span class="badge badge-green">Completed</span>
+    <span class="badge badge-red">Expired</span>
+    <span class="badge badge-blue">Signed</span>
+  </div>
+
+  <h2 id="customer-create">3.4 Creating a New Customer</h2>
+  <p>Click the <strong>"New Customer"</strong> button in the top-right corner of the Customers list page.</p>
+
+  <div class="screenshot-placeholder">📷 Screenshot: New Customer form — first/last name, phone, email, DOB, address fields visible</div>
+
+  <p>Required fields are marked with an asterisk. Fill in at minimum:</p>
+  <ul>
+    <li>First Name and Last Name</li>
+    <li>Phone number (digits only — no spaces, dashes, or brackets)</li>
+  </ul>
+  <p>Optional but recommended fields: email address, date of birth, city/province, insurance details, referral source, initial notes, and tags.</p>
+
+  <h2>3.5 Editing a Customer</h2>
+  <p>On any customer's detail page, click the <strong>"Edit"</strong> button to open the same form, pre-filled with current values. Make your changes and click <strong>"Save Changes"</strong>.</p>
+
+  <div class="box box-warning">
+    <div class="box-label">Data Entry Note</div>
+    Phone numbers must be entered as digits only. For example, enter <code>6476485809</code> — not <code>(647) 648-5809</code>. The portal formats the display automatically.
+  </div>
+</section>
+
+
+<!-- ==================== SECTION 4: ORDERS ==================== -->
+<section class="section" id="section-orders">
+  <div class="section-eyebrow">Section 4</div>
+  <div class="section-number">04</div>
+  <h1 class="section-title">Orders</h1>
+  <p class="section-intro">Orders are the core transaction record — from the moment a patient commits to buying, through lab ordering and pickup. This section covers every stage of the order lifecycle.</p>
+
+  <h2 id="order-status-flow">4.1 Order Status Flow</h2>
+  <p>Every order moves through a defined sequence of statuses. Understanding these stages is essential for day-to-day operations.</p>
+
+  <div class="status-flow">
+    <span class="badge badge-gray">DRAFT</span>
+    <span class="status-flow-arrow">→</span>
+    <span class="badge badge-blue">CONFIRMED</span>
+    <span class="status-flow-arrow">→</span>
+    <span class="badge badge-orange">LAB ORDERED</span>
+    <span class="status-flow-arrow">→</span>
+    <span class="badge badge-yellow">LAB RECEIVED</span>
+    <span class="status-flow-arrow">→</span>
+    <span class="badge badge-indigo">VERIFIED</span>
+    <span class="status-flow-arrow">→</span>
+    <span class="badge badge-green">READY</span>
+    <span class="status-flow-arrow">→</span>
+    <span class="badge badge-gray">PICKED UP</span>
+  </div>
+  <p style="margin-top:4px; font-family:system-ui,sans-serif; font-size:13px; color:#64748b;">Orders can be <span class="badge badge-red">CANCELLED</span> from any active stage.</p>
+
+  <table style="margin-top:20px;">
+    <thead><tr><th>Status</th><th>Color</th><th>What It Means</th><th>Who Advances It</th></tr></thead>
+    <tbody>
+      <tr><td><span class="badge badge-gray">DRAFT</span></td><td>Gray</td><td>Order created but not yet finalized. No deposit required.</td><td>Staff (auto on save)</td></tr>
+      <tr><td><span class="badge badge-blue">CONFIRMED</span></td><td>Blue</td><td>Order confirmed with patient. Deposit collected. Ready to send to lab.</td><td>Staff → "Confirm Order"</td></tr>
+      <tr><td><span class="badge badge-orange">LAB ORDERED</span></td><td>Orange</td><td>Work order sent to the lab. Lenses in production.</td><td>Staff → "Send to Lab"</td></tr>
+      <tr><td><span class="badge badge-yellow">LAB RECEIVED</span></td><td>Yellow</td><td>Lenses/order received back from lab. Needs Rx verification.</td><td>Staff → "Mark Lab Received"</td></tr>
+      <tr><td><span class="badge badge-indigo">VERIFIED</span></td><td>Indigo</td><td>Rx and frame have been verified against the prescription. Ready to notify patient.</td><td>Optician → "Verify Rx"</td></tr>
+      <tr><td><span class="badge badge-green">READY</span></td><td>Green</td><td>Patient notified. Order ready for pickup at the store.</td><td>Staff → "Mark Ready"</td></tr>
+      <tr><td><span class="badge badge-gray">PICKED UP</span></td><td>Gray</td><td>Patient has picked up their order. Dispensed and complete.</td><td>Staff → "Mark Picked Up"</td></tr>
+      <tr><td><span class="badge badge-red">CANCELLED</span></td><td>Red</td><td>Order cancelled. Refund process initiated separately.</td><td>Staff → "Cancel Order"</td></tr>
+    </tbody>
+  </table>
+
+  <h2 id="kanban-board">4.2 Fulfillment Board (Kanban)</h2>
+  <p>The Fulfillment Board is the <strong>default view when you click "Orders"</strong> in the sidebar. It gives a visual overview of all active orders organized by status in a Kanban (column) layout — exactly like a whiteboard with sticky notes.</p>
+
+  <div class="screenshot-placeholder">📷 Screenshot: Fulfillment Board — 6 columns (Draft, Confirmed, Lab Ordered, Lab Received, Verified, Ready), order cards visible with customer names and due dates</div>
+
+  <h3>Reading the Board</h3>
+  <ul>
+    <li>Each <strong>column</strong> represents one order status.</li>
+    <li>Each <strong>card</strong> represents one order. Cards show: customer name, order number, frame brand &amp; model, due date, and balance remaining.</li>
+    <li>Cards with a <strong>red due date</strong> are overdue.</li>
+    <li>Completed statuses (Picked Up, Cancelled) are not shown on the board — they are only visible in the All Orders list.</li>
+  </ul>
+
+  <h3>Drag and Drop</h3>
+  <p>You can drag an order card from one column to the next to advance its status. For example, drag from <span class="badge badge-blue">CONFIRMED</span> to <span class="badge badge-orange">LAB ORDERED</span> when you've submitted the work order to the lab.</p>
+
+  <div class="box box-info">
+    <div class="box-label">Note on Drag-and-Drop</div>
+    Some status transitions may trigger a confirmation dialog or modal (e.g., advancing to PICKED UP shows the Pickup Complete modal). Follow the prompts before the status updates.
+  </div>
+
+  <h3>Switching to List View</h3>
+  <p>Click the <strong>"List View"</strong> button (top-right of the board) to switch from the Kanban layout to a searchable table of all orders. Click <strong>"Board View"</strong> to return.</p>
+
+  <h3>Creating a New Order from the Board</h3>
+  <p>Click the <strong>"New Order"</strong> button (top-right) to launch the 7-step order creation wizard.</p>
+
+  <h2 id="all-orders">4.3 All Orders (List View)</h2>
+  <p>The <strong>All Orders</strong> link in the sidebar sidebar (under Orders) takes you to a searchable, filterable table of every order ever created — including completed and cancelled ones.</p>
+
+  <div class="screenshot-placeholder">📷 Screenshot: All Orders list — table with Order #, Customer, Type, Status, Total, Created date columns</div>
+
+  <table>
+    <thead><tr><th>Column</th><th>Description</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Order #</strong></td><td>Unique order identifier. Click to open the order detail page.</td></tr>
+      <tr><td><strong>Customer</strong></td><td>Patient name. Click to open the customer detail page.</td></tr>
+      <tr><td><strong>Type</strong></td><td>Order type: Glasses, Contacts, Sunglasses, Accessories, or Exam Only.</td></tr>
+      <tr><td><strong>Status</strong></td><td>Current status badge.</td></tr>
+      <tr><td><strong>Total</strong></td><td>Customer-facing order total.</td></tr>
+      <tr><td><strong>Created</strong></td><td>Date the order was first created.</td></tr>
+    </tbody>
+  </table>
+
+  <h2 id="new-order-wizard">4.4 Creating a New Order — 7-Step Wizard</h2>
+  <p>Clicking <strong>"New Order"</strong> launches a guided wizard. Work through each step in sequence. You can navigate back to previous steps to correct information before confirming.</p>
+
+  <div class="wizard-steps">
+    <div class="wizard-step">
+      <div class="wizard-step-num">1</div>
+      <div class="wizard-step-body">
+        <div class="wizard-step-title">Customer</div>
+        <div class="wizard-step-desc">Search for and select an existing customer from the database. If the patient is new, you can create their record here before continuing.</div>
+      </div>
+    </div>
+    <div class="wizard-step">
+      <div class="wizard-step-num">2</div>
+      <div class="wizard-step-body">
+        <div class="wizard-step-title">Order Type</div>
+        <div class="wizard-step-desc">Choose the primary category: <strong>Glasses</strong> / <strong>Contacts</strong> / <strong>Sunglasses</strong> / <strong>Accessories</strong> / <strong>Exam Only</strong>. This determines which fields appear in subsequent steps.</div>
+      </div>
+    </div>
+    <div class="wizard-step">
+      <div class="wizard-step-num">3</div>
+      <div class="wizard-step-body">
+        <div class="wizard-step-title">Prescription</div>
+        <div class="wizard-step-desc">Select an existing prescription from the customer's file, or enter a new one. Fill in OD and OS values: Sphere, Cylinder, Axis, Add, and PD (pupillary distance).</div>
+      </div>
+    </div>
+    <div class="wizard-step">
+      <div class="wizard-step-num">4</div>
+      <div class="wizard-step-body">
+        <div class="wizard-step-title">Frame &amp; Lens</div>
+        <div class="wizard-step-desc">Enter the frame details: brand, model, colour. Select lens type (single vision, bifocal, progressive) and any coatings (anti-reflective, blue light, transitions, etc.).</div>
+      </div>
+    </div>
+    <div class="wizard-step">
+      <div class="wizard-step-num">5</div>
+      <div class="wizard-step-body">
+        <div class="wizard-step-title">Items &amp; Pricing</div>
+        <div class="wizard-step-desc">Add individual line items to the order: Frame, Lenses, Contacts, Services, Discounts, or Other. Each item has two price fields — <strong>Customer Price</strong> (what the patient pays) and <strong>Real Price</strong> (your actual cost/internal tracking). This is the dual-invoice system — customers never see the "Real" column.</div>
+      </div>
+    </div>
+    <div class="wizard-step">
+      <div class="wizard-step-num">6</div>
+      <div class="wizard-step-body">
+        <div class="wizard-step-title">Payment</div>
+        <div class="wizard-step-desc">Enter the deposit amount collected, select the payment method (Cash / Debit / Credit / Insurance / Other), and add a reference number if applicable (e.g., credit card last 4 digits, insurance claim number).</div>
+      </div>
+    </div>
+    <div class="wizard-step">
+      <div class="wizard-step-num">7</div>
+      <div class="wizard-step-body">
+        <div class="wizard-step-title">Review &amp; Confirm</div>
+        <div class="wizard-step-desc">A full summary of everything entered in steps 1–6. Review carefully, then click <strong>"Place Order"</strong> to finalize. The order is created with status <span class="badge badge-blue">CONFIRMED</span>.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="screenshot-placeholder">📷 Screenshot: Order wizard — Step 5 (Items &amp; Pricing) showing line items table with Customer Price and Real Price columns</div>
+
+  <h2 id="order-detail">4.5 Order Detail Page</h2>
+  <p>Clicking any order number opens the full order detail. This is where you manage the order throughout its lifecycle.</p>
+
+  <div class="screenshot-placeholder">📷 Screenshot: Order detail page — header with order number and status, left column (customer/frame info), right column (items table, payments, status history)</div>
+
+  <h3>Header Bar</h3>
+  <ul>
+    <li><strong>Order number</strong> (e.g., #1042) and <strong>status badge</strong></li>
+    <li><strong>Created date</strong> and <strong>assigned staff member</strong></li>
+    <li><strong>Invoice button</strong> — top right. A green ✓ checkmark appears next to it if an invoice has already been issued.</li>
+    <li><strong>Work Order button</strong> — opens the print-ready work order for the lab.</li>
+  </ul>
+
+  <h3>Status Advance Button</h3>
+  <p>A prominently placed action button at the top of the page advances the order to the next status. The button label changes depending on current status:</p>
+  <table>
+    <thead><tr><th>Current Status</th><th>Button Label</th></tr></thead>
+    <tbody>
+      <tr><td><span class="badge badge-blue">CONFIRMED</span></td><td>Send to Lab</td></tr>
+      <tr><td><span class="badge badge-orange">LAB ORDERED</span></td><td>Mark Lab Received</td></tr>
+      <tr><td><span class="badge badge-yellow">LAB RECEIVED</span></td><td>Verify Rx</td></tr>
+      <tr><td><span class="badge badge-indigo">VERIFIED</span></td><td>Mark Ready for Pickup</td></tr>
+      <tr><td><span class="badge badge-green">READY</span></td><td>Mark Picked Up</td></tr>
+    </tbody>
+  </table>
+
+  <h3>Left Column</h3>
+  <ul>
+    <li><strong>Customer</strong> — linked to customer detail page</li>
+    <li><strong>Frame &amp; Lens details</strong> — brand, model, colour, lens type, coatings</li>
+    <li><strong>Insurance</strong> — plan and claim reference if applicable</li>
+    <li><strong>Internal Notes</strong> — visible only to staff (not on invoice or work order)</li>
+    <li><strong>Lab Notes</strong> — notes printed on the work order sent to the lab</li>
+  </ul>
+
+  <h3>Right Column</h3>
+  <ul>
+    <li><strong>Items table</strong> — all line items with quantity, unit price, and line total. Shows total at bottom.</li>
+    <li><strong>Deposit Paid</strong> — amount collected at time of order</li>
+    <li><strong>Balance Due</strong> — total minus deposit (what patient owes at pickup)</li>
+    <li><strong>Payments history</strong> — every payment recorded on this order, with date and method</li>
+    <li><strong>Status History</strong> — a timeline of every status change with timestamp and staff name</li>
+  </ul>
+
+  <h2 id="pickup-modal">4.6 Pickup Complete Modal</h2>
+  <p>When you click <strong>"Mark Picked Up"</strong>, a modal dialog appears before the status changes. This ensures you capture important follow-up actions at the point of dispensing:</p>
+
+  <div class="screenshot-placeholder">📷 Screenshot: Pickup Complete modal — review request toggle, referral campaign opt-in, low-value flag option</div>
+
+  <ul>
+    <li><strong>Review Request</strong> — Did the patient agree to leave a Google / Facebook review? Toggle on to record this.</li>
+    <li><strong>Referral Campaign</strong> — Did the patient opt in to refer a friend? Toggle on if yes.</li>
+    <li><strong>Low-Value Flag</strong> — Was this a difficult or low-margin dispensing? Flag it for manager awareness.</li>
+  </ul>
+  <p>Click <strong>"Complete Pickup"</strong> to finalize. The order moves to <span class="badge badge-gray">PICKED UP</span> status.</p>
+
+  <h2 id="work-order">4.7 Work Order</h2>
+  <p>Click the <strong>"Work Order"</strong> button on any order detail page to open the printable work order in a new tab. This document is formatted specifically for the lab.</p>
+
+  <div class="screenshot-placeholder">📷 Screenshot: Work Order — MINTVISION header centered at top, customer info, email/phone boxes, prescription grid OD/OS, frame and lens specifications</div>
+
+  <p>The work order includes:</p>
+  <ul>
+    <li>Centered "MINTVISION" header with date and order number</li>
+    <li>Patient name, phone, and email in bordered boxes</li>
+    <li>Prescription grid: OD and OS × Sphere / Cylinder / Axis / Add / PD</li>
+    <li>Frame details: brand, model, colour, and measurements</li>
+    <li>Lens specifications: type, index, coatings</li>
+    <li>Lab notes (from the Internal Notes field)</li>
+  </ul>
+
+  <p>Use Chrome's built-in print function (<kbd>Cmd</kbd>+<kbd>P</kbd> on Mac, <kbd>Ctrl</kbd>+<kbd>P</kbd> on Windows) to print or save as PDF.</p>
+</section>
+
+
+<!-- ==================== SECTION 5: INVOICES ==================== -->
+<section class="section" id="section-invoices">
+  <div class="section-eyebrow">Section 5</div>
+  <div class="section-number">05</div>
+  <h1 class="section-title">Invoices</h1>
+  <p class="section-intro">The portal generates professional customer invoices that can be printed or emailed. The dual-invoice system lets you maintain separate customer-facing and internal pricing.</p>
+
+  <h2 id="invoice-list">5.1 Invoices List</h2>
+  <p>Navigate to <strong>Invoices</strong> in the sidebar (under Orders). This page lists all invoices that have been formally issued.</p>
+
+  <div class="screenshot-placeholder">📷 Screenshot: Invoices list — table with Date Issued, Order #, Customer Name, Total, Balance Remaining columns; View/Print link and Internal link per row</div>
+
+  <table>
+    <thead><tr><th>Column</th><th>Description</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Date Issued</strong></td><td>When the invoice was formally issued (not the order date).</td></tr>
+      <tr><td><strong>Order #</strong></td><td>Linked to the order that generated this invoice.</td></tr>
+      <tr><td><strong>Customer</strong></td><td>Patient name.</td></tr>
+      <tr><td><strong>Total</strong></td><td>Customer-facing invoice total.</td></tr>
+      <tr><td><strong>Balance</strong></td><td>Remaining balance (total minus deposits paid). Red if still owing.</td></tr>
+      <tr><td><strong>View / Print</strong></td><td>Opens the customer-facing invoice for print or PDF.</td></tr>
+      <tr><td><strong>Internal</strong> <span class="badge badge-amber">amber</span></td><td>Opens the internal version showing real (cost) amounts. Only visible to authorized staff.</td></tr>
+    </tbody>
+  </table>
+
+  <h2 id="invoice-view">5.2 Invoice View &amp; Print</h2>
+  <p>The invoice view is a clean, professional document formatted for customer presentation. It includes:</p>
+
+  <div class="screenshot-placeholder">📷 Screenshot: Invoice view — Mint Vision header, customer info, order date, line items table, subtotal, tax, total, deposit paid, balance due</div>
+
+  <ul>
+    <li>Mint Vision Optique header with address and contact info</li>
+    <li>Invoice number and date issued</li>
+    <li>Patient name and address</li>
+    <li>Line items: description, quantity, unit price, total per line</li>
+    <li>Subtotal, applicable tax, and Grand Total</li>
+    <li>Deposit Paid and <strong>Balance Due</strong> (in bold)</li>
+    <li>Payment terms and any invoice notes</li>
+  </ul>
+
+  <h3>Issuing an Invoice</h3>
+  <p>From the <strong>Order Detail</strong> page, click the <strong>"Invoice"</strong> button. On the invoice view, click <strong>"Issue Invoice"</strong> to formally record the invoice in the database. A green ✓ will appear on the order detail page confirming it has been issued.</p>
+
+  <p>If you need to re-generate the invoice (e.g., after a price correction), click <strong>"Re-Issue Invoice"</strong>. This creates an updated invoice record.</p>
+
+  <div class="box box-warning">
+    <div class="box-label">When to Issue an Invoice</div>
+    Issue the invoice when the order is ready for pickup or at the time of payment. Issuing too early (while pricing may still change) creates record-keeping complexity.
+  </div>
+
+  <h2 id="dual-invoice">5.3 The Dual Invoice System</h2>
+  <p>When an order uses dual-invoice pricing (two price columns: Customer Price and Real Price), two versions of the invoice exist:</p>
+
+  <table>
+    <thead><tr><th>Version</th><th>Prices Shown</th><th>Who Sees It</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Customer Invoice</strong></td><td>Customer-facing prices (what the patient pays)</td><td>Patient, insurance claim</td></tr>
+      <tr><td><strong>Internal Invoice</strong> <span class="badge badge-amber">Internal</span></td><td>Real/cost prices (actual amounts)</td><td>Manager, bookkeeper only</td></tr>
+    </tbody>
+  </table>
+
+  <div class="box box-alert">
+    <div class="box-label">Confidential</div>
+    Never share the Internal invoice version with patients. The Internal link is marked in amber and is only accessible via the Invoices list — it does not appear on the customer-facing invoice page.
+  </div>
+</section>
+
+
+<!-- ==================== SECTION 6: FORMS ==================== -->
+<section class="section" id="section-forms">
+  <div class="section-eyebrow">Section 6</div>
+  <div class="section-number">06</div>
+  <h1 class="section-title">Forms</h1>
+  <p class="section-intro">The Forms system replaces paper intake sheets with digital forms patients can fill out on their phone before their appointment — or on a tablet in-store.</p>
+
+  <h2 id="forms-hub">6.1 Forms Hub</h2>
+  <p>Click <strong>Forms</strong> in the sidebar to open the Forms Hub. You'll see three tabs: <strong>Pending</strong> / <strong>Completed</strong> / <strong>Intake Packages</strong>.</p>
+
+  <div class="screenshot-placeholder">📷 Screenshot: Forms Hub — three tabs, template cards showing form types, sent form statuses</div>
+
+  <h3>The Four Form Templates</h3>
+  <table>
+    <thead><tr><th>Template</th><th>Purpose</th></tr></thead>
+    <tbody>
+      <tr><td><strong>New Patient Registration</strong></td><td>Collects all patient demographics, contact info, and medical history.</td></tr>
+      <tr><td><strong>Privacy &amp; Consent (HIPAA)</strong></td><td>Privacy policy acknowledgment and consent for treatment/data sharing.</td></tr>
+      <tr><td><strong>Insurance Verification</strong></td><td>Patient's insurance details for billing purposes.</td></tr>
+      <tr><td><strong>Frame Repair Waiver</strong></td><td>Liability waiver for frame adjustment or repair services.</td></tr>
+    </tbody>
+  </table>
+
+  <h2 id="send-form">6.2 Sending a Form to a Patient</h2>
+  <p>To send an individual form:</p>
+  <ol>
+    <li>From the Forms Hub, select a <strong>template</strong> (e.g., "New Patient Registration").</li>
+    <li>Search for and select the <strong>customer</strong> to associate with the form.</li>
+    <li>Click <strong>"Generate Link"</strong>. A unique, one-time URL is created.</li>
+    <li><strong>Copy the link</strong> and send it to the patient via text message, email, or display it as a QR code.</li>
+    <li>The form status appears as <span class="badge badge-amber">Pending</span> in the Forms Hub.</li>
+    <li>When the patient submits, status updates to <span class="badge badge-green">Completed</span> and you receive a notification.</li>
+  </ol>
+
+  <div class="box box-info">
+    <div class="box-label">Patient Experience</div>
+    Patients do not need an account or password. The unique link takes them directly to the form. It works on any smartphone browser — no app required.
+  </div>
+
+  <div class="screenshot-placeholder">📷 Screenshot: Sent form row in Pending tab — patient name, form type, sent date, link, Pending badge, Copy Link button</div>
+
+  <h2 id="intake-packages">6.3 Intake Packages (New Patient Onboarding)</h2>
+  <p>An <strong>Intake Package</strong> bundles all three essential new patient forms into a single link:</p>
+  <ol>
+    <li>New Patient Registration</li>
+    <li>Privacy &amp; Consent (HIPAA)</li>
+    <li>Insurance Verification</li>
+  </ol>
+
+  <p>The patient completes all three in sequence — when they finish one, they are automatically redirected to the next. After all three are done:</p>
+  <ul>
+    <li>A <strong>customer record is automatically created</strong> (or updated) in the database using the information from the New Patient form.</li>
+    <li>The customer's <strong>isOnboarded</strong> flag is set, marking them as fully registered.</li>
+    <li>You receive an <strong>INTAKE_COMPLETED</strong> notification.</li>
+  </ul>
+
+  <div class="box box-tip">
+    <div class="box-label">Best Practice</div>
+    Send intake packages to new patients 24–48 hours before their first appointment. This saves 10–15 minutes at check-in and ensures their record is already in the system when they arrive.
+  </div>
+
+  <div class="screenshot-placeholder">📷 Screenshot: Intake Packages tab — package rows with patient name, sent date, steps completed (1/3, 2/3, 3/3 indicators), status badges</div>
+
+  <h2 id="kiosk-mode">6.4 In-Person Kiosk Mode</h2>
+  <p>For patients without smartphones or who prefer to fill out forms in-store, open the form link on a <strong>store tablet</strong>. The form is designed for touch interaction:</p>
+  <ul>
+    <li>Large, tap-friendly input fields</li>
+    <li>A <strong>canvas signature pad</strong> for patients to sign directly on the screen using their finger or a stylus</li>
+    <li>No staff login required on the kiosk device</li>
+  </ul>
+
+  <div class="box box-info">
+    <div class="box-label">Tablet Setup Tip</div>
+    Keep a tablet in the waiting area with the intake package link bookmarked or displayed as a QR code on a small stand. Walk-in patients can self-register while they wait.
+  </div>
+
+  <h2 id="form-review">6.5 Reviewing Completed Forms</h2>
+  <p>When a patient submits their intake forms, you will receive a notification. To review the submission:</p>
+  <ol>
+    <li>Go to <strong>Forms</strong> → <strong>Completed</strong> tab (or <strong>Intake Packages</strong> tab).</li>
+    <li>Click on the completed intake package.</li>
+    <li>The review page shows all submitted information: demographics, medical history, insurance details, and the patient's signature.</li>
+    <li>Click <strong>"Apply to PMS"</strong> to pull the patient's submitted data into their customer record in the portal.</li>
+  </ol>
+
+  <div class="screenshot-placeholder">📷 Screenshot: Form review page — submitted patient information on left, "Apply to PMS" button on right, signature displayed at bottom</div>
+
+  <div class="box box-warning">
+    <div class="box-label">Always Review Before Applying</div>
+    Read through the submitted form before clicking "Apply to PMS". Patients occasionally make typos (especially with dates and insurance numbers). Verify key fields before overwriting the customer record.
+  </div>
+
+  <h2>6.6 Public Form Page</h2>
+  <p>The public form URL (format: <code>/f/[unique-token]</code>) is the page patients see when they open the link. It:</p>
+  <ul>
+    <li>Requires no login</li>
+    <li>Displays the form template with all input fields</li>
+    <li>Includes a canvas signature area at the bottom</li>
+    <li>Shows a branded "Thank You" success page after submission</li>
+  </ul>
+  <p>Links expire after the form is submitted — a patient cannot submit the same link twice.</p>
+</section>
+
+
+<!-- ==================== SECTION 7: INVENTORY ==================== -->
+<section class="section" id="section-inventory">
+  <div class="section-eyebrow">Section 7</div>
+  <div class="section-number">07</div>
+  <h1 class="section-title">Inventory</h1>
+  <p class="section-intro">The Inventory section lets you track every frame in stock, manage vendors, create purchase orders, and analyze inventory health — all in one place.</p>
+
+  <h2 id="frames-browser">7.1 All Frames Browser</h2>
+  <p>Click <strong>All Frames</strong> in the sidebar to open the inventory browser. A stats bar across the top shows a live snapshot:</p>
+
+  <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin:20px 0;">
+    <div style="background:#f0fdf4; border:1px solid #bbf7d0; border-radius:8px; padding:12px; text-align:center; font-family:system-ui,sans-serif;">
+      <div style="font-size:22px; font-weight:800; color:#15803d;">$48,250</div>
+      <div style="font-size:12px; color:#166534; margin-top:2px;">Retail Value</div>
+    </div>
+    <div style="background:#eff6ff; border:1px solid #bfdbfe; border-radius:8px; padding:12px; text-align:center; font-family:system-ui,sans-serif;">
+      <div style="font-size:22px; font-weight:800; color:#1d4ed8;">312</div>
+      <div style="font-size:12px; color:#1e40af; margin-top:2px;">Total Units</div>
+    </div>
+    <div style="background:#fefce8; border:1px solid #fde68a; border-radius:8px; padding:12px; text-align:center; font-family:system-ui,sans-serif;">
+      <div style="font-size:22px; font-weight:800; color:#a16207;">48</div>
+      <div style="font-size:12px; color:#92400e; margin-top:2px;">On Order</div>
+    </div>
+    <div style="background:#fff7ed; border:1px solid #fdba74; border-radius:8px; padding:12px; text-align:center; font-family:system-ui,sans-serif;">
+      <div style="font-size:22px; font-weight:800; color:#c2410c;">7</div>
+      <div style="font-size:12px; color:#9a3412; margin-top:2px;">Low Stock</div>
+    </div>
+  </div>
+
+  <div class="screenshot-placeholder">📷 Screenshot: All Frames browser — stats bar at top, filter panel on left, frame table with thumbnail/brand/SKU/stock columns</div>
+
+  <h3>Filters</h3>
+  <p>Use the filter panel to narrow down the frame list:</p>
+  <table>
+    <thead><tr><th>Filter</th><th>Options</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Search</strong></td><td>Brand name, model name, SKU, or colour code</td></tr>
+      <tr><td><strong>Type</strong></td><td>Optical / Sun / Reading / Safety / Sport</td></tr>
+      <tr><td><strong>Gender</strong></td><td>Men's / Women's / Unisex / Kids</td></tr>
+      <tr><td><strong>Stock Status</strong></td><td>In Stock / Low Stock / Out of Stock / On Order</td></tr>
+      <tr><td><strong>Age</strong></td><td>&lt;3 months (green) / 3–6 months (yellow) / 6–12 months (orange) / 12 months+ (red)</td></tr>
+      <tr><td><strong>Vendor</strong></td><td>Filter by supplier/vendor name</td></tr>
+    </tbody>
+  </table>
+
+  <h3>Table Columns</h3>
+  <table>
+    <thead><tr><th>Column</th><th>Description</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Thumbnail</strong></td><td>Frame photo (if uploaded)</td></tr>
+      <tr><td><strong>Brand · Model</strong></td><td>With an aging dot (green/yellow/orange/red) indicating time in stock</td></tr>
+      <tr><td><strong>SKU</strong></td><td>Unique stock-keeping unit identifier</td></tr>
+      <tr><td><strong>Category</strong></td><td>Frame type and gender</td></tr>
+      <tr><td><strong>Vendor</strong></td><td>Supplier name</td></tr>
+      <tr><td><strong>Retail Price</strong></td><td>Customer-facing selling price</td></tr>
+      <tr><td><strong>On Hand</strong></td><td>Physical stock currently in store</td></tr>
+      <tr><td><strong>On Order</strong></td><td>Units expected from open purchase orders</td></tr>
+      <tr><td><strong>Available</strong></td><td>On Hand minus any committed/reserved quantity</td></tr>
+    </tbody>
+  </table>
+
+  <h2 id="frame-detail">7.2 Frame Detail Page</h2>
+  <p>Click any frame row to open its full detail page.</p>
+
+  <div class="screenshot-placeholder">📷 Screenshot: Frame detail page — frame image, info grid (brand/model/colour/UPC/SKU), pricing section, stock section, inventory ledger table</div>
+
+  <h3>Frame Information</h3>
+  <ul>
+    <li>Brand, Model, Colour, UPC (barcode), SKU</li>
+    <li>Category (Optical/Sun/etc.), Gender, Style Tags</li>
+    <li>Vendor (linked to vendor record)</li>
+  </ul>
+
+  <h3>Pricing</h3>
+  <ul>
+    <li><strong>Retail Price</strong> — what you charge patients</li>
+    <li><strong>Wholesale Cost</strong> — what you paid the vendor per unit</li>
+    <li><strong>Landed Cost</strong> — wholesale cost plus any shipping/duties</li>
+  </ul>
+
+  <h3>Stock</h3>
+  <ul>
+    <li><strong>Quantity On Hand</strong> — physical count</li>
+    <li><strong>Committed Qty</strong> — units reserved for open orders</li>
+    <li><strong>On Order Qty</strong> — units expected from open POs</li>
+    <li><strong>Reorder Point</strong> — stock level that triggers a low-stock alert</li>
+  </ul>
+
+  <h3>Inventory Ledger</h3>
+  <p>A full history of all stock movements for this frame: initial stock entry, adjustments, sales (debits), and receipts from purchase orders (credits). Each entry shows the date, movement type, quantity change, and resulting balance.</p>
+
+  <h2 id="add-frame">7.3 Adding a New Frame to Inventory</h2>
+  <p>Click <strong>"New Item"</strong> on the All Frames page. Fill in the frame details form:</p>
+
+  <ul>
+    <li><strong>Required:</strong> Brand, Model, SKU, Category, Gender</li>
+    <li><strong>Recommended:</strong> Colour, UPC, Vendor (select from vendor list), Retail Price, Wholesale Cost, Landed Cost, Reorder Point</li>
+    <li><strong>Initial Stock Qty:</strong> Enter the number of units you are adding. This creates the first ledger entry.</li>
+  </ul>
+
+  <div class="box box-tip">
+    <div class="box-label">SKU Convention</div>
+    Use a consistent SKU format such as <code>BRAND-MODEL-COLOR</code> (e.g., <code>RAY-RB3025-GOLD</code>). This makes searching and reporting much easier.
+  </div>
+
+  <h2 id="vendors">7.4 Vendors</h2>
+  <p>Navigate to <strong>Vendors</strong> in the sidebar (under Inventory). This is your supplier contact book.</p>
+
+  <div class="screenshot-placeholder">📷 Screenshot: Vendors list — table with vendor name, contact person, email, phone, # items columns</div>
+
+  <h3>Vendor List</h3>
+  <p>Shows all suppliers with their contact information and the number of inventory items sourced from each.</p>
+
+  <h3>Creating / Editing a Vendor</h3>
+  <p>Click <strong>"New Vendor"</strong> (or "Edit" on an existing vendor). Fields:</p>
+  <ul>
+    <li>Company Name</li>
+    <li>Contact Person name</li>
+    <li>Email address</li>
+    <li>Phone number</li>
+    <li>Notes (payment terms, ordering instructions, rep name, etc.)</li>
+  </ul>
+
+  <h2 id="purchase-orders">7.5 Purchase Orders</h2>
+  <p>Click <strong>Purchase Orders</strong> in the sidebar to manage all orders placed with vendors.</p>
+
+  <h3>Purchase Order Status Flow</h3>
+  <div class="status-flow">
+    <span class="badge badge-gray">Draft</span>
+    <span class="status-flow-arrow">→</span>
+    <span class="badge badge-blue">Sent</span>
+    <span class="status-flow-arrow">→</span>
+    <span class="badge badge-green">Confirmed</span>
+    <span class="status-flow-arrow">→</span>
+    <span class="badge badge-yellow">Partial</span>
+    <span class="status-flow-arrow">→</span>
+    <span class="badge badge-teal">Received</span>
+    <span class="status-flow-arrow">|</span>
+    <span class="badge badge-red">Cancelled</span>
+  </div>
+
+  <div class="screenshot-placeholder">📷 Screenshot: Purchase Orders list — tabs (All/Open/Received/Cancelled), table with PO #, Vendor, Status, Expected Date, Total, Created Date</div>
+
+  <h3>PO List Tabs</h3>
+  <ul>
+    <li><strong>All</strong> — every purchase order ever created</li>
+    <li><strong>Open</strong> — Draft, Sent, Confirmed, or Partial (not yet fully received)</li>
+    <li><strong>Received</strong> — fully received POs</li>
+    <li><strong>Cancelled</strong> — cancelled POs</li>
+  </ul>
+
+  <h3>Creating a Purchase Order</h3>
+  <ol>
+    <li>Click <strong>"New PO"</strong>.</li>
+    <li>Select the <strong>Vendor</strong> from the dropdown.</li>
+    <li>Set the <strong>expected delivery date</strong>.</li>
+    <li>Add <strong>line items</strong>: search for inventory frames, enter the quantity ordered and the unit cost negotiated with the vendor.</li>
+    <li>Click <strong>"Save as Draft"</strong> to save without sending, or <strong>"Send to Vendor"</strong> to mark it as Sent.</li>
+  </ol>
+
+  <h3>Receiving a Purchase Order</h3>
+  <p>When inventory arrives from a vendor:</p>
+  <ol>
+    <li>Open the PO and click <strong>"Receive Items"</strong>.</li>
+    <li>For each line item, enter the <strong>quantity actually received</strong> (may differ from what was ordered).</li>
+    <li>Click <strong>"Confirm Receipt"</strong>.</li>
+    <li>The system automatically <strong>updates stock quantities</strong> in inventory and creates ledger entries for each item received.</li>
+    <li>If all items are received → status becomes <span class="badge badge-teal">Received</span>. If only some → status becomes <span class="badge badge-yellow">Partial</span>.</li>
+  </ol>
+
+  <div class="box box-tip">
+    <div class="box-label">Partial Receipts</div>
+    It is common for vendors to ship in multiple shipments. A PO can be received multiple times. Each receipt updates the inventory and the PO status. Leave the PO open until all items are received.
+  </div>
+
+  <div class="screenshot-placeholder">📷 Screenshot: Receive Items workflow — line items list, qty ordered, qty received input fields, Confirm Receipt button</div>
+
+  <h2 id="inventory-analytics">7.6 Inventory Analytics</h2>
+  <p>Click <strong>Analytics</strong> in the sidebar. This page gives you a health report on your entire inventory.</p>
+
+  <h3>Summary Stats</h3>
+  <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin:16px 0 24px;">
+    <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:12px; text-align:center; font-family:system-ui,sans-serif;">
+      <div style="font-size:20px; font-weight:700; color:#1e293b;">127</div>
+      <div style="font-size:12px; color:#64748b; margin-top:2px;">Total SKUs</div>
+    </div>
+    <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:12px; text-align:center; font-family:system-ui,sans-serif;">
+      <div style="font-size:20px; font-weight:700; color:#15803d;">$48,250</div>
+      <div style="font-size:12px; color:#64748b; margin-top:2px;">Stock Value (Retail)</div>
+    </div>
+    <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:12px; text-align:center; font-family:system-ui,sans-serif;">
+      <div style="font-size:20px; font-weight:700; color:#7c3aed;">$22,100</div>
+      <div style="font-size:12px; color:#64748b; margin-top:2px;">Invested (Cost)</div>
+    </div>
+    <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:12px; text-align:center; font-family:system-ui,sans-serif;">
+      <div style="font-size:20px; font-weight:700; color:#b45309;">48</div>
+      <div style="font-size:12px; color:#64748b; margin-top:2px;">Units On Order</div>
+    </div>
+  </div>
+
+  <div class="screenshot-placeholder">📷 Screenshot: Inventory Analytics page — Dead Stock table, Best/Worst Sellers lists, ABC Analysis chart</div>
+
+  <h3>Dead Stock &amp; Aging Report</h3>
+  <p>Frames that have had <strong>no sales in 6 or more months</strong>. Sorted by days idle (longest first).</p>
+  <table>
+    <thead><tr><th>Column</th><th>Description</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Frame</strong></td><td>Brand and model</td></tr>
+      <tr><td><strong>Vendor</strong></td><td>Supplier</td></tr>
+      <tr><td><strong>Stock Qty</strong></td><td>Units still on hand</td></tr>
+      <tr><td><strong>Days Idle</strong></td><td>Days since last sale or receipt</td></tr>
+      <tr><td><strong>Value at Cost</strong></td><td>How much cash is tied up in this stock</td></tr>
+      <tr><td><strong>Recommended Action</strong></td><td>System-suggested action based on age</td></tr>
+    </tbody>
+  </table>
+
+  <p>Recommended actions by age:</p>
+  <ul>
+    <li><strong>Monitor</strong> — 6–9 months idle</li>
+    <li><strong>10% off</strong> — 9–12 months idle</li>
+    <li><strong>25% off</strong> — 12–18 months idle</li>
+    <li><strong>40% off</strong> — 18–24 months idle</li>
+    <li><strong>Discontinue</strong> — 24+ months idle</li>
+  </ul>
+
+  <h3>Best Sellers (Top 10)</h3>
+  <p>The 10 frames with the highest unit sales over the selected period. Shows frame name, units sold, and total revenue generated.</p>
+
+  <h3>Worst Sellers</h3>
+  <p>Frames with <strong>zero sales</strong> that have been in stock for <strong>90+ days</strong>. Shows days in stock, value at cost, and a recommended action.</p>
+
+  <h3>ABC Analysis</h3>
+  <p>ABC analysis categorizes each frame by its contribution to total revenue:</p>
+
+  <table>
+    <thead><tr><th>Category</th><th>Revenue Contribution</th><th>Strategy</th></tr></thead>
+    <tbody>
+      <tr><td><span class="badge badge-green">A</span></td><td>Top 80% of revenue</td><td><strong>Prioritize.</strong> Keep well-stocked. Never let these go out of stock. Feature on display.</td></tr>
+      <tr><td><span class="badge badge-blue">B</span></td><td>Next 15% of revenue</td><td><strong>Monitor.</strong> Maintain adequate stock. Review quarterly.</td></tr>
+      <tr><td><span class="badge badge-red">C</span></td><td>Bottom 5% of revenue</td><td><strong>Consider reducing.</strong> May be candidates for discontinuation or clearance.</td></tr>
+    </tbody>
+  </table>
+
+  <p>The system shows both the <strong>computed ABC category</strong> (based on actual sales) and the <strong>currently assigned category</strong> on each frame record. If they differ, consider updating the frame's category to reflect current performance.</p>
+</section>
+
+
+<!-- ==================== SECTION 8: NOTIFICATIONS ==================== -->
+<section class="section" id="section-notifications">
+  <div class="section-eyebrow">Section 8</div>
+  <div class="section-number">08</div>
+  <h1 class="section-title">Notifications</h1>
+  <p class="section-intro">The notification system keeps you informed of important events as they happen — without needing to refresh or check multiple screens.</p>
+
+  <h2>8.1 The Notification Bell</h2>
+  <p>The bell icon appears in the <strong>top-right corner</strong> of every page in the portal. When you have unread notifications:</p>
+  <ul>
+    <li>A <strong>red dot with a count badge</strong> appears over the bell.</li>
+    <li>Clicking the bell opens a <strong>dropdown popover</strong> showing your most recent notifications (up to ~20).</li>
+    <li>The bell automatically <strong>refreshes every 30 seconds</strong> — no page reload needed.</li>
+    <li>Clicking a notification in the list marks it as read and may navigate you to the relevant page.</li>
+  </ul>
+
+  <div class="screenshot-placeholder">📷 Screenshot: Notification bell with red badge count, open popover showing notification list with icons and timestamps</div>
+
+  <h2 id="notification-types">8.2 Notification Types</h2>
+
+  <table>
+    <thead><tr><th>Type</th><th>When It Fires</th><th>Who It's Useful For</th></tr></thead>
+    <tbody>
+      <tr>
+        <td><span class="badge badge-blue">FORM_COMPLETED</span></td>
+        <td>A patient submits any individual form</td>
+        <td>Front desk staff monitoring patient submissions</td>
+      </tr>
+      <tr>
+        <td><span class="badge badge-teal">INTAKE_COMPLETED</span></td>
+        <td>A patient completes all 3 forms in an intake package</td>
+        <td>Front desk — triggers "Apply to PMS" review workflow</td>
+      </tr>
+      <tr>
+        <td><span class="badge badge-green">ORDER_READY</span></td>
+        <td>An order is advanced to "Ready for Pickup"</td>
+        <td>Front desk — patient can be called to pick up</td>
+      </tr>
+      <tr>
+        <td><span class="badge badge-red">ORDER_CANCELLED</span></td>
+        <td>Any order is cancelled</td>
+        <td>All staff — for awareness and follow-up</td>
+      </tr>
+      <tr>
+        <td><span class="badge badge-yellow">ORDER_LAB_RECEIVED</span></td>
+        <td>An order is advanced to "Lab Received"</td>
+        <td>Optician — triggers Rx verification step</td>
+      </tr>
+      <tr>
+        <td><span class="badge badge-indigo">PO_RECEIVED</span></td>
+        <td>A purchase order is fully received</td>
+        <td>Manager / inventory staff — frames arrived</td>
+      </tr>
+      <tr>
+        <td><span class="badge badge-orange">LOW_STOCK</span></td>
+        <td>An inventory item's stock falls to or below its reorder point</td>
+        <td>Manager — triggers a reorder</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="box box-info">
+    <div class="box-label">Actor Exclusion Rule</div>
+    You will <strong>never receive a notification for actions you performed yourself</strong>. For example, if you advance an order to READY, you will not receive the ORDER_READY notification — but other staff members who have that notification type enabled will.
+  </div>
+
+  <h2 id="notification-prefs">8.3 Configuring Your Notifications</h2>
+  <p>Each staff member can control which notification types they receive. Go to <strong>Settings</strong> → <strong>Notification Preferences</strong>.</p>
+
+  <p>Each notification type has an on/off toggle. Turning a type off means you will stop receiving that type of notification entirely.</p>
+
+  <div class="box box-tip">
+    <div class="box-label">Recommended Settings by Role</div>
+    <ul style="margin:6px 0 0 0; padding-left:20px;">
+      <li><strong>Front Desk:</strong> Enable FORM_COMPLETED, INTAKE_COMPLETED, ORDER_READY</li>
+      <li><strong>Optician:</strong> Enable ORDER_LAB_RECEIVED, ORDER_READY</li>
+      <li><strong>Manager:</strong> Enable all types</li>
+      <li><strong>Inventory:</strong> Enable PO_RECEIVED, LOW_STOCK</li>
+    </ul>
+  </div>
+</section>
+
+
+<!-- ==================== SECTION 9: SETTINGS ==================== -->
+<section class="section" id="section-settings">
+  <div class="section-eyebrow">Section 9</div>
+  <div class="section-number">09</div>
+  <h1 class="section-title">Settings</h1>
+  <p class="section-intro">The Settings page lets you manage your personal account and notification preferences. Some system-level settings are visible here but are read-only for non-admin staff.</p>
+
+  <div class="screenshot-placeholder">📷 Screenshot: Settings page — Account card, Change Password card, System Settings card, Notification Preferences card</div>
+
+  <h2>9.1 Account</h2>
+  <p>Displays your current account details:</p>
+  <ul>
+    <li><strong>Display Name</strong> — how your name appears throughout the portal</li>
+    <li><strong>Email Address</strong> — your login email</li>
+    <li><strong>Role</strong> — either <span class="badge badge-blue">Staff</span> or <span class="badge badge-purple">Admin</span></li>
+  </ul>
+  <p>To change your name or email, contact your manager. These fields cannot be self-edited.</p>
+
+  <h2>9.2 Change Password</h2>
+  <p>To update your password:</p>
+  <ol>
+    <li>Enter your <strong>current password</strong> in the first field.</li>
+    <li>Enter your <strong>new password</strong> in the second field.</li>
+    <li>Re-enter the new password in the <strong>confirmation field</strong>.</li>
+    <li>Click <strong>"Update Password"</strong>.</li>
+  </ol>
+
+  <div class="box box-warning">
+    <div class="box-label">Password Security</div>
+    Choose a strong password (12+ characters, mix of letters, numbers, and symbols). Do not reuse passwords from other accounts. If you suspect someone knows your password, change it immediately.
+  </div>
+
+  <h2>9.3 System Settings <em>(Read-Only)</em></h2>
+  <p>This card displays store-wide configuration values. These are set by the system administrator and cannot be changed from this page:</p>
+  <ul>
+    <li><strong>Business Name</strong> — appears on invoices and work orders</li>
+    <li><strong>Tax Rate</strong> — applied to invoices</li>
+    <li><strong>Invoice Notes</strong> — default notes printed on all customer invoices (e.g., "Thank you for choosing Mint Vision!")</li>
+  </ul>
+
+  <div class="box box-info">
+    <div class="box-label">Admin Note</div>
+    If system settings need to be changed (e.g., tax rate update, business address change), contact the system administrator or technical support.
+  </div>
+
+  <h2>9.4 Notification Preferences</h2>
+  <p>A list of all notification types with on/off toggles. Changes save immediately — no need to click a "Save" button. See <a href="#notification-prefs">Section 8.3</a> for recommended settings by role.</p>
+</section>
+
+
+<!-- ==================== SECTION 10: QUICK REFERENCE ==================== -->
+<section class="section" id="section-quick-ref">
+  <div class="section-eyebrow">Section 10</div>
+  <div class="section-number">10</div>
+  <h1 class="section-title">Quick Reference</h1>
+  <p class="section-intro">Tear out this section and keep it at your workstation. Everything you need at a glance.</p>
+
+  <h2 id="cheat-sheet">10.1 Order Status Cheat Sheet</h2>
+  <table>
+    <thead><tr><th>Status</th><th>Badge</th><th>Staff Action Required</th></tr></thead>
+    <tbody>
+      <tr><td>DRAFT</td><td><span class="badge badge-gray">DRAFT</span></td><td>Review and confirm with patient. Collect deposit.</td></tr>
+      <tr><td>CONFIRMED</td><td><span class="badge badge-blue">CONFIRMED</span></td><td>Print work order. Send to lab.</td></tr>
+      <tr><td>LAB ORDERED</td><td><span class="badge badge-orange">LAB ORDERED</span></td><td>Monitor expected delivery. Follow up if overdue.</td></tr>
+      <tr><td>LAB RECEIVED</td><td><span class="badge badge-yellow">LAB RECEIVED</span></td><td>Optician verifies Rx against prescription.</td></tr>
+      <tr><td>VERIFIED</td><td><span class="badge badge-indigo">VERIFIED</span></td><td>Call/text patient. Mark Ready.</td></tr>
+      <tr><td>READY</td><td><span class="badge badge-green">READY</span></td><td>Patient notified. Collect balance. Dispense.</td></tr>
+      <tr><td>PICKED UP</td><td><span class="badge badge-gray">PICKED UP</span></td><td>Complete — no action needed.</td></tr>
+      <tr><td>CANCELLED</td><td><span class="badge badge-red">CANCELLED</span></td><td>Process refund if deposit was collected.</td></tr>
+    </tbody>
+  </table>
+
+  <h2>10.2 Customer Lifecycle Quick Reference</h2>
+  <table>
+    <thead><tr><th>Badge</th><th>Definition</th><th>Recommended Action</th></tr></thead>
+    <tbody>
+      <tr><td><span class="badge badge-purple">VIP</span></td><td>3+ orders or LTV &gt; $2,000</td><td>Priority service. Early access to new collections.</td></tr>
+      <tr><td><span class="badge badge-green">Active</span></td><td>Purchase in last 18 months</td><td>Recall timing. Second-pair push.</td></tr>
+      <tr><td><span class="badge badge-blue">New</span></td><td>&lt;6 months old, ≤1 order</td><td>Onboarding. Build relationship.</td></tr>
+      <tr><td><span class="badge badge-amber">Lapsed</span></td><td>18 months – 3 years since purchase</td><td>Proactive outreach. Offer incentive to return.</td></tr>
+      <tr><td><span class="badge badge-red">Dormant</span></td><td>3+ years or never purchased</td><td>Win-back campaign or data review.</td></tr>
+      <tr><td><span class="badge badge-teal">Lead</span></td><td>New record, no orders yet</td><td>Follow up. Convert to first visit.</td></tr>
+    </tbody>
+  </table>
+
+  <h2 id="common-tasks">10.3 Common Tasks — Step by Step</h2>
+
+  <div class="quick-ref-grid">
+    <div class="quick-ref-card">
+      <h4>👤 Create a New Customer</h4>
+      <ol>
+        <li>Sidebar → <strong>Customers</strong></li>
+        <li>Click <strong>"New Customer"</strong> (top right)</li>
+        <li>Fill in name, phone, email, DOB</li>
+        <li>Click <strong>"Save"</strong></li>
+      </ol>
+    </div>
+
+    <div class="quick-ref-card">
+      <h4>📦 Create a New Order</h4>
+      <ol>
+        <li>Sidebar → <strong>Fulfillment Board</strong></li>
+        <li>Click <strong>"New Order"</strong> (top right)</li>
+        <li>Complete all 7 wizard steps</li>
+        <li>Click <strong>"Place Order"</strong></li>
+      </ol>
+    </div>
+
+    <div class="quick-ref-card">
+      <h4>📋 Send a Patient Form</h4>
+      <ol>
+        <li>Sidebar → <strong>Forms</strong></li>
+        <li>Select the template type</li>
+        <li>Search for the patient</li>
+        <li>Click <strong>"Generate Link"</strong></li>
+        <li>Copy link → send via text/email</li>
+      </ol>
+    </div>
+
+    <div class="quick-ref-card">
+      <h4>📦 Send Intake Package (New Patient)</h4>
+      <ol>
+        <li>Sidebar → <strong>Forms</strong> → Intake Packages tab</li>
+        <li>Click <strong>"New Intake Package"</strong></li>
+        <li>Select or create the patient</li>
+        <li>Copy the package link → send to patient</li>
+      </ol>
+    </div>
+
+    <div class="quick-ref-card">
+      <h4>👓 Add a Frame to Inventory</h4>
+      <ol>
+        <li>Sidebar → <strong>All Frames</strong></li>
+        <li>Click <strong>"New Item"</strong></li>
+        <li>Fill in brand, model, SKU, pricing</li>
+        <li>Enter initial stock qty</li>
+        <li>Click <strong>"Save Item"</strong></li>
+      </ol>
+    </div>
+
+    <div class="quick-ref-card">
+      <h4>🛒 Create a Purchase Order</h4>
+      <ol>
+        <li>Sidebar → <strong>Purchase Orders</strong></li>
+        <li>Click <strong>"New PO"</strong></li>
+        <li>Select vendor + expected date</li>
+        <li>Add line items (frame + qty + cost)</li>
+        <li>Click <strong>"Send to Vendor"</strong></li>
+      </ol>
+    </div>
+
+    <div class="quick-ref-card">
+      <h4>✅ Mark Order Picked Up</h4>
+      <ol>
+        <li>Open the order detail page</li>
+        <li>Verify status is <span class="badge badge-green">READY</span></li>
+        <li>Click <strong>"Mark Picked Up"</strong></li>
+        <li>Complete the pickup modal</li>
+        <li>Collect remaining balance</li>
+      </ol>
+    </div>
+
+    <div class="quick-ref-card">
+      <h4>🧾 Issue an Invoice</h4>
+      <ol>
+        <li>Open the order detail page</li>
+        <li>Click <strong>"Invoice"</strong> button (top right)</li>
+        <li>Review the invoice</li>
+        <li>Click <strong>"Issue Invoice"</strong></li>
+        <li>Print or share with patient</li>
+      </ol>
+    </div>
+
+    <div class="quick-ref-card">
+      <h4>🔬 Receive a Purchase Order</h4>
+      <ol>
+        <li>Sidebar → <strong>Purchase Orders</strong></li>
+        <li>Open the relevant PO</li>
+        <li>Click <strong>"Receive Items"</strong></li>
+        <li>Enter qty received per line</li>
+        <li>Click <strong>"Confirm Receipt"</strong></li>
+      </ol>
+    </div>
+
+    <div class="quick-ref-card">
+      <h4>🔔 Change Notification Settings</h4>
+      <ol>
+        <li>Sidebar → <strong>Settings</strong></li>
+        <li>Scroll to <strong>Notification Preferences</strong></li>
+        <li>Toggle each type on or off</li>
+        <li>Changes save automatically</li>
+      </ol>
+    </div>
+  </div>
+
+  <h2>10.4 Keyboard &amp; Navigation Tips</h2>
+  <table>
+    <thead><tr><th>Tip</th><th>Description</th></tr></thead>
+    <tbody>
+      <tr><td><kbd>Cmd</kbd>+<kbd>P</kbd> (Mac) / <kbd>Ctrl</kbd>+<kbd>P</kbd> (Windows)</td><td>Print current page. Use for Work Orders and Invoices.</td></tr>
+      <tr><td>Browser Back Button</td><td>Navigate back to the previous page. Safe to use — no data loss on read-only pages.</td></tr>
+      <tr><td>Click Order # in any list</td><td>Opens that order's detail page in the same tab.</td></tr>
+      <tr><td>Click Customer Name in any list</td><td>Opens that customer's detail page.</td></tr>
+      <tr><td>Refresh page (<kbd>Cmd</kbd>/<kbd>Ctrl</kbd>+<kbd>R</kbd>)</td><td>Forces the notification bell to refresh immediately (instead of waiting 30 seconds).</td></tr>
+      <tr><td>Right-click → Open in New Tab</td><td>Open an order or customer in a new tab while keeping your current view.</td></tr>
+      <tr><td>Search bars</td><td>Most search bars are instant — no need to press Enter. Just type and results appear.</td></tr>
+    </tbody>
+  </table>
+
+  <h2>10.5 Who to Call for Help</h2>
+  <table>
+    <thead><tr><th>Issue</th><th>Contact</th></tr></thead>
+    <tbody>
+      <tr><td>Forgot password</td><td>Your store manager (they can reset it)</td></tr>
+      <tr><td>Can't log in</td><td>Your store manager first, then technical support</td></tr>
+      <tr><td>Patient can't access their form link</td><td>Generate a new link from Forms → the old one may have expired</td></tr>
+      <tr><td>Inventory count is wrong</td><td>Review the inventory ledger for that item to see what movements occurred</td></tr>
+      <tr><td>Order stuck in wrong status</td><td>Contact your manager — status changes are logged and may require correction</td></tr>
+      <tr><td>Technical bug or error</td><td>Take a screenshot and contact technical support</td></tr>
+    </tbody>
+  </table>
+
+  <div style="margin-top:60px; padding:24px; background:#f0fdf4; border-radius:10px; border:1px solid #bbf7d0; text-align:center; font-family:system-ui,sans-serif;">
+    <div style="font-size:22px; font-weight:800; color:#15803d; margin-bottom:6px;">Mint Vision Optique — Staff Portal</div>
+    <div style="font-size:13px; color:#16a34a;">Version 1.5 &nbsp;·&nbsp; February 2026 &nbsp;·&nbsp; Confidential — Internal Use Only</div>
+    <div style="margin-top:12px; font-size:13px; color:#64748b;">For technical support, contact your system administrator.</div>
+  </div>
+</section>
+
+</main>
+</div>
+
+</body>
+</html>
