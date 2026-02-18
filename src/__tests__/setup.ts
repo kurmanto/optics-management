@@ -39,6 +39,8 @@ vi.mock("@/lib/notifications", () => ({
 
 vi.mock("@/lib/supabase", () => ({
   uploadInventoryPhoto: vi.fn().mockResolvedValue(null),
+  uploadPrescriptionScan: vi.fn().mockResolvedValue(null),
+  ensurePrescriptionBucket: vi.fn().mockResolvedValue(undefined),
 }));
 
 // ── Auth helpers mock ─────────────────────────────────────────────────────────

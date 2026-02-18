@@ -258,3 +258,74 @@ export async function deactivateStoreCredit(creditId: string): Promise<{ error?:
   revalidatePath(`/customers/${credit.customerId}`);
   return {};
 }
+
+export type CustomerSearchResult = {
+  id: string;
+  firstName: string;
+  lastName: string;
+  phone: string | null;
+  email: string | null;
+};
+
+export async function searchCustomers(query: string): Promise<CustomerSearchResult[]> {
+  await verifySession();
+
+  const q = query.trim();
+  if (!q) return [];
+
+  const customers = await prisma.customer.findMany({
+    where: {
+      isActive: true,
+      OR: [
+        { firstName: { contains: q, mode: "insensitive" } },
+        { lastName: { contains: q, mode: "insensitive" } },
+        { email: { contains: q, mode: "insensitive" } },
+        { phone: { contains: q.replace(/\D/g, "") } },
+      ],
+    },
+    select: {
+      id: true,
+      firstName: true,
+      lastName: true,
+      phone: true,
+      email: true,
+    },
+    orderBy: [{ lastName: "asc" }, { firstName: "asc" }],
+    take: 10,
+  });
+
+  return customers;
+}
+
+export async function quickCreateCustomer(input: {
+  firstName: string;
+  lastName: string;
+  phone?: string;
+  email?: string;
+}): Promise<{ id: string; name: string } | { error: string }> {
+  await verifySession();
+
+  const firstName = input.firstName.trim();
+  const lastName = input.lastName.trim();
+
+  if (!firstName || !lastName) {
+    return { error: "First and last name are required" };
+  }
+
+  try {
+    const customer = await prisma.customer.create({
+      data: {
+        firstName,
+        lastName,
+        phone: input.phone?.replace(/\D/g, "") || null,
+        email: input.email?.trim() || null,
+      },
+    });
+
+    revalidatePath("/customers");
+    return { id: customer.id, name: `${firstName} ${lastName}` };
+  } catch (e) {
+    console.error(e);
+    return { error: "Failed to create customer" };
+  }
+}

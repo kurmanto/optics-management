@@ -323,6 +323,41 @@ describe("addExternalPrescription", () => {
   });
 });
 
+describe("uploadPrescriptionScanAction", () => {
+  it("returns url when upload succeeds", async () => {
+    const { uploadPrescriptionScan } = await import("@/lib/supabase");
+    vi.mocked(uploadPrescriptionScan).mockResolvedValue("https://cdn.example.com/scan.jpg");
+
+    const { uploadPrescriptionScanAction } = await import("@/lib/actions/orders");
+    const result = await uploadPrescriptionScanAction("base64data==", "image/jpeg", "cust-1");
+
+    expect("url" in result).toBe(true);
+    if ("url" in result) expect(result.url).toBe("https://cdn.example.com/scan.jpg");
+    expect(uploadPrescriptionScan).toHaveBeenCalledWith("base64data==", "image/jpeg", "cust-1");
+  });
+
+  it("returns error when upload returns null", async () => {
+    const { uploadPrescriptionScan } = await import("@/lib/supabase");
+    vi.mocked(uploadPrescriptionScan).mockResolvedValue(null);
+
+    const { uploadPrescriptionScanAction } = await import("@/lib/actions/orders");
+    const result = await uploadPrescriptionScanAction("base64data==", "image/jpeg", "cust-1");
+
+    expect("error" in result).toBe(true);
+    if ("error" in result) expect(result.error).toBe("Upload failed");
+  });
+
+  it("returns error when upload throws", async () => {
+    const { uploadPrescriptionScan } = await import("@/lib/supabase");
+    vi.mocked(uploadPrescriptionScan).mockRejectedValue(new Error("Network error"));
+
+    const { uploadPrescriptionScanAction } = await import("@/lib/actions/orders");
+    const result = await uploadPrescriptionScanAction("base64data==", "image/jpeg", "cust-1");
+
+    expect("error" in result).toBe(true);
+  });
+});
+
 describe("addPayment", () => {
   it("creates payment record and updates order balance", async () => {
     const prisma = await getPrisma();

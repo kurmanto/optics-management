@@ -6,6 +6,7 @@ import { verifySession } from "@/lib/dal";
 import { OrderStatus, LineItemType, OrderType, PrescriptionSource } from "@prisma/client";
 import { generateOrderNumber } from "@/lib/utils/formatters";
 import { createNotification } from "@/lib/notifications";
+import { uploadPrescriptionScan } from "@/lib/supabase";
 
 export type OrderFormState = {
   error?: string;
@@ -281,6 +282,23 @@ export async function handlePickupComplete(
   } catch (e) {
     console.error(e);
     return { error: "Failed to complete pickup" };
+  }
+}
+
+export async function uploadPrescriptionScanAction(
+  base64: string,
+  mimeType: string,
+  customerId: string
+): Promise<{ url: string } | { error: string }> {
+  await verifySession();
+
+  try {
+    const url = await uploadPrescriptionScan(base64, mimeType, customerId);
+    if (!url) return { error: "Upload failed" };
+    return { url };
+  } catch (e) {
+    console.error(e);
+    return { error: "Failed to upload scan" };
   }
 }
 
