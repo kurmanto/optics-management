@@ -38,11 +38,11 @@ const navItems = [
   },
   {
     title: "Orders",
-    href: "/orders",
+    href: "/orders/board",
     icon: ShoppingBag,
     children: [
-      { title: "All Orders", href: "/orders" },
       { title: "Fulfillment Board", href: "/orders/board" },
+      { title: "All Orders", href: "/orders" },
       { title: "Invoices", href: "/invoices" },
     ],
   },
@@ -82,9 +82,10 @@ export function Sidebar({ userName, userRole }: Props) {
 
   function isGroupActive(item: NavItem) {
     if (item.href === "/dashboard") return pathname === "/dashboard";
-    if (pathname.startsWith(item.href)) return true;
-    // Also active if a child route matches (e.g. /invoices under Orders)
-    return item.children?.some((c) => pathname.startsWith(c.href)) ?? false;
+    // Check if any child route matches first (handles groups like Orders where
+    // parent href is /orders/board but children include /orders and /invoices)
+    if (item.children?.some((c) => pathname.startsWith(c.href))) return true;
+    return pathname.startsWith(item.href);
   }
 
   function isChildActive(child: NavChild) {
