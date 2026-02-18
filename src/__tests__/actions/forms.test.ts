@@ -360,7 +360,7 @@ describe("completeIntakeStep", () => {
     // The first formPackage.update call should be to set IN_PROGRESS or COMPLETED
     const updateCalls = prisma.formPackage.update.mock.calls;
     const inProgressCall = updateCalls.find(
-      (c: [{ data: Record<string, unknown> }]) => c[0].data.status === "IN_PROGRESS"
+      (c: Array<{ data: Record<string, unknown> }>) => c[0]?.data?.status === "IN_PROGRESS"
     );
     // With only one submission, allDone=true path takes over (sets COMPLETED)
     // The important thing is the package was updated

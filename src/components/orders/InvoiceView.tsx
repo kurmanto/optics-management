@@ -21,11 +21,35 @@ export type InvoiceLineItem = {
   quantity: number;
   unitPriceCustomer: number;
   totalCustomer: number;
+  unitPriceReal: number;
+  totalReal: number;
+};
+
+export type InvoicePrescription = {
+  doctorName: string | null;
+  date: Date;
+  source: string;
+  // OD
+  odSphere: number | null;
+  odCylinder: number | null;
+  odAxis: number | null;
+  odAdd: number | null;
+  odPd: number | null;
+  // OS
+  osSphere: number | null;
+  osCylinder: number | null;
+  osAxis: number | null;
+  osAdd: number | null;
+  osPd: number | null;
+  // Combined
+  pdBinocular: number | null;
 };
 
 export type InvoiceViewProps = {
   orderNumber: string;
   createdAt: Date;
+  mode?: "customer" | "internal";
+  isDualInvoice?: boolean;
   customer: {
     firstName: string;
     lastName: string;
@@ -37,12 +61,18 @@ export type InvoiceViewProps = {
   };
   user: { name: string };
   lineItems: InvoiceLineItem[];
+  // Customer amounts
   totalCustomer: number;
   depositCustomer: number;
   balanceCustomer: number;
+  // Real amounts
+  totalReal: number;
+  depositReal: number;
+  balanceReal: number;
   insuranceCoverage: number | null;
   referralCredit: number | null;
   notes: string | null;
+  prescription?: InvoicePrescription | null;
 };
 
 function invoiceNumber(orderNumber: string): string {
@@ -55,10 +85,29 @@ function fmt(amount: number): string {
   return `$${amount.toFixed(2)}`;
 }
 
+function rxVal(v: number | null | undefined): string {
+  if (v == null) return "—";
+  const sign = v >= 0 ? "+" : "";
+  return `${sign}${v.toFixed(2)}`;
+}
+
+function rxAxis(v: number | null | undefined): string {
+  if (v == null) return "—";
+  return `${v}°`;
+}
+
 export function InvoiceView(props: InvoiceViewProps) {
+  const mode = props.mode ?? "customer";
+  const isInternal = mode === "internal";
+
   const invNum = invoiceNumber(props.orderNumber);
   const insurance = props.insuranceCoverage ?? 0;
   const referral = props.referralCredit ?? 0;
+
+  // Pick amounts by mode
+  const total = isInternal ? props.totalReal : props.totalCustomer;
+  const deposit = isInternal ? props.depositReal : props.depositCustomer;
+  const balance = isInternal ? props.balanceReal : props.balanceCustomer;
 
   const customerAddress = [
     props.customer.address,
@@ -75,11 +124,14 @@ export function InvoiceView(props: InvoiceViewProps) {
     ? `mailto:${props.customer.email}?subject=${encodeURIComponent(emailSubject)}&body=${encodeURIComponent(emailBody)}`
     : null;
 
+  const rx = props.prescription;
+  const hasRx = !!rx;
+
   return (
     <div className="max-w-2xl mx-auto">
       {/* Action buttons — hidden when printing */}
       <div className="print:hidden flex justify-end mb-4 gap-2">
-        {mailtoHref && (
+        {!isInternal && mailtoHref && (
           <a
             href={mailtoHref}
             className="inline-flex items-center gap-2 border border-gray-300 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors"
@@ -93,7 +145,7 @@ export function InvoiceView(props: InvoiceViewProps) {
           className="inline-flex items-center gap-2 bg-primary text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors"
         >
           <Printer className="w-4 h-4" />
-          Print Invoice
+          Print {isInternal ? "Internal Copy" : "Invoice"}
         </button>
       </div>
 
@@ -102,6 +154,15 @@ export function InvoiceView(props: InvoiceViewProps) {
         id="invoice-doc"
         className="bg-white border border-gray-200 rounded-xl p-10 space-y-6 print:border-none print:rounded-none print:shadow-none print:p-6"
       >
+        {/* Internal copy watermark banner */}
+        {isInternal && (
+          <div className="bg-amber-50 border border-amber-300 rounded-lg px-4 py-2 flex items-center gap-2 print:block">
+            <span className="text-xs font-bold text-amber-700 uppercase tracking-wider">
+              INTERNAL COPY — For staff use only. Do not share with patient.
+            </span>
+          </div>
+        )}
+
         {/* Header */}
         <div className="flex items-start justify-between">
           {/* Located At */}
@@ -124,7 +185,9 @@ export function InvoiceView(props: InvoiceViewProps) {
               </p>
               <Eye className="w-7 h-7 text-primary flex-shrink-0" />
             </div>
-            <p className="text-3xl font-black text-gray-800 tracking-wide">INVOICE</p>
+            <p className="text-3xl font-black text-gray-800 tracking-wide">
+              {isInternal ? "INTERNAL" : "INVOICE"}
+            </p>
           </div>
         </div>
 
@@ -139,15 +202,78 @@ export function InvoiceView(props: InvoiceViewProps) {
               {customerAddress && (
                 <p className="text-sm text-gray-500 mt-1">{customerAddress}</p>
               )}
+              {props.customer.email && !isInternal && (
+                <p className="text-xs text-gray-400 mt-0.5">{props.customer.email}</p>
+              )}
             </div>
             <div className="text-right self-center">
               <p className="text-sm font-semibold text-gray-700">Invoice # {invNum}</p>
               <p className="text-sm text-gray-500 mt-0.5">
                 Date: {new Date(props.createdAt).toLocaleDateString("en-CA")}
               </p>
+              {isInternal && (
+                <p className="text-xs text-amber-600 font-semibold mt-1 uppercase tracking-wide">
+                  Internal Copy
+                </p>
+              )}
             </div>
           </div>
         </div>
+
+        {/* Prescription — shown when linked */}
+        {hasRx && (
+          <div>
+            <p className="text-xs font-bold text-gray-700 uppercase tracking-wide mb-2">
+              Prescription
+            </p>
+            <div className="border border-gray-300 rounded overflow-hidden">
+              <table className="w-full text-xs border-collapse">
+                <thead>
+                  <tr className="bg-gray-100">
+                    <th className="border border-gray-300 px-3 py-2 text-left font-bold text-gray-700" />
+                    <th className="border border-gray-300 px-3 py-2 text-center font-bold text-gray-700">Sphere</th>
+                    <th className="border border-gray-300 px-3 py-2 text-center font-bold text-gray-700">Cyl</th>
+                    <th className="border border-gray-300 px-3 py-2 text-center font-bold text-gray-700">Axis</th>
+                    <th className="border border-gray-300 px-3 py-2 text-center font-bold text-gray-700">Add</th>
+                    <th className="border border-gray-300 px-3 py-2 text-center font-bold text-gray-700">PD</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td className="border border-gray-300 px-3 py-2 font-semibold text-gray-700 bg-gray-50">OD (R)</td>
+                    <td className="border border-gray-300 px-3 py-2 text-center text-gray-800">{rxVal(rx.odSphere)}</td>
+                    <td className="border border-gray-300 px-3 py-2 text-center text-gray-800">{rxVal(rx.odCylinder)}</td>
+                    <td className="border border-gray-300 px-3 py-2 text-center text-gray-800">{rxAxis(rx.odAxis)}</td>
+                    <td className="border border-gray-300 px-3 py-2 text-center text-gray-800">{rxVal(rx.odAdd)}</td>
+                    <td className="border border-gray-300 px-3 py-2 text-center text-gray-800">{rxVal(rx.odPd)}</td>
+                  </tr>
+                  <tr>
+                    <td className="border border-gray-300 px-3 py-2 font-semibold text-gray-700 bg-gray-50">OS (L)</td>
+                    <td className="border border-gray-300 px-3 py-2 text-center text-gray-800">{rxVal(rx.osSphere)}</td>
+                    <td className="border border-gray-300 px-3 py-2 text-center text-gray-800">{rxVal(rx.osCylinder)}</td>
+                    <td className="border border-gray-300 px-3 py-2 text-center text-gray-800">{rxAxis(rx.osAxis)}</td>
+                    <td className="border border-gray-300 px-3 py-2 text-center text-gray-800">{rxVal(rx.osAdd)}</td>
+                    <td className="border border-gray-300 px-3 py-2 text-center text-gray-800">{rxVal(rx.osPd)}</td>
+                  </tr>
+                  {rx.pdBinocular != null && (
+                    <tr>
+                      <td colSpan={4} className="border border-gray-300 px-3 py-2 text-gray-500 text-xs" />
+                      <td className="border border-gray-300 px-3 py-2 text-xs text-gray-500 text-center">Bino PD</td>
+                      <td className="border border-gray-300 px-3 py-2 text-center text-gray-800">{rx.pdBinocular}</td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+              <div className="px-3 py-2 text-xs text-gray-500 flex justify-between">
+                <span>
+                  {rx.source === "EXTERNAL" ? "External Rx" : "In-Office Exam"}
+                  {rx.doctorName ? ` · ${rx.doctorName}` : ""}
+                </span>
+                <span>{new Date(rx.date).toLocaleDateString("en-CA")}</span>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Line Items */}
         <table className="w-full text-sm border-collapse">
@@ -157,7 +283,7 @@ export function InvoiceView(props: InvoiceViewProps) {
                 Item Description
               </th>
               <th className="border border-gray-300 px-4 py-2.5 text-right text-xs font-bold text-gray-700 uppercase tracking-wide w-32">
-                Price ($)
+                {isInternal ? "Price (Real)" : "Price ($)"}
               </th>
             </tr>
           </thead>
@@ -166,7 +292,7 @@ export function InvoiceView(props: InvoiceViewProps) {
               <tr key={i}>
                 <td className="border border-gray-300 px-4 py-3 text-gray-800">{item.description}</td>
                 <td className="border border-gray-300 px-4 py-3 text-right text-gray-800">
-                  {fmt(item.totalCustomer)}
+                  {isInternal ? fmt(item.totalReal) : fmt(item.totalCustomer)}
                 </td>
               </tr>
             ))}
@@ -199,31 +325,63 @@ export function InvoiceView(props: InvoiceViewProps) {
                     Subtotal
                   </td>
                   <td className="border border-gray-300 px-3 py-2.5 text-right font-bold text-gray-900">
-                    {fmt(props.totalCustomer)}
+                    {fmt(total)}
                   </td>
                 </tr>
-                <tr>
-                  <td className="border border-gray-300 px-3 py-2 text-gray-600">Insurance Coverage</td>
-                  <td className="border border-gray-300 px-3 py-2 text-right text-gray-800">
-                    -{fmt(insurance)}
-                  </td>
-                </tr>
-                <tr>
-                  <td className="border border-gray-300 px-3 py-2 text-gray-600">Referral/Promo</td>
-                  <td className="border border-gray-300 px-3 py-2 text-right text-gray-800">
-                    -{fmt(referral)}
-                  </td>
-                </tr>
+                {!isInternal && insurance > 0 && (
+                  <tr>
+                    <td className="border border-gray-300 px-3 py-2 text-gray-600">Insurance Coverage</td>
+                    <td className="border border-gray-300 px-3 py-2 text-right text-gray-800">
+                      -{fmt(insurance)}
+                    </td>
+                  </tr>
+                )}
+                {!isInternal && referral > 0 && (
+                  <tr>
+                    <td className="border border-gray-300 px-3 py-2 text-gray-600">Referral/Promo</td>
+                    <td className="border border-gray-300 px-3 py-2 text-right text-gray-800">
+                      -{fmt(referral)}
+                    </td>
+                  </tr>
+                )}
+                {isInternal && (
+                  <>
+                    {insurance > 0 && (
+                      <tr>
+                        <td className="border border-gray-300 px-3 py-2 text-gray-600">Insurance (billed)</td>
+                        <td className="border border-gray-300 px-3 py-2 text-right text-gray-800">
+                          -{fmt(insurance)}
+                        </td>
+                      </tr>
+                    )}
+                    {referral > 0 && (
+                      <tr>
+                        <td className="border border-gray-300 px-3 py-2 text-gray-600">Referral/Promo</td>
+                        <td className="border border-gray-300 px-3 py-2 text-right text-gray-800">
+                          -{fmt(referral)}
+                        </td>
+                      </tr>
+                    )}
+                    <tr>
+                      <td className="border border-gray-300 px-3 py-2 text-xs text-gray-400">
+                        Customer sees: {fmt(props.totalCustomer)}
+                      </td>
+                      <td className="border border-gray-300 px-3 py-2 text-right text-xs text-gray-400">
+                        dep: {fmt(props.depositCustomer)}
+                      </td>
+                    </tr>
+                  </>
+                )}
                 <tr>
                   <td className="border border-gray-300 px-3 py-2 text-gray-600">Deposit</td>
                   <td className="border border-gray-300 px-3 py-2 text-right text-gray-800">
-                    {fmt(props.depositCustomer)}
+                    {fmt(deposit)}
                   </td>
                 </tr>
                 <tr className="bg-gray-50">
                   <td className="border border-gray-300 px-3 py-2.5 font-bold text-gray-900">Balance</td>
                   <td className="border border-gray-300 px-3 py-2.5 text-right font-bold text-gray-900">
-                    {fmt(props.balanceCustomer)}
+                    {fmt(balance)}
                   </td>
                 </tr>
               </tbody>
@@ -249,12 +407,14 @@ export function InvoiceView(props: InvoiceViewProps) {
           </div>
         </div>
 
-        {/* Terms */}
-        <div className="border-t border-gray-100 pt-4">
-          <p className="text-xs text-gray-400 leading-relaxed">
-            <strong className="text-gray-500">Terms:</strong> {TERMS}
-          </p>
-        </div>
+        {/* Terms — only on customer invoice */}
+        {!isInternal && (
+          <div className="border-t border-gray-100 pt-4">
+            <p className="text-xs text-gray-400 leading-relaxed">
+              <strong className="text-gray-500">Terms:</strong> {TERMS}
+            </p>
+          </div>
+        )}
       </div>
 
       <style>{`
