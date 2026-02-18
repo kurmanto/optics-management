@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { verifySession } from "@/lib/dal";
 import { CreateFormSubmissionSchema } from "@/lib/validations/forms";
 import { FormTemplateType, Gender } from "@prisma/client";
+import { createNotification } from "@/lib/notifications";
 
 export type FormActionState = {
   error?: string;
@@ -362,7 +363,7 @@ export async function completeFormSubmission(
     return { error: "Form has expired" };
   }
 
-  await prisma.formSubmission.update({
+  const completed = await prisma.formSubmission.update({
     where: { token },
     data: {
       status: "COMPLETED",
@@ -371,6 +372,16 @@ export async function completeFormSubmission(
       signedAt: signatureText ? new Date() : null,
       completedAt: new Date(),
     },
+    select: { customerName: true, id: true, template: { select: { name: true } } },
+  });
+
+  await createNotification({
+    type: "FORM_COMPLETED",
+    title: "Form Submitted",
+    body: `${completed.template.name}${completed.customerName ? ` from ${completed.customerName}` : ""} was submitted.`,
+    href: `/forms/${completed.id}`,
+    refId: completed.id,
+    refType: "FormSubmission",
   });
 
   revalidatePath("/forms");
@@ -469,6 +480,15 @@ export async function completeIntakeStep(
       });
       revalidatePath(`/customers/${updatedPkg.customerId}`);
     }
+
+    await createNotification({
+      type: "INTAKE_COMPLETED",
+      title: "Intake Package Completed",
+      body: `${pkg.customerName || "A patient"} completed all 3 intake forms.`,
+      href: `/forms`,
+      refId: pkg.id,
+      refType: "FormPackage",
+    });
   }
 
   revalidatePath("/forms");

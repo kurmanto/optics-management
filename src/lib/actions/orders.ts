@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { verifySession } from "@/lib/dal";
 import { OrderStatus, LineItemType, OrderType, PrescriptionSource } from "@prisma/client";
 import { generateOrderNumber } from "@/lib/utils/formatters";
+import { createNotification } from "@/lib/notifications";
 
 export type OrderFormState = {
   error?: string;
@@ -154,7 +155,7 @@ export async function advanceOrderStatus(
     PICKED_UP: { pickedUpAt: new Date() },
   };
 
-  await prisma.order.update({
+  const order = await prisma.order.update({
     where: { id: orderId },
     data: {
       status: newStatus,
@@ -167,7 +168,45 @@ export async function advanceOrderStatus(
         },
       },
     },
+    select: {
+      orderNumber: true,
+      customer: { select: { firstName: true, lastName: true } },
+    },
   });
+
+  const customerName = `${order.customer.firstName} ${order.customer.lastName}`;
+
+  if (newStatus === OrderStatus.READY) {
+    await createNotification({
+      type: "ORDER_READY",
+      title: "Order Ready for Pickup",
+      body: `${order.orderNumber} for ${customerName} is ready.`,
+      href: `/orders/${orderId}`,
+      actorId: session.id,
+      refId: orderId,
+      refType: "Order",
+    });
+  } else if (newStatus === OrderStatus.CANCELLED) {
+    await createNotification({
+      type: "ORDER_CANCELLED",
+      title: "Order Cancelled",
+      body: `${order.orderNumber} for ${customerName} was cancelled.`,
+      href: `/orders/${orderId}`,
+      actorId: session.id,
+      refId: orderId,
+      refType: "Order",
+    });
+  } else if (newStatus === OrderStatus.LAB_RECEIVED) {
+    await createNotification({
+      type: "ORDER_LAB_RECEIVED",
+      title: "Lab Order Received",
+      body: `${order.orderNumber} for ${customerName} arrived from the lab.`,
+      href: `/orders/${orderId}`,
+      actorId: session.id,
+      refId: orderId,
+      refType: "Order",
+    });
+  }
 
   revalidatePath(`/orders/${orderId}`);
   revalidatePath("/orders");

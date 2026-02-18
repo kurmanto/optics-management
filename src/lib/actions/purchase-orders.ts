@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { verifySession } from "@/lib/dal";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { createNotification } from "@/lib/notifications";
 
 export type POFormState = { error?: string };
 
@@ -273,6 +274,54 @@ export async function receivePOItems(
         },
       });
     });
+
+    // Fetch PO info for notification body
+    const po = await prisma.purchaseOrder.findUnique({
+      where: { id: poId },
+      select: { poNumber: true, vendor: { select: { name: true } } },
+    });
+
+    if (po) {
+      await createNotification({
+        type: "PO_RECEIVED",
+        title: "Purchase Order Received",
+        body: `${po.poNumber} from ${po.vendor.name} was received.`,
+        href: `/inventory/purchase-orders/${poId}`,
+        actorId: session.id,
+        refId: poId,
+        refType: "PurchaseOrder",
+      });
+    }
+
+    // Low stock check — query fresh stock after transaction committed
+    for (const receivable of lineItemReceivables) {
+      if (!receivable.quantityReceived || receivable.quantityReceived <= 0) continue;
+
+      const item = await prisma.inventoryItem.findFirst({
+        where: {
+          purchaseOrderLineItems: { some: { id: receivable.lineItemId } },
+        },
+        select: {
+          id: true,
+          brand: true,
+          model: true,
+          stockQuantity: true,
+          reorderPoint: true,
+        },
+      });
+
+      if (item && item.stockQuantity <= item.reorderPoint) {
+        await createNotification({
+          type: "LOW_STOCK",
+          title: "Low Stock Alert",
+          body: `${item.brand} ${item.model} is at ${item.stockQuantity} units (reorder point: ${item.reorderPoint}).`,
+          href: `/inventory`,
+          actorId: session.id,
+          refId: item.id,
+          refType: "InventoryItem",
+        });
+      }
+    }
 
     revalidatePath(`/inventory/purchase-orders/${poId}`);
     revalidatePath("/inventory/purchase-orders");
