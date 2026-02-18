@@ -16,6 +16,7 @@ import {
   ClipboardList,
   BarChart2,
   Receipt,
+  BookOpen,
 } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { logout } from "@/lib/actions/auth";
@@ -183,6 +184,15 @@ export function Sidebar({ userName, userRole }: Props) {
             <div className="text-xs text-gray-400 capitalize">{userRole.toLowerCase()}</div>
           </div>
         </div>
+        <a
+          href="/user-guide.html"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-gray-400 hover:text-white hover:bg-gray-800 transition-colors mb-1"
+        >
+          <BookOpen className="w-4 h-4" />
+          User Guide
+        </a>
         <form action={logout}>
           <button
             type="submit"
