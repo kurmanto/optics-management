@@ -215,6 +215,35 @@ Format: `[Version] — Date`
 
 ---
 
+## [1.6.0] — 2026-02-18
+
+### Added — Scan Rx + Prescription Image Storage
+
+#### Scan Rx Page (`/scan-rx`)
+- New standalone page accessible from **Customers → Scan Rx** in the sidebar
+- Two-step flow: (1) find existing patient via debounced search, or quick-create a new patient with name/phone/email; (2) scan Rx with camera/upload + AI OCR
+- Done state with "Scan another" and "View patient" actions
+
+#### Prescription Image Storage
+- `prescription-scans` Supabase Storage bucket — original scan images stored permanently at `{customerId}/{timestamp}.{ext}`
+- `uploadPrescriptionScan` in `supabase.ts` handles base64 → Buffer → Storage upload
+- `uploadPrescriptionScanAction` server action wraps the upload for client-side use
+- `ExternalPrescriptionUpload` now uploads the scan image before saving the prescription record, passing the public URL to `addExternalPrescription` → `externalImageUrl` field
+- "View scan" link shown immediately after save and on customer detail page next to each external Rx row
+
+#### New Server Actions
+- `searchCustomers(query)` — multi-field OR search (name, phone, email), returns up to 10 results
+- `quickCreateCustomer(input)` — minimal-field customer creation for walk-up patients, digits-only phone normalisation
+
+#### Sidebar
+- Customers converted from single link to sub-nav group: **All Customers** (`/customers`) and **Scan Rx** (`/scan-rx`, ScanLine icon)
+
+#### Developer Standards
+- `CLAUDE.md`: added mandatory rules — unit tests and user guide update required for every new feature
+- 11 new unit tests (`searchCustomers`, `quickCreateCustomer`, `uploadPrescriptionScanAction`); total 220 tests passing
+
+---
+
 ## [1.5.1] — 2026-02-18
 
 ### Fixed — Orders Navigation & CI

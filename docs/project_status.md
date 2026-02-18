@@ -5,7 +5,7 @@
 
 ---
 
-## Current Version: V1.5.1 — Orders Navigation Fix
+## Current Version: V1.6.0 — Scan Rx + Prescription Image Storage
 
 ---
 
@@ -95,6 +95,26 @@
 | Dead stock report | ✅ Complete | 90-day no-movement items |
 | Best/worst sellers report | ✅ Complete | Unit velocity trailing 90 days |
 | Redesigned filter UI | ✅ Complete | Collapsible sidebar + active filter chips |
+
+---
+
+### V1.6 — Scan Rx + Prescription Image Storage (Complete)
+
+| Feature | Status | Notes |
+|---------|--------|-------|
+| `/scan-rx` standalone page | ✅ Complete | Two-step: find/create patient → scan Rx |
+| Debounced customer search | ✅ Complete | OR filter on name/phone/email, 10 results |
+| Quick-create patient | ✅ Complete | Minimal fields, digits-only phone |
+| Prescription scan image upload | ✅ Complete | `prescription-scans` Supabase Storage bucket |
+| `uploadPrescriptionScan` utility | ✅ Complete | base64 → Buffer → Storage → public URL |
+| `uploadPrescriptionScanAction` server action | ✅ Complete | Wraps upload for client components |
+| ExternalPrescriptionUpload image storage | ✅ Complete | Uploads before save, passes URL to DB |
+| "View scan" link — post-save | ✅ Complete | Shown in ExternalPrescriptionUpload after save |
+| "View scan" link — customer detail | ✅ Complete | Next to each external Rx row |
+| Sidebar Customers sub-nav | ✅ Complete | All Customers + Scan Rx (ScanLine icon) |
+| Unit tests (11 new, 220 total) | ✅ Complete | searchCustomers, quickCreateCustomer, uploadPrescriptionScanAction |
+| CLAUDE.md dev standards | ✅ Complete | Unit test + user guide required for every feature |
+| User guide updated (in-app + site) | ✅ Complete | Section 3.5 added |
 
 ---
 
