@@ -64,7 +64,6 @@ export function NotificationBell({ userId: _userId }: Props) {
   const [open, setOpen] = useState(false);
   const [items, setItems] = useState<NotificationItem[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
-  const [fetchError, setFetchError] = useState<string | null>(null);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
   const fetchNotifications = useCallback(async () => {
@@ -72,11 +71,8 @@ export function NotificationBell({ userId: _userId }: Props) {
       const result = await getMyNotifications();
       setItems(result.items);
       setUnreadCount(result.unreadCount);
-      setFetchError(null);
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      console.error("[NotificationBell] fetch failed:", err);
-      setFetchError(msg);
+    } catch {
+      // Silent fail — polling must never crash the page
     }
   }, []);
 
@@ -146,12 +142,7 @@ export function NotificationBell({ userId: _userId }: Props) {
 
           {/* List */}
           <div className="max-h-[420px] overflow-y-auto divide-y divide-gray-50">
-            {fetchError && (
-              <div className="px-4 py-3 text-xs text-red-600 bg-red-50 border-b border-red-100">
-                Error: {fetchError}
-              </div>
-            )}
-            {items.length === 0 && !fetchError ? (
+            {items.length === 0 ? (
               <div className="py-10 text-center text-sm text-gray-400">
                 No notifications in the last 7 days
               </div>
