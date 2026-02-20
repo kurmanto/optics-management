@@ -26,7 +26,9 @@ type NotificationType =
   | "ORDER_CANCELLED"
   | "ORDER_LAB_RECEIVED"
   | "PO_RECEIVED"
-  | "LOW_STOCK";
+  | "LOW_STOCK"
+  | "CAMPAIGN_COMPLETED"
+  | "CAMPAIGN_ERROR";
 
 function timeAgo(date: Date): string {
   const seconds = Math.floor((Date.now() - new Date(date).getTime()) / 1000);

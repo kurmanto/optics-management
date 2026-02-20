@@ -156,15 +156,34 @@
 
 ---
 
+### Campaign Engine (Partially Complete)
+
+| Feature | Status | Notes |
+|---------|--------|-------|
+| Campaign schema (DB models) | ✅ Complete | Campaign, CampaignRecipient, CampaignRun, Message, MessageTemplate |
+| 21 campaign types + drip presets | ✅ Complete | EXAM_REMINDER, INSURANCE_RENEWAL, ONE_TIME_BLAST, etc. |
+| Segment engine (SQL builder) | ✅ Complete | age, lifetimeOrderCount, daysSinceLastExam, rxExpiresInDays, etc. |
+| Campaign engine (processCampaign) | ✅ Complete | Enrollment, drip step advancement, conversion detection |
+| Vercel cron job (daily 9am UTC) | ✅ Complete | `vercel.json` — calls `/api/cron/campaigns` |
+| Campaign management UI | ✅ Complete | List, create wizard, detail, edit, analytics pages |
+| Unit tests (316 total) | ✅ Complete | Engine, segment SQL, template, actions all covered |
+| **SMS delivery via Twilio** | ❌ Not implemented | `dispatch.ts` → `sendSms()` is a console.log stub. Replace with Twilio SDK. |
+| **Email delivery via Resend** | ❌ Not implemented | `dispatch.ts` → `sendEmail()` is a console.log stub. Replace with Resend SDK. |
+| **MessageTemplate seed records** | ❌ Not implemented | `message_templates` table is empty — no default templates in DB |
+| **CRON_SECRET env var** | ❌ Not set | Cron endpoint has no auth in dev — set `CRON_SECRET` in production env |
+
+> **To make campaigns live:** wire `sendSms()` with Twilio and `sendEmail()` with Resend in `src/lib/campaigns/dispatch.ts`, then set `CRON_SECRET` in the Vercel environment.
+
+---
+
 ### V2.1 — Messaging & Campaigns
 
 | Feature | Status | Notes |
 |---------|--------|-------|
-| SMS via Twilio | 🔲 Future | |
-| Email via SendGrid | 🔲 Future | |
-| Campaign management | 🔲 Future | DB model exists |
-| Walk-in follow-up drip | 🔲 Future | |
-| Insurance renewal reminder | 🔲 Future | |
+| SMS via Twilio | 🔲 Future | See Campaign Engine section above |
+| Email via Resend | 🔲 Future | See Campaign Engine section above |
+| Walk-in follow-up drip | ✅ Preset exists | Engine built — blocked on SMS/email delivery |
+| Insurance renewal reminder | ✅ Preset exists | Engine built — blocked on SMS/email delivery |
 
 ---
 
@@ -203,3 +222,7 @@
 | No pagination on customer/order/inventory lists | Low | Fine until data grows |
 | Migration scripts not tested with real data | High | Need to test before running on prod |
 | `committedQty` / `onOrderQty` on InventoryItem not auto-synced on order state changes | Medium | Currently manual or batch process |
+| Campaign SMS delivery not implemented | High | `sendSms()` in `dispatch.ts` is a stub — needs Twilio integration |
+| Campaign email delivery not implemented | High | `sendEmail()` in `dispatch.ts` is a stub — needs Resend integration |
+| `message_templates` table is empty | Medium | No seed records — campaigns send preset body text from drip-presets.ts |
+| `CRON_SECRET` not set in production | High | Cron endpoint is publicly accessible without auth — set env var before go-live |

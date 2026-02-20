@@ -34,6 +34,7 @@ model User {
   notificationsTriggered  Notification[]           @relation("NotificationActor")
   notificationReads       NotificationRead[]       @relation("NotificationReads")
   notificationPreferences NotificationPreference[] @relation("NotificationPreferences")
+  campaignsCreated        Campaign[]               @relation("CampaignCreatedBy")
 
   @@map("users")
 }
@@ -173,9 +174,10 @@ model Prescription {
 
   doctorName String?
   notes      String?
-  isActive   Boolean  @default(true)
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  isActive   Boolean   @default(true)
+  expiryDate DateTime? @map("expiry_date")
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
 
   customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
   exam     Exam?    @relation(fields: [examId], references: [id])
@@ -704,11 +706,29 @@ model Campaign {
   status      CampaignStatus @default(DRAFT)
   description String?
   config      Json           @default("{}") // drip steps, timing, etc.
-  createdAt   DateTime       @default(now())
-  updatedAt   DateTime       @updatedAt
 
+  segmentConfig  Json?     @map("segment_config")
+  scheduleConfig Json?     @map("schedule_config")
+  templateId     String?   @map("template_id")
+  lastRunAt      DateTime? @map("last_run_at")
+  nextRunAt      DateTime? @map("next_run_at")
+
+  totalSent      Int   @default(0) @map("total_sent")
+  totalDelivered Int   @default(0) @map("total_delivered")
+  totalOpened    Int   @default(0) @map("total_opened")
+  totalClicked   Int   @default(0) @map("total_clicked")
+  totalConverted Int   @default(0) @map("total_converted")
+  totalRevenue   Float @default(0) @map("total_revenue")
+
+  createdById String?  @map("created_by_id")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  createdBy  User?             @relation("CampaignCreatedBy", fields: [createdById], references: [id])
+  template   MessageTemplate?  @relation(fields: [templateId], references: [id])
   recipients CampaignRecipient[]
   messages   Message[]
+  runs       CampaignRun[]
 
   @@map("campaigns")
 }
@@ -718,6 +738,23 @@ enum CampaignType {
   EXAM_REMINDER // annual reminder
   INSURANCE_RENEWAL // 2-year cycle
   ONE_TIME_BLAST
+  SECOND_PAIR
+  PRESCRIPTION_EXPIRY
+  ABANDONMENT_RECOVERY
+  FAMILY_ADDON
+  INSURANCE_MAXIMIZATION
+  POST_PURCHASE_REFERRAL
+  VIP_INSIDER
+  DAMAGE_REPLACEMENT
+  STYLE_EVOLUTION
+  BIRTHDAY_ANNIVERSARY
+  DORMANT_REACTIVATION
+  COMPETITOR_SWITCHER
+  LIFESTYLE_MARKETING
+  AGING_INVENTORY
+  NEW_ARRIVAL_VIP
+  EDUCATIONAL_NURTURE
+  LENS_EDUCATION
 }
 
 enum CampaignStatus {
@@ -736,6 +773,11 @@ model CampaignRecipient {
   enrolledAt  DateTime        @default(now())
   completedAt DateTime?
   optedOutAt  DateTime?
+
+  currentStep     Int       @default(0) @map("current_step")
+  lastMessageAt   DateTime? @map("last_message_at")
+  convertedAt     DateTime? @map("converted_at")
+  conversionValue Float?    @map("conversion_value")
 
   campaign Campaign @relation(fields: [campaignId], references: [id])
   customer Customer @relation(fields: [customerId], references: [id])
@@ -765,10 +807,18 @@ model Message {
   failedAt     DateTime?
   errorMessage String?
   externalId   String? // Twilio/SendGrid message ID
-  createdAt    DateTime       @default(now())
+
+  openedAt    DateTime? @map("opened_at")
+  clickedAt   DateTime? @map("clicked_at")
+  convertedAt DateTime? @map("converted_at")
+  stepIndex   Int?      @map("step_index")
+  runId       String?   @map("run_id")
+
+  createdAt DateTime @default(now())
 
   campaign Campaign? @relation(fields: [campaignId], references: [id])
   customer Customer  @relation(fields: [customerId], references: [id])
+  run      CampaignRun? @relation(fields: [runId], references: [id])
 
   @@map("messages")
 }
@@ -784,6 +834,41 @@ enum MessageStatus {
   DELIVERED
   FAILED
   BOUNCED
+}
+
+model MessageTemplate {
+  id           String          @id @default(cuid())
+  name         String
+  channel      MessageChannel
+  campaignType CampaignType?   @map("campaign_type")
+  subject      String?
+  body         String
+  isDefault    Boolean         @default(false) @map("is_default")
+  isActive     Boolean         @default(true) @map("is_active")
+  createdAt    DateTime        @default(now()) @map("created_at")
+  updatedAt    DateTime        @updatedAt @map("updated_at")
+
+  campaigns Campaign[]
+
+  @@map("message_templates")
+}
+
+model CampaignRun {
+  id               String    @id @default(cuid())
+  campaignId       String    @map("campaign_id")
+  runAt            DateTime  @default(now()) @map("run_at")
+  recipientsFound  Int       @default(0) @map("recipients_found")
+  messagesQueued   Int       @default(0) @map("messages_queued")
+  messagesSent     Int       @default(0) @map("messages_sent")
+  messagesFailed   Int       @default(0) @map("messages_failed")
+  durationMs       Int?      @map("duration_ms")
+  error            String?
+
+  campaign Campaign  @relation(fields: [campaignId], references: [id])
+  messages Message[]
+
+  @@index([campaignId])
+  @@map("campaign_runs")
 }
 
 // ─────────────────────────────────────────
@@ -1027,6 +1112,8 @@ enum NotificationType {
   ORDER_LAB_RECEIVED
   PO_RECEIVED
   LOW_STOCK
+  CAMPAIGN_COMPLETED
+  CAMPAIGN_ERROR
 }
 
 model Notification {

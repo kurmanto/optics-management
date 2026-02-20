@@ -4,6 +4,7 @@ function modelMock() {
   return {
     findFirst: vi.fn(),
     findUnique: vi.fn(),
+    findUniqueOrThrow: vi.fn(),
     findMany: vi.fn(),
     create: vi.fn(),
     createMany: vi.fn(),
@@ -13,6 +14,7 @@ function modelMock() {
     delete: vi.fn(),
     deleteMany: vi.fn(),
     count: vi.fn(),
+    groupBy: vi.fn(),
   };
 }
 
@@ -40,6 +42,11 @@ export function buildPrismaMock() {
     notificationRead: modelMock(),
     notificationPreference: modelMock(),
     invoice: modelMock(),
+    campaign: modelMock(),
+    campaignRecipient: modelMock(),
+    campaignRun: modelMock(),
+    message: modelMock(),
+    messageTemplate: modelMock(),
     $transaction: vi.fn(async (fn: (tx: unknown) => unknown) => {
       if (typeof fn === "function") {
         return fn(mock);
@@ -47,6 +54,7 @@ export function buildPrismaMock() {
       // Array form: prisma.$transaction([promise1, promise2])
       return Promise.all(fn as unknown as Promise<unknown>[]);
     }),
+    $queryRawUnsafe: vi.fn(),
   };
   return mock;
 }
