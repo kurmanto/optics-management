@@ -46,7 +46,7 @@ export default async function CustomersPage({
         { firstName: { contains: query, mode: "insensitive" } },
         { lastName: { contains: query, mode: "insensitive" } },
         { email: { contains: query, mode: "insensitive" } },
-        { phone: { contains: query.replace(/\D/g, "") } },
+        ...(query.replace(/\D/g, "") ? [{ phone: { contains: query.replace(/\D/g, "") } }] : []),
         { legacyCustomerId: { contains: query, mode: "insensitive" } },
       ],
     }),

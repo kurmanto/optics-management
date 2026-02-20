@@ -8,6 +8,7 @@ export default defineConfig({
     environment: "node",
     globals: true,
     setupFiles: ["./src/__tests__/setup.ts"],
+    exclude: ["e2e/**", "node_modules/**", ".vercel/**"],
     coverage: {
       provider: "v8",
       reporter: ["text", "html"],
