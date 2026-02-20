@@ -17,6 +17,7 @@ export default defineConfig({
         "src/lib/auth.ts",
         "src/lib/validations/**",
         "src/lib/actions/**",
+        "src/lib/campaigns/**",
       ],
     },
   },

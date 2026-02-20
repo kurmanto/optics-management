@@ -11,6 +11,8 @@ import {
   LineItemType,
   ExamType,
   FormTemplateType,
+  MessageChannel,
+  CampaignType,
 } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { config } from "dotenv";
@@ -405,6 +407,111 @@ async function main() {
     },
   });
   console.log("✅ Multi-frame order (2 frames)");
+
+  // ════════════════════════════════════════════════════════
+  // MESSAGE TEMPLATES
+  // ════════════════════════════════════════════════════════
+  const defaultTemplates: {
+    name: string;
+    channel: MessageChannel;
+    campaignType: CampaignType;
+    subject?: string;
+    body: string;
+    isDefault: boolean;
+  }[] = [
+    {
+      name: "Exam Reminder — SMS",
+      channel: MessageChannel.SMS,
+      campaignType: CampaignType.EXAM_REMINDER,
+      body: "Hi {{firstName}}! It's been about a year since your last eye exam at {{storeName}}. Keep your vision sharp — book your annual exam today. Call us at {{storePhone}}.",
+      isDefault: true,
+    },
+    {
+      name: "Exam Reminder — Email",
+      channel: MessageChannel.EMAIL,
+      campaignType: CampaignType.EXAM_REMINDER,
+      subject: "Your Annual Eye Exam Reminder — {{storeName}}",
+      body: "Dear {{firstName}},\n\nYour last eye exam was about a year ago. Regular eye exams are the best way to catch vision changes early.\n\nBook your appointment today at {{storeName}}.\n\nCall: {{storePhone}}\n\nSee you soon!",
+      isDefault: true,
+    },
+    {
+      name: "Walk-in Follow-up — SMS",
+      channel: MessageChannel.SMS,
+      campaignType: CampaignType.WALKIN_FOLLOWUP,
+      body: "Hi {{firstName}}! Thanks for visiting {{storeName}}. Still thinking about those frames? We'd love to help. Call us at {{storePhone}}.",
+      isDefault: true,
+    },
+    {
+      name: "Second Pair — Email",
+      channel: MessageChannel.EMAIL,
+      campaignType: CampaignType.SECOND_PAIR,
+      subject: "Protect your backup pair — exclusive second-pair offer",
+      body: "Hi {{firstName}},\n\nNow that you're loving your {{frameBrand}} frames, have you thought about a backup pair? As a valued customer, we're offering you a special deal on a second pair.\n\nCall us at {{storePhone}} or stop in at {{storeName}}.",
+      isDefault: true,
+    },
+    {
+      name: "Rx Expiry — SMS",
+      channel: MessageChannel.SMS,
+      campaignType: CampaignType.PRESCRIPTION_EXPIRY,
+      body: "Hi {{firstName}}! Your prescription expires on {{rxExpiryDate}}. Book your eye exam soon to stay current. Call {{storeName}} at {{storePhone}}.",
+      isDefault: true,
+    },
+    {
+      name: "Abandonment Recovery — SMS",
+      channel: MessageChannel.SMS,
+      campaignType: CampaignType.ABANDONMENT_RECOVERY,
+      body: "Hi {{firstName}}! Still thinking about your visit to {{storeName}}? We'd love to help you find the perfect pair. Call us at {{storePhone}}.",
+      isDefault: true,
+    },
+    {
+      name: "Post-Purchase Referral — SMS",
+      channel: MessageChannel.SMS,
+      campaignType: CampaignType.POST_PURCHASE_REFERRAL,
+      body: "Hi {{firstName}}! Loving your new frames? Refer a friend to {{storeName}} and you both get a reward. Ask us for details at {{storePhone}}.",
+      isDefault: true,
+    },
+    {
+      name: "VIP Insider — Email",
+      channel: MessageChannel.EMAIL,
+      campaignType: CampaignType.VIP_INSIDER,
+      subject: "You're a VIP at {{storeName}} — exclusive access inside",
+      body: "Dear {{firstName}},\n\nAs one of our most valued customers, you get first access to new arrivals and exclusive offers.\n\nCall {{storePhone}} for personalized assistance.",
+      isDefault: true,
+    },
+    {
+      name: "Birthday — SMS",
+      channel: MessageChannel.SMS,
+      campaignType: CampaignType.BIRTHDAY_ANNIVERSARY,
+      body: "Happy Birthday {{firstName}}! As a gift from {{storeName}}, enjoy a special birthday treat on your next visit. Call us at {{storePhone}}!",
+      isDefault: true,
+    },
+    {
+      name: "Dormant Reactivation — Email",
+      channel: MessageChannel.EMAIL,
+      campaignType: CampaignType.DORMANT_REACTIVATION,
+      subject: "We miss you, {{firstName}} — come back to {{storeName}}",
+      body: "Hi {{firstName}},\n\nIt's been a while since we've seen you at {{storeName}}! A lot has changed — new frames, new technology, and the same great service.\n\nWe'd love to welcome you back. Call {{storePhone}} or stop in anytime.",
+      isDefault: true,
+    },
+    {
+      name: "Insurance Maximization — Email",
+      channel: MessageChannel.EMAIL,
+      campaignType: CampaignType.INSURANCE_MAXIMIZATION,
+      subject: "Use your {{insuranceProvider}} benefits before they expire",
+      body: "Dear {{firstName}},\n\nYour {{insuranceProvider}} vision benefits renew in {{insuranceRenewalMonth}}. Don't let unused benefits go to waste!\n\nBook your eye exam and choose new frames before your benefits reset. Call {{storeName}} at {{storePhone}}.",
+      isDefault: true,
+    },
+  ];
+
+  for (const template of defaultTemplates) {
+    const existing = await prisma.messageTemplate.findFirst({
+      where: { name: template.name },
+    });
+    if (!existing) {
+      await prisma.messageTemplate.create({ data: template });
+    }
+  }
+  console.log(`✅ Message templates (${defaultTemplates.length})`);
 
   // ════════════════════════════════════════════════════════
   // SUMMARY

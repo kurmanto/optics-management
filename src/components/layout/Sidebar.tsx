@@ -18,6 +18,7 @@ import {
   Receipt,
   BookOpen,
   ScanLine,
+  Megaphone,
 } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { logout } from "@/lib/actions/auth";
@@ -64,6 +65,15 @@ const navItems = [
     ],
   },
   {
+    title: "Marketing",
+    href: "/campaigns",
+    icon: Megaphone,
+    children: [
+      { title: "Campaigns", href: "/campaigns" },
+      { title: "Analytics", href: "/campaigns/analytics" },
+    ],
+  },
+  {
     title: "Settings",
     href: "/settings",
     icon: Settings,
@@ -99,6 +109,7 @@ export function Sidebar({ userName, userRole }: Props) {
     if (child.href === "/inventory") return pathname === "/inventory";
     if (child.href === "/orders") return pathname === "/orders";
     if (child.href === "/customers") return pathname === "/customers" || pathname.startsWith("/customers/");
+    if (child.href === "/campaigns") return pathname === "/campaigns" || (pathname.startsWith("/campaigns/") && !pathname.startsWith("/campaigns/analytics"));
     return pathname.startsWith(child.href);
   }
 

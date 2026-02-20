@@ -29,7 +29,7 @@ export default async function RootLayout({
       className={`${inter.variable} ${fontClass}`.trim()}
       suppressHydrationWarning
     >
-      <body className="font-sans antialiased">{children}</body>
+      <body className="font-sans antialiased" suppressHydrationWarning>{children}</body>
     </html>
   );
 }
