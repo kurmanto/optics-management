@@ -22,6 +22,15 @@ yarn-error.log*
 # local env files
 .env*.local
 .env
+.env.test
+
+# Playwright
+/.auth/
+/e2e/.auth/
+/playwright-report/
+/test-results/
+/blob-report/
+/e2e/helpers/test-fixtures.json
 
 # vercel
 .vercel

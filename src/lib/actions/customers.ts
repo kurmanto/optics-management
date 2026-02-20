@@ -280,7 +280,7 @@ export async function searchCustomers(query: string): Promise<CustomerSearchResu
         { firstName: { contains: q, mode: "insensitive" } },
         { lastName: { contains: q, mode: "insensitive" } },
         { email: { contains: q, mode: "insensitive" } },
-        { phone: { contains: q.replace(/\D/g, "") } },
+        ...(q.replace(/\D/g, "") ? [{ phone: { contains: q.replace(/\D/g, "") } }] : []),
       ],
     },
     select: {
