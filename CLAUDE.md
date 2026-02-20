@@ -115,10 +115,15 @@ Current version: **V1.5.1 — Orders Navigation Fix** (2026-02-18)
 | SMS / Email | 🔲 V2.1 |
 
 ## User Guide
-- File: `user-guide-site/index.html` — single self-contained HTML file, no dependencies
-- Deployed to Vercel as a standalone static site from the `user-guide-site/` directory
-- To redeploy after edits: `cd user-guide-site && vercel --prod`
-- **Maintenance rule:** After every feature addition or bug fix, update the relevant section(s) in `user-guide-site/index.html` to reflect the change. This is a hard requirement, same as updating `docs/`.
+- Source: `user-guide-site/index.html` — single self-contained HTML file, no dependencies
+- **Also served from the app:** `public/user-guide.html` — Next.js serves this at `/user-guide.html` on the main domain. This file must always be identical to `user-guide-site/index.html`.
+- Deployed to Vercel standalone: `https://mvo-staff-guide.vercel.app` — redeploy with `cd user-guide-site && vercel --prod`
+- **Maintenance rule:** After every feature addition or bug fix:
+  1. Edit `user-guide-site/index.html`
+  2. Copy it to `public/user-guide.html` (`cp user-guide-site/index.html public/user-guide.html`)
+  3. Commit both files together
+  4. Redeploy to Vercel standalone (`cd user-guide-site && vercel --prod`)
+  This is a hard requirement, same as updating `docs/`.
 
 ## Documentation Requirements
 After every `/ship`, update ALL documentation files in `docs/` to reflect the current state:
