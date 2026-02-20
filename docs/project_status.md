@@ -1,11 +1,11 @@
 # Project Status
 ## Mint Vision Optique — Staff Portal
 
-**Last updated:** 2026-02-18
+**Last updated:** 2026-02-20
 
 ---
 
-## Current Version: V1.6.0 — Scan Rx + Prescription Image Storage
+## Current Version: V2.1.0 — Campaign Engine (Marketing Automation)
 
 ---
 

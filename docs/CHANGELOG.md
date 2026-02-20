@@ -259,6 +259,65 @@ Format: `[Version] — Date`
 
 ---
 
+## [2.1.0] — 2026-02-20
+
+### Added — Campaign Engine (Marketing Automation)
+
+#### Campaign Schema
+- New models: `Campaign`, `CampaignRecipient`, `CampaignRun`, `Message`, `MessageTemplate`
+- New enums: `CampaignType` (21 types), `CampaignStatus`, `MessageChannel`, `MessageStatus`, `RecipientStatus`
+- SQL migration: `prisma/migrations/campaigns_v1.sql`
+
+#### Campaign Engine (`src/lib/campaigns/`)
+- `campaign-engine.ts` — `processCampaign()`, `processAllCampaigns()`, `checkConversions()`
+- `segment-engine.ts` — SQL builder for customer segments (age, order count, days since exam, Rx expiry, insurance renewal month, and more)
+- `drip-presets.ts` — 21 campaign type presets with multi-step drip sequences, delay days, and channel configs (SMS/EMAIL)
+- `dispatch.ts` — `dispatchMessage()` creates `Message` DB record and dispatches via channel (SMS/email stubs — Twilio/Resend not yet wired)
+- `template-engine.ts` — `resolveVariables()` + `interpolateTemplate()` for `{{firstName}}`, `{{insuranceProvider}}`, `{{rxExpiryDate}}` etc.
+- `opt-out.ts` — `canContact()`, `processOptOut()` — respects `marketingOptOut`, `smsOptIn`, `emailOptIn`
+- `segment-presets.ts`, `segment-fields.ts`, `segment-types.ts`, `template-variables.ts` — supporting configs
+
+#### Campaign Actions (`src/lib/actions/campaigns.ts`)
+- `createCampaign`, `updateCampaign`, `deleteCampaign`
+- `activateCampaign`, `pauseCampaign`, `archiveCampaign`
+- `enrollCustomer`, `removeRecipient`
+- `triggerCampaignRun` (Admin only)
+- `getCampaignAnalytics`
+- `previewSegment`, `createMessageTemplate`, `updateMessageTemplate`, `deleteMessageTemplate`
+
+#### Campaign UI
+- `/campaigns` — list page with status filter, metrics summary
+- `/campaigns/new` — campaign creation wizard (type selector → segment config → drip preview → create)
+- `/campaigns/[id]` — campaign detail (metrics, recipient table, message log, run history)
+- `/campaigns/[id]/edit` — campaign edit form
+- `/campaigns/analytics` — cross-campaign analytics dashboard
+
+#### Cron / Scheduler
+- `GET /api/cron/campaigns` — processes all ACTIVE campaigns, secured with `CRON_SECRET` Bearer token
+- `vercel.json` — Vercel Cron configured to run daily at 9am UTC
+
+#### Notifications
+- `CAMPAIGN_COMPLETED` notification fired after each successful campaign run
+- `CAMPAIGN_ERROR` notification fired when a campaign run fails
+
+#### Bug Fixes (Campaign Engine)
+- `excludeRecentlyContacted` SQL clause was silently ignored — customers recently messaged were being re-enrolled
+- `INSURANCE_RENEWAL` drip preset was missing — campaigns fell back to single generic SMS
+- `processOptOut` never set the `optOutBy` field on the Customer record
+- `checkConversions` used a stale recipient list after mid-run enrollment — newly enrolled recipients missed conversion detection
+- `processAllCampaigns` never fired `CAMPAIGN_COMPLETED` / `CAMPAIGN_ERROR` notifications
+- `<body>` tag missing `suppressHydrationWarning` — Grammarly extension caused React hydration noise in dev
+
+#### Tests
+- 316 total tests passing (107 new) across 22 test files
+- New: `campaign-engine-process.test.ts` (12 tests — full engine lifecycle)
+- Extended: `campaign-engine.test.ts`, `segment-engine.test.ts`, `template-engine.test.ts`, `campaigns.test.ts`
+- Vitest coverage now includes `src/lib/campaigns/**`
+
+> **Not yet live:** SMS delivery (Twilio stub) and email delivery (Resend stub) are not implemented. See `docs/project_status.md` Known Issues.
+
+---
+
 ## Upcoming
 
 ### [1.1.0] — Planned
