@@ -1,7 +1,7 @@
 # Developer Reference
 ## Mint Vision Optique — Staff Portal
 
-**Last updated:** 2026-02-17
+**Last updated:** 2026-02-20
 
 ---
 
@@ -21,6 +21,13 @@
 | `src/lib/actions/inventory.ts` | `createInventoryItem`, `updateInventoryItem`, `deleteInventoryItem` |
 | `src/lib/actions/vendors.ts` | `createVendor`, `updateVendor`, `deleteVendor` |
 | `src/lib/actions/purchase-orders.ts` | `createPurchaseOrder`, `updatePOStatus`, `receivePOLineItems` |
+| `src/lib/actions/campaigns.ts` | `createCampaign`, `updateCampaign`, `deleteCampaign`, `activateCampaign`, `pauseCampaign`, `archiveCampaign`, `enrollCustomer`, `removeRecipient`, `triggerCampaignRun` (Admin), `getCampaignAnalytics`, `previewSegment`, `createMessageTemplate`, `updateMessageTemplate`, `deleteMessageTemplate` |
+| `src/lib/campaigns/campaign-engine.ts` | `processCampaign(id)`, `processAllCampaigns()` |
+| `src/lib/campaigns/segment-engine.ts` | `executeSegment(config)`, `previewSegmentCount(config)`, `previewSegmentSample(config)` |
+| `src/lib/campaigns/dispatch.ts` | `dispatchMessage(opts)` — creates Message record + sends (SMS/email stubs) |
+| `src/lib/campaigns/template-engine.ts` | `resolveVariables(customerId)`, `interpolateTemplate(body, vars)` |
+| `src/lib/campaigns/opt-out.ts` | `canContact(customer, channel)`, `processOptOut(customerId, source)` |
+| `src/lib/campaigns/drip-presets.ts` | `getDripConfig(campaignType)` — returns steps, cooldownDays, enrollmentMode |
 | `src/lib/validations/customer.ts` | `CustomerSchema` (Zod) |
 | `src/lib/validations/order.ts` | Order validation schemas (Zod) |
 | `src/lib/validations/forms.ts` | Form submission schemas (Zod) |
@@ -252,6 +259,21 @@ Format: `ORD-YYYY-NNN` (e.g. `ORD-2026-001`).
 ### CoverageType
 `VISION | OHIP | EXTENDED_HEALTH | COMBINED`
 
+### CampaignType (21 types)
+`WALKIN_FOLLOWUP | EXAM_REMINDER | INSURANCE_RENEWAL | ONE_TIME_BLAST | SECOND_PAIR | PRESCRIPTION_EXPIRY | ABANDONMENT_RECOVERY | POST_PURCHASE_REFERRAL | VIP_INSIDER | BIRTHDAY_ANNIVERSARY | DORMANT_REACTIVATION | INSURANCE_MAXIMIZATION | DAMAGE_REPLACEMENT | COMPETITOR_SWITCHER | NEW_ARRIVAL_VIP | LIFESTYLE_MARKETING | EDUCATIONAL_NURTURE | LENS_EDUCATION | AGING_INVENTORY | STYLE_EVOLUTION | FAMILY_ADDON`
+
+### CampaignStatus
+`DRAFT | ACTIVE | PAUSED | ARCHIVED | COMPLETED`
+
+### MessageChannel
+`SMS | EMAIL`
+
+### MessageStatus
+`PENDING | SENT | DELIVERED | FAILED | OPTED_OUT`
+
+### RecipientStatus
+`ACTIVE | COMPLETED | OPTED_OUT | CONVERTED | PAUSED`
+
 ---
 
 ## Purchase Order Flow
@@ -264,6 +286,64 @@ DRAFT → SENT → CONFIRMED → (PARTIAL) → RECEIVED
 - `PARTIAL` is auto-set when some but not all line items are received
 - `RECEIVED` is auto-set when all line items are received
 - Stock is updated via `InventoryLedger` on each line item receipt (reason: `PURCHASE_ORDER_RECEIVED`)
+
+---
+
+## Campaign Engine Flow
+
+```
+Vercel Cron (daily 9am UTC)
+  → GET /api/cron/campaigns (Bearer CRON_SECRET)
+  → processAllCampaigns()
+    → find ACTIVE campaigns
+    → processCampaign(id) for each:
+        1. executeSegment() — find matching customers
+        2. campaignRecipient.createMany() — enroll new customers
+        3. For each ACTIVE recipient:
+           - canContact() — check opt-out + channel availability
+           - delayElapsed() — check drip step delay
+           - resolveVariables() + interpolateTemplate() — build message
+           - dispatchMessage() — create Message record + send
+           - advance drip step or mark COMPLETED
+        4. checkConversions() — mark CONVERTED if qualifying order placed
+        5. Update CampaignRun stats
+        6. createNotification(CAMPAIGN_COMPLETED)
+```
+
+### Campaign Status Flow
+
+```
+DRAFT → ACTIVE → PAUSED → ACTIVE (re-activate)
+                         ↘ ARCHIVED
+```
+
+---
+
+## Campaign Segment Fields
+
+| Field | Operators | Description |
+|-------|-----------|-------------|
+| `age` | `gt`, `lt`, `gte`, `lte`, `between` | Customer age from DOB |
+| `lifetimeOrderCount` | `gt`, `lt`, `gte`, `lte` | Total orders placed |
+| `daysSinceLastExam` | `gt`, `lt`, `between` | Days since last eye exam |
+| `daysSinceLastOrder` | `gt`, `lt`, `between` | Days since last order |
+| `hasExam` | `eq` (true/false) | Has any exam on record |
+| `rxExpiresInDays` | `between` | Rx expiry within N–M days |
+| `insuranceRenewalMonth` | `in` | Insurance renewal month (1–12) |
+| `gender` | `eq` | `MALE`, `FEMALE`, `OTHER` |
+| `city` | `eq` | City field on customer |
+| `isOnboarded` | `eq` | Completed intake package |
+
+Options: `excludeMarketingOptOut`, `requireChannel` (SMS/EMAIL), `excludeRecentlyContacted` (days)
+
+---
+
+## Template Variables
+
+`{{firstName}}`, `{{lastName}}`, `{{fullName}}`, `{{phone}}`, `{{email}}`,
+`{{frameBrand}}`, `{{frameModel}}`, `{{orderDate}}`, `{{rxExpiryDate}}`,
+`{{insuranceProvider}}`, `{{insuranceRenewalMonth}}`, `{{examDate}}`,
+`{{referralCode}}`, `{{storeName}}`, `{{storePhone}}`
 
 ---
 

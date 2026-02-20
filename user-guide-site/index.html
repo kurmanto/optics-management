@@ -627,7 +627,16 @@
   <a href="#section-settings" class="section-link">9. Settings</a>
   <a href="#display-preferences" class="sub-link">Display Preferences</a>
 
-  <a href="#section-quick-ref" class="section-link">10. Quick Reference</a>
+  <a href="#section-campaigns" class="section-link">10. Campaigns</a>
+  <a href="#campaigns-overview" class="sub-link">What Are Campaigns?</a>
+  <a href="#campaign-types" class="sub-link">Campaign Types</a>
+  <a href="#create-campaign" class="sub-link">Creating a Campaign</a>
+  <a href="#campaign-status" class="sub-link">Status Lifecycle</a>
+  <a href="#campaign-recipients" class="sub-link">Recipients & Segments</a>
+  <a href="#campaign-analytics" class="sub-link">Analytics</a>
+  <a href="#campaign-scheduler" class="sub-link">Automatic Scheduler</a>
+
+  <a href="#section-quick-ref" class="section-link">11. Quick Reference</a>
   <a href="#cheat-sheet" class="sub-link">Status Cheat Sheet</a>
   <a href="#common-tasks" class="sub-link">Common Tasks</a>
 </nav>
@@ -1907,10 +1916,120 @@
 </section>
 
 
-<!-- ==================== SECTION 10: QUICK REFERENCE ==================== -->
-<section class="section" id="section-quick-ref">
+<!-- ==================== SECTION 10: CAMPAIGNS ==================== -->
+<section class="section" id="section-campaigns">
   <div class="section-eyebrow">Section 10</div>
   <div class="section-number">10</div>
+  <h1 class="section-title">Campaigns</h1>
+  <p>The Campaigns module lets you send targeted SMS and email messages to your patients automatically — recalls, insurance reminders, follow-ups, and more. Campaigns run on autopilot once activated.</p>
+
+  <div class="box box-tip">
+    <strong>Note:</strong> SMS and email delivery are not yet live. The campaign engine is fully built and tested, but Twilio (SMS) and Resend (email) integration must be configured before messages actually send. Contact your administrator to enable.
+  </div>
+
+  <h2 id="campaigns-overview">10.1 What Are Campaigns?</h2>
+  <p>A campaign is an automated sequence of messages sent to a group of patients. Each campaign has:</p>
+  <ul>
+    <li><strong>Type</strong> — what kind of outreach (exam reminder, insurance renewal, etc.)</li>
+    <li><strong>Segment</strong> — which patients qualify (based on age, last exam, Rx expiry, etc.)</li>
+    <li><strong>Drip steps</strong> — one or more messages sent at defined intervals (e.g. SMS on day 0, email on day 14)</li>
+    <li><strong>Recipients</strong> — the patients enrolled in this campaign and their progress</li>
+  </ul>
+  <p>Navigate to <strong>Campaigns</strong> in the sidebar to see your campaign list.</p>
+
+  <h2 id="campaign-types">10.2 Campaign Types</h2>
+  <p>The system includes 21 pre-built campaign types, each with a default drip sequence:</p>
+  <table>
+    <thead><tr><th>Type</th><th>Purpose</th></tr></thead>
+    <tbody>
+      <tr><td>Exam Reminder</td><td>Annual recall — remind patients it's time for a checkup</td></tr>
+      <tr><td>Insurance Renewal</td><td>Alert patients when their vision benefits are about to renew</td></tr>
+      <tr><td>Prescription Expiry</td><td>Notify patients whose Rx is expiring soon</td></tr>
+      <tr><td>Walk-in Follow-up</td><td>Follow up with walk-in visitors who didn't purchase</td></tr>
+      <tr><td>Second Pair</td><td>Offer a second pair to recent frame buyers</td></tr>
+      <tr><td>Post Purchase Referral</td><td>Ask satisfied customers to refer friends</td></tr>
+      <tr><td>Dormant Reactivation</td><td>Re-engage patients who haven't visited in 18+ months</td></tr>
+      <tr><td>Birthday / Anniversary</td><td>Send a special offer on the patient's birthday</td></tr>
+      <tr><td>One-Time Blast</td><td>A single broadcast message to a group (sale, event, etc.)</td></tr>
+      <tr><td>VIP Insider</td><td>Exclusive early access for high-value patients</td></tr>
+      <tr><td colspan="2" style="color:#64748b; font-style:italic;">…and 11 more types including Insurance Maximization, Damage Replacement, New Arrival VIP, and others</td></tr>
+    </tbody>
+  </table>
+
+  <h2 id="create-campaign">10.3 Creating a Campaign</h2>
+  <ol>
+    <li>Go to <strong>Campaigns → New Campaign</strong></li>
+    <li>Select a <strong>Campaign Type</strong> — the system pre-fills a drip sequence for you</li>
+    <li>Give the campaign a <strong>Name</strong> and optional description</li>
+    <li>Optionally configure a <strong>Segment</strong> — define which patients automatically qualify (e.g. "patients aged 40+ whose last exam was 300–400 days ago")</li>
+    <li>Review the pre-built drip steps (you can customise the message body)</li>
+    <li>Click <strong>Create Campaign</strong> — it starts in <strong>Draft</strong> status</li>
+    <li>From the campaign detail page, click <strong>Activate</strong> when you're ready for it to run</li>
+  </ol>
+
+  <div class="box box-tip">
+    <strong>Tip:</strong> Leave the segment blank to enroll patients manually one by one from the campaign detail page. Use a segment to have patients auto-enrolled on every daily run.
+  </div>
+
+  <h2 id="campaign-status">10.4 Campaign Status Lifecycle</h2>
+  <table>
+    <thead><tr><th>Status</th><th>Meaning</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Draft</strong></td><td>Being set up — not running, no messages sent</td></tr>
+      <tr><td><strong>Active</strong></td><td>Running — processes daily, enrolls new patients, sends drip messages</td></tr>
+      <tr><td><strong>Paused</strong></td><td>Temporarily stopped — no new messages; can be re-activated</td></tr>
+      <tr><td><strong>Archived</strong></td><td>Permanently stopped — kept for history</td></tr>
+    </tbody>
+  </table>
+  <p>Use the action buttons on the campaign detail page to move between statuses.</p>
+
+  <h2 id="campaign-recipients">10.5 Recipients &amp; Segments</h2>
+  <h3>Manual Enrollment</h3>
+  <p>On any campaign detail page, click <strong>Enroll Patient</strong> to add a specific patient. Useful for small targeted outreach or testing.</p>
+
+  <h3>Automatic Segment Enrollment</h3>
+  <p>If the campaign has a segment configured, every daily run evaluates which patients match and auto-enrolls any who haven't been enrolled before. Patients who opt out are excluded.</p>
+
+  <h3>Segment Conditions</h3>
+  <p>You can filter by: age, lifetime order count, days since last exam, days since last order, Rx expiry window, insurance renewal month, gender, city, onboarding status, and more. Combine conditions with AND or OR logic.</p>
+
+  <h3>Recipient Statuses</h3>
+  <table>
+    <thead><tr><th>Status</th><th>Meaning</th></tr></thead>
+    <tbody>
+      <tr><td>Active</td><td>Enrolled and receiving drip messages</td></tr>
+      <tr><td>Completed</td><td>Finished all drip steps</td></tr>
+      <tr><td>Converted</td><td>Placed a qualifying order after enrollment — no more messages sent</td></tr>
+      <tr><td>Opted Out</td><td>Patient requested opt-out — removed from all campaigns</td></tr>
+      <tr><td>Paused</td><td>Temporarily paused for this recipient</td></tr>
+    </tbody>
+  </table>
+
+  <h2 id="campaign-analytics">10.6 Analytics</h2>
+  <p>The <strong>Campaigns → Analytics</strong> page shows a cross-campaign view: total messages sent, delivery rate, conversion rate, and revenue attributed to campaigns.</p>
+  <p>Individual campaign detail pages show per-campaign metrics: recipients enrolled, messages sent vs failed, conversions, and a full message log.</p>
+
+  <h2 id="campaign-scheduler">10.7 Automatic Scheduler</h2>
+  <p>The system runs a daily job at <strong>9am UTC</strong> that processes all Active campaigns automatically. For each campaign it:</p>
+  <ol>
+    <li>Finds patients who match the segment and enrolls them</li>
+    <li>Sends the appropriate drip step message to each enrolled patient (if the delay has elapsed)</li>
+    <li>Checks whether any patient placed an order (and marks them Converted)</li>
+    <li>Records a run log with full stats</li>
+    <li>Fires a notification to staff when complete</li>
+  </ol>
+  <p>You can also trigger a run manually from the campaign detail page (Admin only).</p>
+
+  <div class="box box-tip">
+    <strong>Opt-Out Handling:</strong> Any patient with <em>Marketing Opt-Out</em> enabled is automatically skipped. Patients without a phone number are skipped for SMS steps; patients without an email are skipped for email steps.
+  </div>
+</section>
+
+
+<!-- ==================== SECTION 11: QUICK REFERENCE ==================== -->
+<section class="section" id="section-quick-ref">
+  <div class="section-eyebrow">Section 11</div>
+  <div class="section-number">11</div>
   <h1 class="section-title">Quick Reference</h1>
   <p class="section-intro">Tear out this section and keep it at your workstation. Everything you need at a glance.</p>
 
@@ -2081,7 +2200,7 @@
 
   <div style="margin-top:60px; padding:24px; background:#f0fdf4; border-radius:10px; border:1px solid #bbf7d0; text-align:center; font-family:system-ui,sans-serif;">
     <div style="font-size:22px; font-weight:800; color:#15803d; margin-bottom:6px;">Mint Vision Optique — Staff Portal</div>
-    <div style="font-size:13px; color:#16a34a;">Version 1.5 &nbsp;·&nbsp; February 2026 &nbsp;·&nbsp; Confidential — Internal Use Only</div>
+    <div style="font-size:13px; color:#16a34a;">Version 2.1 &nbsp;·&nbsp; February 2026 &nbsp;·&nbsp; Confidential — Internal Use Only</div>
     <div style="margin-top:12px; font-size:13px; color:#64748b;">For technical support, contact your system administrator.</div>
   </div>
 </section>

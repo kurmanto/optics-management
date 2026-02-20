@@ -1,7 +1,7 @@
 # Architecture
 ## Mint Vision Optique — Staff Portal
 
-**Last updated:** 2026-02-17
+**Last updated:** 2026-02-20
 
 ---
 
@@ -63,6 +63,13 @@ optics_boutique/
 │   │   │   │   ├── page.tsx                    # Forms hub
 │   │   │   │   ├── [id]/page.tsx               # Form detail
 │   │   │   │   └── review/[packageId]/page.tsx # Intake review + apply
+│   │   │   ├── campaigns/
+│   │   │   │   ├── page.tsx                    # Campaign list
+│   │   │   │   ├── new/page.tsx                # Campaign creation wizard
+│   │   │   │   ├── analytics/page.tsx          # Cross-campaign analytics
+│   │   │   │   └── [id]/
+│   │   │   │       ├── page.tsx                # Campaign detail
+│   │   │   │       └── edit/page.tsx
 │   │   │   └── settings/page.tsx
 │   │   ├── (forms)/                            # Public — no auth required
 │   │   │   ├── f/[token]/page.tsx              # Individual form fill
@@ -87,11 +94,24 @@ optics_boutique/
 │   │   │   ├── forms.ts
 │   │   │   ├── inventory.ts
 │   │   │   ├── vendors.ts
-│   │   │   └── purchase-orders.ts
+│   │   │   ├── purchase-orders.ts
+│   │   │   └── campaigns.ts
+│   │   ├── campaigns/         # Campaign engine
+│   │   │   ├── campaign-engine.ts   # processCampaign, processAllCampaigns
+│   │   │   ├── segment-engine.ts    # SQL segment builder
+│   │   │   ├── drip-presets.ts      # 21 campaign type configs
+│   │   │   ├── dispatch.ts          # dispatchMessage (SMS/email stubs)
+│   │   │   ├── template-engine.ts   # resolveVariables, interpolateTemplate
+│   │   │   ├── opt-out.ts           # canContact, processOptOut
+│   │   │   ├── segment-presets.ts   # Segment configs per campaign type
+│   │   │   ├── segment-fields.ts    # Segment field definitions
+│   │   │   ├── segment-types.ts     # TypeScript types for segments
+│   │   │   └── template-variables.ts # Template variable definitions
 │   │   ├── validations/       # Zod schemas
 │   │   │   ├── customer.ts
 │   │   │   ├── order.ts
-│   │   │   └── forms.ts
+│   │   │   ├── forms.ts
+│   │   │   └── campaign.ts
 │   │   ├── utils/
 │   │   │   ├── formatters.ts  # formatCurrency, formatDate, formatPhone, formatRxValue
 │   │   │   └── cn.ts          # Tailwind class merging
@@ -195,9 +215,11 @@ The Prisma singleton in `src/lib/prisma.ts` uses `@prisma/adapter-pg`.
 | `FormPackage` | 3-form intake bundle grouping | ✅ Active (V1.2) |
 | `Exam` | Eye exam records | 🔲 V2 |
 | `Walkin` | Walk-in visit log | 🔲 V2 |
-| `Campaign` | Marketing campaigns | 🔲 V2.1 |
-| `CampaignRecipient` | Campaign enrollment | 🔲 V2.1 |
-| `Message` | SMS/email messages sent | 🔲 V2.1 |
+| `Campaign` | Marketing campaigns | ✅ Active (V2.1) |
+| `CampaignRecipient` | Campaign enrollment + drip state | ✅ Active (V2.1) |
+| `CampaignRun` | Per-run execution log | ✅ Active (V2.1) |
+| `Message` | SMS/email messages sent | ✅ Active (V2.1) |
+| `MessageTemplate` | Reusable message templates | ✅ Active (V2.1) |
 | `Referral` | Customer referral tracking | 🔲 V3 |
 | `Appointment` | Scheduled appointments | 🔲 V4 |
 | `AuditLog` | General audit trail | ✅ Schema only |
@@ -226,6 +248,7 @@ The Prisma singleton in `src/lib/prisma.ts` uses `@prisma/adapter-pg`.
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Yes | Supabase anon key |
 | `SUPABASE_SERVICE_ROLE_KEY` | Yes | Supabase service role (for admin operations) |
 | `ANTHROPIC_API_KEY` | Yes (V1.3+) | Claude AI for external prescription OCR |
+| `CRON_SECRET` | Yes (production) | Bearer token for `/api/cron/campaigns` — set in Vercel env |
 
 ---
 
@@ -235,6 +258,8 @@ The Prisma singleton in `src/lib/prisma.ts` uses `@prisma/adapter-pg`.
 |---------|---------|-------------|
 | Supabase (PostgreSQL) | Primary database + file storage | `pg`, `@supabase/supabase-js` |
 | Anthropic Claude API | AI OCR for external prescription photos | `@anthropic-ai/sdk` |
+| Twilio | SMS delivery for campaigns | ❌ Not yet integrated — `sendSms()` in `dispatch.ts` is a stub |
+| Resend | Email delivery for campaigns | ❌ Not yet integrated — `sendEmail()` in `dispatch.ts` is a stub |
 
 ### AI OCR (External Rx Upload)
 The `ExternalPrescriptionUpload` component calls Claude's vision API to parse prescription images. The prompt asks Claude to return structured JSON with OD/OS sphere, cylinder, axis, add, PD, expiry date, and prescribing doctor info. The response is validated before pre-filling the prescription form.
