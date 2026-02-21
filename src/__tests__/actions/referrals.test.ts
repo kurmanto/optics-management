@@ -115,9 +115,9 @@ describe("getCustomerReferrals", () => {
     const result = await getCustomerReferrals("cust-1");
 
     expect(result.given).toHaveLength(1);
-    expect(result.given[0].referred.firstName).toBe("Bob");
+    expect(result.given[0].referred!.firstName).toBe("Bob");
     expect(result.received).toHaveLength(1);
-    expect(result.received[0].referrer.firstName).toBe("Alice");
+    expect(result.received[0].referrer!.firstName).toBe("Alice");
   });
 
   it("returns empty arrays when both findMany return []", async () => {
