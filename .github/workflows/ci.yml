@@ -88,6 +88,18 @@ jobs:
         if: steps.secrets.outputs.configured == 'true'
         run: npx playwright install --with-deps chromium
 
+      - name: Build Next.js app
+        if: steps.secrets.outputs.configured == 'true'
+        run: npm run build
+        env:
+          DATABASE_URL: ${{ secrets.E2E_DATABASE_URL }}
+          DIRECT_URL: ${{ secrets.E2E_DIRECT_URL }}
+          SESSION_SECRET: ${{ secrets.SESSION_SECRET }}
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          NODE_TLS_REJECT_UNAUTHORIZED: "0"
+
       - name: Seed E2E database
         if: steps.secrets.outputs.configured == 'true'
         run: npx tsx prisma/seed-e2e.ts
@@ -106,6 +118,8 @@ jobs:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          # AI OCR route needs this; tests don't exercise it so can be absent
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           NODE_TLS_REJECT_UNAUTHORIZED: "0"
 
       - name: Upload Playwright report on failure
