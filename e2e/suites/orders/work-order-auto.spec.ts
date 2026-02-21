@@ -44,8 +44,8 @@ test.describe("Work Order Auto-Generation", () => {
 
     await newPage.close();
 
-    // Verify the original page advanced to LAB_ORDERED
-    await expect(page.getByText("Lab Ordered")).toBeVisible({ timeout: 15_000 });
+    // Verify the original page advanced to LAB_ORDERED (use first() — status history also shows "Lab Ordered")
+    await expect(page.getByText("Lab Ordered").first()).toBeVisible({ timeout: 15_000 });
   });
 
   test("Send to Lab on an EXAM_ONLY order does NOT open a new tab", async ({
@@ -71,8 +71,8 @@ test.describe("Work Order Auto-Generation", () => {
 
     expect(newTabOpened).toBe(false);
 
-    // Order should still advance to LAB_ORDERED normally
-    await expect(page.getByText("Lab Ordered")).toBeVisible({ timeout: 15_000 });
+    // Order should still advance to LAB_ORDERED normally (use first() — status history also shows it)
+    await expect(page.getByText("Lab Ordered").first()).toBeVisible({ timeout: 15_000 });
   });
 
   test("work order page renders correctly for a seeded order", async ({ page }) => {
@@ -87,8 +87,8 @@ test.describe("Work Order Auto-Generation", () => {
     // Customer name (Okafor)
     await expect(page.getByText(/Okafor/)).toBeVisible();
 
-    // Frame brand seeded for Okafor (frameIdx=1 → RB3025)
-    await expect(page.getByText(/Ray-Ban/)).toBeVisible();
+    // Frame brand seeded for Okafor (frameIdx=1 → RB3025); use first() — brand appears in title and spec row
+    await expect(page.getByText(/Ray-Ban/).first()).toBeVisible();
 
     // Print button is visible in UI mode
     await expect(page.getByRole("button", { name: /print work order/i })).toBeVisible();

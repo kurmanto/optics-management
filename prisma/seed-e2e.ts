@@ -81,6 +81,8 @@ async function truncateAll() {
   await prisma.inventoryLedger.deleteMany();
   await prisma.purchaseOrderLineItem.deleteMany();
   await prisma.purchaseOrder.deleteMany();
+  // savedFrame references inventoryItem — must be deleted first
+  try { await (prisma as any).savedFrame.deleteMany(); } catch (_) {}
   await prisma.inventoryItem.deleteMany();
   await prisma.vendor.deleteMany();
   await prisma.storeCredit.deleteMany();
@@ -95,7 +97,6 @@ async function truncateAll() {
   try { await (prisma as any).referral.deleteMany(); } catch (_) {}
   try { await (prisma as any).appointment.deleteMany(); } catch (_) {}
   try { await (prisma as any).campaign.deleteMany(); } catch (_) {}
-  try { await (prisma as any).savedFrame.deleteMany(); } catch (_) {}
 
   await prisma.customer.deleteMany();
   await prisma.family.deleteMany();
