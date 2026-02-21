@@ -1,6 +1,10 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { mockSession } from "../mocks/session";
 
+vi.mock("@/lib/email", () => ({
+  sendInvoiceEmail: vi.fn().mockResolvedValue({ id: "email-auto" }),
+}));
+
 async function getPrisma() {
   const { prisma } = await import("@/lib/prisma");
   return prisma as unknown as Record<string, Record<string, ReturnType<typeof vi.fn>>>;
@@ -152,7 +156,14 @@ describe("handlePickupComplete", () => {
     const prisma = await getPrisma();
     prisma.order.findUnique.mockResolvedValue({
       customerId: "cust-1",
+      orderNumber: "MVO-001",
       totalCustomer: 300,
+      depositCustomer: 0,
+      balanceCustomer: 0,
+      insuranceCoverage: null,
+      referralCredit: null,
+      customer: { firstName: "Alice", lastName: "Brown", email: "alice@example.com", familyId: null, family: null },
+      lineItems: [],
     });
     // $transaction calls the callback with the tx (which is the mock itself)
     (prisma as any).$transaction.mockImplementation(async (fn: (tx: unknown) => unknown) => fn(prisma));
@@ -194,7 +205,14 @@ describe("handlePickupComplete", () => {
     const prisma = await getPrisma();
     prisma.order.findUnique.mockResolvedValue({
       customerId: "cust-1",
+      orderNumber: "MVO-001",
       totalCustomer: 10,
+      depositCustomer: 0,
+      balanceCustomer: 0,
+      insuranceCoverage: null,
+      referralCredit: null,
+      customer: { firstName: "Alice", lastName: "Brown", email: "alice@example.com", familyId: null, family: null },
+      lineItems: [],
     });
     (prisma as any).$transaction.mockImplementation(async (fn: (tx: unknown) => unknown) => fn(prisma));
     prisma.order.update.mockResolvedValue({});
@@ -213,6 +231,64 @@ describe("handlePickupComplete", () => {
         data: expect.objectContaining({ marketingOptOut: true }),
       })
     );
+  });
+
+  it("auto-sends invoice email when customer has email", async () => {
+    const prisma = await getPrisma();
+    prisma.order.findUnique.mockResolvedValue({
+      customerId: "cust-1",
+      orderNumber: "MVO-001",
+      totalCustomer: 300,
+      depositCustomer: 100,
+      balanceCustomer: 200,
+      insuranceCoverage: null,
+      referralCredit: null,
+      customer: { firstName: "Alice", lastName: "Brown", email: "alice@example.com", familyId: null, family: null },
+      lineItems: [{ description: "Frames", quantity: 1, unitPriceCustomer: 300, totalCustomer: 300 }],
+    });
+    (prisma as any).$transaction.mockImplementation(async (fn: (tx: unknown) => unknown) => fn(prisma));
+    prisma.order.update.mockResolvedValue({});
+
+    const { sendInvoiceEmail } = await import("@/lib/email");
+    const { handlePickupComplete } = await import("@/lib/actions/orders");
+    await handlePickupComplete("order-1", { sendReviewRequest: false, enrollInReferralCampaign: false, markAsLowValue: false });
+
+    // Give the fire-and-forget promise a tick to resolve
+    await new Promise((r) => setTimeout(r, 0));
+    expect(sendInvoiceEmail).toHaveBeenCalledWith(
+      expect.objectContaining({
+        to: "alice@example.com",
+        customerName: "Alice Brown",
+        orderNumber: "MVO-001",
+        totalAmount: 300,
+        depositAmount: 100,
+        balanceAmount: 200,
+      })
+    );
+  });
+
+  it("skips invoice email when customer has no email", async () => {
+    const prisma = await getPrisma();
+    prisma.order.findUnique.mockResolvedValue({
+      customerId: "cust-1",
+      orderNumber: "MVO-001",
+      totalCustomer: 300,
+      depositCustomer: 0,
+      balanceCustomer: 0,
+      insuranceCoverage: null,
+      referralCredit: null,
+      customer: { firstName: "Alice", lastName: "Brown", email: null, familyId: null, family: null },
+      lineItems: [],
+    });
+    (prisma as any).$transaction.mockImplementation(async (fn: (tx: unknown) => unknown) => fn(prisma));
+    prisma.order.update.mockResolvedValue({});
+
+    const { sendInvoiceEmail } = await import("@/lib/email");
+    const { handlePickupComplete } = await import("@/lib/actions/orders");
+    await handlePickupComplete("order-1", { sendReviewRequest: false, enrollInReferralCampaign: false, markAsLowValue: false });
+
+    await new Promise((r) => setTimeout(r, 0));
+    expect(sendInvoiceEmail).not.toHaveBeenCalled();
   });
 });
 

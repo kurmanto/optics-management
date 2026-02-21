@@ -7,6 +7,7 @@ import { OrderStatus, LineItemType, OrderType, PrescriptionSource } from "@prism
 import { generateOrderNumber } from "@/lib/utils/formatters";
 import { createNotification } from "@/lib/notifications";
 import { uploadPrescriptionScan } from "@/lib/supabase";
+import { sendInvoiceEmail } from "@/lib/email";
 
 export type OrderFormState = {
   error?: string;
@@ -240,9 +241,28 @@ export async function handlePickupComplete(
       where: { id: orderId },
       select: {
         customerId: true,
+        orderNumber: true,
         totalCustomer: true,
+        depositCustomer: true,
+        balanceCustomer: true,
+        insuranceCoverage: true,
+        referralCredit: true,
         customer: {
-          select: { familyId: true, family: { select: { customers: { select: { id: true } } } } },
+          select: {
+            firstName: true,
+            lastName: true,
+            email: true,
+            familyId: true,
+            family: { select: { customers: { select: { id: true } } } },
+          },
+        },
+        lineItems: {
+          select: {
+            description: true,
+            quantity: true,
+            unitPriceCustomer: true,
+            totalCustomer: true,
+          },
         },
       },
     });
@@ -280,6 +300,21 @@ export async function handlePickupComplete(
         });
       }
     });
+
+    // Auto-send invoice email on pickup
+    if (order.customer.email) {
+      sendInvoiceEmail({
+        to: order.customer.email,
+        customerName: `${order.customer.firstName} ${order.customer.lastName}`,
+        orderNumber: order.orderNumber,
+        totalAmount: order.totalCustomer,
+        lineItems: order.lineItems,
+        depositAmount: order.depositCustomer > 0 ? order.depositCustomer : undefined,
+        balanceAmount: order.balanceCustomer > 0 ? order.balanceCustomer : undefined,
+        insuranceCoverage: order.insuranceCoverage ?? undefined,
+        referralCredit: order.referralCredit ?? undefined,
+      }).catch((err) => console.error("[Invoice Email] Failed to send on pickup:", err));
+    }
 
     // SMS placeholder — Twilio integration later
     if (options.sendReviewRequest) {
