@@ -348,6 +348,49 @@ async function main() {
   await createOrder({ customerId: C["Johnson"], userId: admin.id, status: OrderStatus.CONFIRMED, totalReal: 1150, createdAt: todayAt(14), frameIdx: 5 });
   console.log("✅ Today's CONFIRMED orders (3)");
 
+  // ── Work order auto-generate test orders ───────────────────────────────────
+  // These are dedicated fixtures for the work-order-auto E2E spec.
+  // confirmedGlassesOrder → clicking "Send to Lab" should open work order tab.
+  // confirmedExamOrder    → clicking "Send to Lab" should NOT open work order tab.
+  const confirmedGlassesOrder = await createOrder({
+    customerId: C["Patel"],
+    userId: staff.id,
+    type: OrderType.GLASSES,
+    status: OrderStatus.CONFIRMED,
+    totalReal: 480,
+    depositReal: 100,
+    createdAt: daysAgo(1),
+    frameIdx: 2,
+  });
+  const confirmedExamOrder = await prisma.order.create({
+    data: {
+      orderNumber: nextNum(),
+      customerId: C["Hassan"],
+      userId: staff.id,
+      type: OrderType.EXAM_ONLY,
+      status: OrderStatus.CONFIRMED,
+      totalReal: 120,
+      totalCustomer: 120,
+      depositReal: 0,
+      depositCustomer: 0,
+      balanceReal: 120,
+      balanceCustomer: 120,
+      createdAt: daysAgo(1),
+      lineItems: {
+        create: [{
+          type: LineItemType.EXAM,
+          description: "Comprehensive Eye Exam",
+          quantity: 1,
+          unitPriceReal: 120,
+          unitPriceCustomer: 120,
+          totalReal: 120,
+          totalCustomer: 120,
+        }],
+      },
+    },
+  });
+  console.log("✅ Work order auto-generate test orders (glasses + exam_only)");
+
   // Incomplete orders — deposit taken, not picked up
   const tremblay = await createOrder({ customerId: C["Tremblay"], userId: staff.id, status: OrderStatus.LAB_RECEIVED, totalReal: 920, depositReal: 400, createdAt: daysAgo(18), frameIdx: 3 });
   const okafor   = await createOrder({ customerId: C["Okafor"],   userId: admin.id, status: OrderStatus.READY,        totalReal: 640, depositReal: 300, createdAt: daysAgo(12), frameIdx: 1 });
@@ -630,6 +673,9 @@ async function main() {
     receivedPoId: receivedPo.id,
     frameWithReturnDateId: frameWithReturn.id,
     stylingAppointmentId: stylingAppt.id,
+    // Work order auto-generate test orders
+    confirmedGlassesOrderId: confirmedGlassesOrder.id,
+    confirmedExamOrderId: confirmedExamOrder.id,
   };
 
   const fs = await import("fs");

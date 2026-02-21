@@ -137,6 +137,9 @@ export function getTestFixtures() {
       receivedPoId: string;
       frameWithReturnDateId: string;
       stylingAppointmentId: string;
+      // Work order auto-generate test orders
+      confirmedGlassesOrderId: string;
+      confirmedExamOrderId: string;
     };
   } catch {
     throw new Error(

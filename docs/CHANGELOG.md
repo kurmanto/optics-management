@@ -6,6 +6,16 @@ Format: `[Version] — Date`
 
 ---
 
+## [1.5.2] — 2026-02-21
+
+### Added
+- **Work order auto-generation** — when staff clicks "Send to Lab" on any non-exam order (`GLASSES`, `SUNGLASSES`, `CONTACTS`, `ACCESSORIES`), the work order page opens automatically in a new browser tab with `?autoprint=true`, triggering the print dialog without any extra clicks. `EXAM_ONLY` orders are excluded (no work order goes to the lab for exams).
+- **E2E seed fixtures** — two dedicated CONFIRMED orders (`confirmedGlassesOrderId`, `confirmedExamOrderId`) added to `prisma/seed-e2e.ts` specifically for testing this flow.
+- **E2E test suite** — `e2e/suites/orders/work-order-auto.spec.ts` (4 tests): new-tab opens with correct URL on GLASSES order, no tab opens for EXAM_ONLY order, work order page renders correctly, autoprint param does not crash.
+- **Unit tests** — 3 new cases in `src/__tests__/actions/orders.test.ts` covering `advanceOrderStatus` to `LAB_ORDERED`: `labOrderedAt` timestamp is set, no notification is fired, status history records actor name.
+
+---
+
 ## [1.0.0] — 2026-02-15
 
 ### Added
