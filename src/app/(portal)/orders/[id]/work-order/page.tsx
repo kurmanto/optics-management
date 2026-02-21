@@ -7,11 +7,14 @@ import { WorkOrderView } from "@/components/orders/WorkOrderView";
 
 export default async function WorkOrderPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ autoprint?: string }>;
 }) {
   await verifySession();
   const { id } = await params;
+  const { autoprint } = await searchParams;
 
   const order = await prisma.order.findUnique({
     where: { id },
@@ -53,6 +56,7 @@ export default async function WorkOrderPage({
         lensCoating={order.lensCoating}
         labNotes={order.labNotes}
         prescription={order.prescription}
+        autoprint={autoprint === "true"}
       />
     </div>
   );

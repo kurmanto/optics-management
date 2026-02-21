@@ -569,7 +569,7 @@
 <nav class="toc-sidebar">
   <div class="toc-brand">
     <div class="brand-name">Mint Vision Optique</div>
-    <div class="brand-sub">Staff Portal Guide v1.5</div>
+    <div class="brand-sub">Staff Portal Guide v2.2</div>
   </div>
   <h2>Contents</h2>
 
@@ -636,7 +636,20 @@
   <a href="#campaign-analytics" class="sub-link">Analytics</a>
   <a href="#campaign-scheduler" class="sub-link">Automatic Scheduler</a>
 
-  <a href="#section-quick-ref" class="section-link">11. Quick Reference</a>
+  <a href="#section-phase12" class="section-link">11. Phase 1 &amp; 2 Features</a>
+  <a href="#eye-exam-flow" class="sub-link">Eye Exam Sub-flow</a>
+  <a href="#insurance-manager" class="sub-link">Insurance Manager</a>
+  <a href="#family-members" class="sub-link">Family Members</a>
+  <a href="#referral-codes" class="sub-link">Referral Codes</a>
+  <a href="#saved-frames-feat" class="sub-link">Saved Frames</a>
+  <a href="#styling-appointments" class="sub-link">Styling Appointments</a>
+  <a href="#email-invoice-feat" class="sub-link">Email Invoice</a>
+  <a href="#add-another-order" class="sub-link">Add Another Order</a>
+  <a href="#po-expansion" class="sub-link">PO Line Item Expansion</a>
+  <a href="#sku-autogen" class="sub-link">SKU Auto-Generation</a>
+  <a href="#received-frames-tab" class="sub-link">Received Frames Tab</a>
+
+  <a href="#section-quick-ref" class="section-link">12. Quick Reference</a>
   <a href="#cheat-sheet" class="sub-link">Status Cheat Sheet</a>
   <a href="#common-tasks" class="sub-link">Common Tasks</a>
 </nav>
@@ -2026,10 +2039,200 @@
 </section>
 
 
-<!-- ==================== SECTION 11: QUICK REFERENCE ==================== -->
-<section class="section" id="section-quick-ref">
+<!-- ==================== SECTION 11: PHASE 1 & 2 FEATURES ==================== -->
+<section class="section" id="section-phase12">
   <div class="section-eyebrow">Section 11</div>
   <div class="section-number">11</div>
+  <h1 class="section-title">Phase 1 &amp; 2 Features</h1>
+  <p class="section-intro">17 new features shipped in V2.2.0 spanning eye exam ordering, customer profile enhancements, referrals, invoicing, appointments, email delivery, and inventory expansion.</p>
+
+  <h2 id="eye-exam-flow">11.1 Eye Exam Order Sub-flow</h2>
+  <p>When creating a new order and selecting <strong>Eye Exam</strong> as the order type, the wizard inserts an <strong>Exam Details</strong> step:</p>
+  <div class="wizard-steps">
+    <div class="wizard-step">
+      <div class="wizard-step-num">1</div>
+      <div class="wizard-step-body">
+        <div class="wizard-step-title">Exam Type</div>
+        <div class="wizard-step-desc">Select one: <em>Complete Adult Eye Exam</em>, <em>Child/Teenager (Under 19)</em>, or <em>Senior (Above 65)</em>. These map to your billing categories.</div>
+      </div>
+    </div>
+    <div class="wizard-step">
+      <div class="wizard-step-num">2</div>
+      <div class="wizard-step-body">
+        <div class="wizard-step-title">Payment Method</div>
+        <div class="wizard-step-desc">Choose: <em>Insurance Full</em>, <em>Insurance Partial</em>, <em>OHIP</em>, or <em>Self-bill/Out of Pocket</em>.</div>
+      </div>
+    </div>
+    <div class="wizard-step">
+      <div class="wizard-step-num">3</div>
+      <div class="wizard-step-body">
+        <div class="wizard-step-title">Insurance Amount (if Partial)</div>
+        <div class="wizard-step-desc">When "Insurance Partial" is selected, an <em>Amount Covered by Insurance</em> input appears. The patient balance auto-calculates as you type.</div>
+      </div>
+    </div>
+  </div>
+  <div class="box box-tip">
+    <strong>Tip:</strong> Eye exam orders do not generate a work order — the wizard skips the print-work-order prompt automatically.
+  </div>
+
+  <h2 id="insurance-manager">11.2 Customer Insurance Manager</h2>
+  <p>The insurance section on customer profiles has been upgraded from a read-only display to a full <strong>Insurance Policy Manager</strong>:</p>
+  <ul>
+    <li>Each policy shows: Provider, Contract Number, Member ID, Last Claim Date, <em>Estimated Next Claim Date</em> (auto-calculated from last claim + eligibility interval), and Estimated Insured Amount</li>
+    <li>Click <strong>"Add Policy"</strong> to expand an inline form and save a new policy</li>
+    <li>Edit or deactivate any policy using the icons on each card</li>
+    <li>Deactivated policies are hidden from the active list but retained in the database</li>
+  </ul>
+
+  <h2 id="family-members">11.3 Family Members Auto-linking</h2>
+  <p>The <strong>Family Members</strong> card on a customer profile helps you group households together:</p>
+  <ul>
+    <li>Click <strong>"Find Family Matches"</strong> — the system searches for other customers with the same phone number or address and surfaces suggestions</li>
+    <li>Use <strong>"Create Family Group"</strong> to start a new family and link the current customer</li>
+    <li>Use <strong>"Add to Existing Family"</strong> to join a family group that's already set up</li>
+    <li>Once linked, all family members appear as avatar links — click any to open their profile</li>
+  </ul>
+  <div class="box box-tip">
+    <strong>Tip:</strong> Family linking is especially useful for the Post-Pickup Family Promo feature — when a patient picks up their order, staff can enroll their family members in a special offer campaign.
+  </div>
+
+  <h2 id="referral-codes">11.4 Referral Code Tracking</h2>
+  <p>Each customer can have a unique referral code that you share with them to track new business they bring in.</p>
+  <h3>Generating a Code</h3>
+  <ol>
+    <li>Open the customer profile</li>
+    <li>Find the <strong>Referral Code</strong> card</li>
+    <li>Click <strong>"Generate Code"</strong> — a code like <code>MV-JADO-4821</code> is created</li>
+    <li>Use the copy button to copy it to your clipboard</li>
+    <li>Share the code with the patient verbally or send it to them</li>
+  </ol>
+  <h3>Using a Code on an Order</h3>
+  <ol>
+    <li>In the Order Wizard, go to the <strong>Payment</strong> step</li>
+    <li>Enter the referral code in the <em>Referral Code</em> field</li>
+    <li>The system validates the code in real time and shows the referrer's name</li>
+    <li>When the order is submitted, <strong>$25 store credit</strong> is automatically created for the referrer</li>
+  </ol>
+  <p>The <strong>Referral History</strong> table on each customer's card shows: referred customers, dates, statuses, and total rewards earned.</p>
+
+  <h2 id="saved-frames-feat">11.5 Saved Frames</h2>
+  <p>Staff can bookmark frames a patient liked during a visit for easy follow-up.</p>
+  <h3>Saving a Frame</h3>
+  <ol>
+    <li>Open the customer profile → <strong>Saved Frames</strong> card</li>
+    <li>Click <strong>"Save Frame"</strong></li>
+    <li>Either search for an existing inventory item, or enter brand/model/color manually</li>
+    <li>Optionally take a photo with the iPad camera or upload an image</li>
+    <li>Set an <strong>Expected Return Date</strong> if the patient said they'd come back to try them again</li>
+    <li>Click <strong>Save</strong></li>
+  </ol>
+  <h3>Managing Saved Frames</h3>
+  <ul>
+    <li>Tap the <strong>heart icon</strong> to mark a frame as a favorite</li>
+    <li>Update the return date at any time</li>
+    <li>Remove a frame with the delete button (confirmation required)</li>
+    <li>The Dashboard <em>Follow Ups</em> section surfaces customers with overdue or upcoming expected return dates</li>
+  </ul>
+
+  <h2 id="styling-appointments">11.6 Styling Appointment Quick-Booking</h2>
+  <p>Book a frame styling appointment directly from the customer profile without leaving the page.</p>
+  <ol>
+    <li>Open the customer profile → <strong>Appointments</strong> card</li>
+    <li>Click <strong>"Book Appointment"</strong></li>
+    <li>Select a date, time, duration (default 30 min), and optional notes</li>
+    <li>The appointment type defaults to <em>Styling</em></li>
+    <li>Click <strong>Book</strong> — the appointment appears in the upcoming list immediately</li>
+  </ol>
+  <p>Upcoming styling appointments also appear in the <strong>Dashboard → Follow Ups</strong> section so no booking gets missed.</p>
+
+  <h2 id="email-invoice-feat">11.7 Email Invoice</h2>
+  <p>Send a formatted HTML invoice directly to the patient's email from the invoice page.</p>
+  <ol>
+    <li>Open an order → click <strong>Invoice</strong></li>
+    <li>Click the <strong>"Email Invoice"</strong> button (mail icon) in the action bar</li>
+    <li>The button shows a loading spinner while sending, then "Sent!" on success or "Failed" on error</li>
+    <li>The email is sent to the patient's email address on file via Resend</li>
+  </ol>
+  <div class="box box-tip">
+    <strong>Note:</strong> The Email Invoice button only appears when the patient has an email address on file. If the button is missing, add the patient's email to their profile first.
+  </div>
+  <p>You can also check <strong>"Email invoice to patient"</strong> in the Order Wizard review step — the email will be sent automatically when the order is submitted.</p>
+
+  <h2 id="add-another-order">11.8 Add Another Order</h2>
+  <p>After submitting an order, instead of being immediately redirected, a <strong>success overlay</strong> appears with three options:</p>
+  <ul>
+    <li><strong>View Order</strong> — navigate to the new order's detail page</li>
+    <li><strong>Add Another Order for [Patient Name]</strong> — resets the form and keeps the same customer selected (skips customer search step)</li>
+    <li><strong>Back to Orders</strong> — return to the fulfillment board</li>
+  </ul>
+  <p>This is ideal for same-visit appointments where a patient orders glasses and contacts at the same time.</p>
+
+  <h2 id="po-expansion">11.9 Purchase Order — Expanded Line Items</h2>
+  <p>The PO creation form now supports two modes per line item:</p>
+  <h3>Select Existing Frame</h3>
+  <p>Search your existing inventory and pick a frame. The frame's details auto-fill. Enter quantity and unit cost.</p>
+  <h3>Add New Frame</h3>
+  <p>Enter all frame details manually. New fields available:</p>
+  <table>
+    <thead><tr><th>Field</th><th>Notes</th></tr></thead>
+    <tbody>
+      <tr><td>Brand / Model #</td><td>Free text</td></tr>
+      <tr><td>Gender</td><td>Unisex / Men / Women / Kids</td></tr>
+      <tr><td>Eye Size / Bridge / Temple</td><td>Frame measurements in mm</td></tr>
+      <tr><td>Colour / Colour Code</td><td>Colour from dropdown; code is vendor's exact code</td></tr>
+      <tr><td>Retail Price</td><td>Sets the suggested selling price</td></tr>
+      <tr><td>Gross Profit</td><td>Auto-calculated: Retail Price − Unit Cost</td></tr>
+      <tr><td>Frame Type</td><td>Optical / Sunglasses / Reading / Safety / Sport</td></tr>
+      <tr><td>Material</td><td>Acetate / Metal / Titanium / TR-90 / Stainless Steel / Mixed / Other</td></tr>
+    </tbody>
+  </table>
+  <p>When the PO is saved, "Add New Frame" items automatically create a new <code>InventoryItem</code> record with an auto-generated SKU.</p>
+  <div class="box box-tip">
+    <strong>SKU Preview:</strong> While filling in the new frame form, the <em>SKU Preview</em> updates live — e.g. <code>RAY-RB5154-2000-49-21</code> — so you can verify it before saving.
+  </div>
+
+  <h2 id="sku-autogen">11.10 SKU Auto-Generation</h2>
+  <p>When a new inventory item is created (via the PO form or directly), the system can auto-generate a SKU:</p>
+  <p><strong>Format:</strong> <code>{BRAND3}-{MODEL}-{COLORCODE}-{EYESIZE}-{BRIDGE}</code></p>
+  <p><strong>Example:</strong> <code>RAY-RB5154-2000-49-21</code> (Ray-Ban RB5154, colour code 2000, 49mm eye, 21mm bridge)</p>
+  <ul>
+    <li>Brand prefix: first 3 characters, uppercase, special characters stripped (e.g. "Saint-Laurent" → <code>SAI</code>)</li>
+    <li>Optional parts are omitted if blank — e.g. just brand + model gives <code>RAY-RB5154</code></li>
+    <li>If a collision exists, the system automatically appends <code>-2</code>, <code>-3</code>, etc.</li>
+  </ul>
+
+  <h2 id="received-frames-tab">11.11 Received Frames Tab &amp; Display Tracking</h2>
+  <p>Find this page at <strong>Inventory → Received Frames</strong> in the sidebar.</p>
+  <p>This view shows all frames that have been received from purchase orders, so you can track when they were put on display for customers.</p>
+  <h3>Columns</h3>
+  <table>
+    <thead><tr><th>Column</th><th>Description</th></tr></thead>
+    <tbody>
+      <tr><td>Brand / Model</td><td>Frame identity</td></tr>
+      <tr><td>Colour / SKU</td><td>Item code</td></tr>
+      <tr><td>Received Date</td><td>When the PO receiving was recorded</td></tr>
+      <tr><td>PO Number</td><td>Links to the source purchase order</td></tr>
+      <tr><td>Display Status</td><td>"Not Displayed" or "Displayed since [date]"</td></tr>
+      <tr><td>Action</td><td>Mark Displayed / Remove from Display button</td></tr>
+    </tbody>
+  </table>
+  <h3>Marking a Frame as Displayed</h3>
+  <ol>
+    <li>Find the frame in the <em>Not Yet Displayed</em> filter (default)</li>
+    <li>Click <strong>"Mark Displayed"</strong></li>
+    <li>Optionally enter a display location (e.g. "Wall A - Shelf 3")</li>
+    <li>Click <strong>Confirm</strong> — the row moves to the Displayed filter and the date is recorded</li>
+  </ol>
+  <div class="box box-tip">
+    <strong>Aging tip:</strong> The table sorts by received date oldest-first so frames that arrived longest ago appear at the top. Use this to prioritise getting recently received stock onto the floor.
+  </div>
+</section>
+
+
+<!-- ==================== SECTION 12: QUICK REFERENCE ==================== -->
+<section class="section" id="section-quick-ref">
+  <div class="section-eyebrow">Section 12</div>
+  <div class="section-number">12</div>
   <h1 class="section-title">Quick Reference</h1>
   <p class="section-intro">Tear out this section and keep it at your workstation. Everything you need at a glance.</p>
 
@@ -2200,7 +2403,7 @@
 
   <div style="margin-top:60px; padding:24px; background:#f0fdf4; border-radius:10px; border:1px solid #bbf7d0; text-align:center; font-family:system-ui,sans-serif;">
     <div style="font-size:22px; font-weight:800; color:#15803d; margin-bottom:6px;">Mint Vision Optique — Staff Portal</div>
-    <div style="font-size:13px; color:#16a34a;">Version 2.1 &nbsp;·&nbsp; February 2026 &nbsp;·&nbsp; Confidential — Internal Use Only</div>
+    <div style="font-size:13px; color:#16a34a;">Version 2.2 &nbsp;·&nbsp; February 2026 &nbsp;·&nbsp; Confidential — Internal Use Only</div>
     <div style="margin-top:12px; font-size:13px; color:#64748b;">For technical support, contact your system administrator.</div>
   </div>
 </section>

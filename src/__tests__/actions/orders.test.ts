@@ -358,6 +358,66 @@ describe("uploadPrescriptionScanAction", () => {
   });
 });
 
+describe("createOrder — exam fields", () => {
+  it("passes examType, examPaymentMethod, insuranceCoveredAmount to prisma when provided", async () => {
+    const prisma = await getPrisma();
+    prisma.order.create.mockResolvedValue({ id: "order-exam-1" });
+
+    const { createOrder } = await import("@/lib/actions/orders");
+    await createOrder({
+      ...validOrderInput,
+      examType: "COMPREHENSIVE",
+      examPaymentMethod: "INSURANCE_PARTIAL",
+      insuranceCoveredAmount: 75,
+    });
+
+    const callArgs = prisma.order.create.mock.calls[0][0];
+    expect(callArgs.data.examType).toBe("COMPREHENSIVE");
+    expect(callArgs.data.examPaymentMethod).toBe("INSURANCE_PARTIAL");
+    expect(callArgs.data.insuranceCoveredAmount).toBe(75);
+  });
+
+  it("does not include exam fields when they are omitted (backward compat)", async () => {
+    const prisma = await getPrisma();
+    prisma.order.create.mockResolvedValue({ id: "order-no-exam" });
+
+    const { createOrder } = await import("@/lib/actions/orders");
+    await createOrder(validOrderInput);
+
+    const callArgs = prisma.order.create.mock.calls[0][0];
+    expect(callArgs.data.examType).toBeNull();
+    expect(callArgs.data.examPaymentMethod).toBeNull();
+    expect(callArgs.data.insuranceCoveredAmount).toBeNull();
+  });
+});
+
+describe("handlePickupComplete — family promo", () => {
+  it("includes familyPromoCampaignEnrolled: true when enrollInFamilyPromo is true", async () => {
+    const prisma = await getPrisma();
+    prisma.order.findUnique.mockResolvedValue({
+      customerId: "cust-1",
+      totalCustomer: 300,
+      customer: { familyId: "fam-1", family: { customers: [{ id: "cust-2" }] } },
+    });
+    (prisma as any).$transaction.mockImplementation(async (fn: (tx: unknown) => unknown) => fn(prisma));
+    prisma.order.update.mockResolvedValue({});
+
+    const { handlePickupComplete } = await import("@/lib/actions/orders");
+    await handlePickupComplete("order-1", {
+      sendReviewRequest: false,
+      enrollInReferralCampaign: false,
+      enrollInFamilyPromo: true,
+      markAsLowValue: false,
+    });
+
+    expect(prisma.order.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ familyPromoCampaignEnrolled: true }),
+      })
+    );
+  });
+});
+
 describe("addPayment", () => {
   it("creates payment record and updates order balance", async () => {
     const prisma = await getPrisma();

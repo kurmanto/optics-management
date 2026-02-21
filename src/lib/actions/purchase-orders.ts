@@ -5,6 +5,7 @@ import { verifySession } from "@/lib/dal";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createNotification } from "@/lib/notifications";
+import { generateSku, ensureUniqueSku } from "@/lib/utils/sku";
 
 export type POFormState = { error?: string };
 
@@ -25,9 +26,22 @@ export type CreatePOInput = {
   duties: number;
   notes?: string;
   lineItems: Array<{
-    inventoryItemId: string;
+    inventoryItemId?: string;
     quantityOrdered: number;
     unitCost: number;
+    // Expanded frame fields (for new or existing items)
+    brand?: string;
+    model?: string;
+    gender?: string;
+    eyeSize?: string;
+    bridge?: string;
+    temple?: string;
+    color?: string;
+    colorCode?: string;
+    retailPrice?: number;
+    frameType?: string;
+    material?: string;
+    notes?: string;
   }>;
 };
 
@@ -59,6 +73,28 @@ export async function createPurchaseOrder(
   const duties = input.duties ?? 0;
   const total = subtotal + shipping + duties;
 
+  // Pre-resolve SKUs for new items before the transaction
+  type ResolvedLineItem = (typeof input.lineItems)[0] & {
+    resolvedSku: string | null;
+    needsNewItem: boolean;
+  };
+  const resolvedInputItems: ResolvedLineItem[] = await Promise.all(
+    input.lineItems.map(async (li) => {
+      if (!li.inventoryItemId && (li.brand || li.model)) {
+        const baseSku = generateSku({
+          brand: li.brand,
+          model: li.model,
+          colorCode: li.colorCode,
+          eyeSize: li.eyeSize,
+          bridge: li.bridge,
+        });
+        const resolvedSku = baseSku ? await ensureUniqueSku(baseSku) : null;
+        return { ...li, resolvedSku, needsNewItem: true };
+      }
+      return { ...li, resolvedSku: null, needsNewItem: false };
+    })
+  );
+
   let newPoId: string | null = null;
 
   try {
@@ -82,21 +118,58 @@ export async function createPurchaseOrder(
 
       newPoId = po.id;
 
-      await tx.purchaseOrderLineItem.createMany({
-        data: input.lineItems.map((li) => ({
-          poId: po.id,
-          inventoryItemId: li.inventoryItemId,
-          quantityOrdered: li.quantityOrdered,
-          quantityReceived: 0,
-          unitCost: li.unitCost,
-        })),
-      });
+      for (const li of resolvedInputItems) {
+        let itemId = li.inventoryItemId;
 
-      for (const li of input.lineItems) {
-        await tx.inventoryItem.update({
-          where: { id: li.inventoryItemId },
-          data: { onOrderQty: { increment: li.quantityOrdered } },
+        if (li.needsNewItem) {
+          const newItem = await tx.inventoryItem.create({
+            data: {
+              brand: li.brand ?? "",
+              model: li.model ?? "",
+              sku: li.resolvedSku,
+              category: "OPTICAL",
+              gender: (li.gender as any) ?? "UNISEX",
+              stockQuantity: 0,
+              reorderPoint: 0,
+              colorCode: li.colorCode ?? null,
+              eyeSize: li.eyeSize ?? null,
+              bridge: li.bridge ?? null,
+              temple: li.temple ?? null,
+              vendorId: input.vendorId || null,
+            } as any,
+          });
+          itemId = newItem.id;
+        }
+
+        await tx.purchaseOrderLineItem.create({
+          data: {
+            poId: po.id,
+            inventoryItemId: itemId ?? null,
+            quantityOrdered: li.quantityOrdered,
+            quantityReceived: 0,
+            unitCost: li.unitCost,
+            brand: li.brand ?? null,
+            model: li.model ?? null,
+            gender: li.gender ?? null,
+            eyeSize: li.eyeSize ?? null,
+            bridge: li.bridge ?? null,
+            temple: li.temple ?? null,
+            color: li.color ?? null,
+            colorCode: li.colorCode ?? null,
+            retailPrice: li.retailPrice ?? null,
+            grossProfit: li.retailPrice != null ? li.retailPrice - li.unitCost : null,
+            frameType: li.frameType ?? null,
+            material: li.material ?? null,
+            notes: li.notes ?? null,
+          },
         });
+
+        if (itemId) {
+          await tx.inventoryItem.update({
+            where: { id: itemId },
+            data: { onOrderQty: { increment: li.quantityOrdered } },
+          });
+        }
       }
     });
 
@@ -136,7 +209,7 @@ export async function updatePOStatus(
         }
         for (const li of po.lineItems) {
           const remaining = li.quantityOrdered - li.quantityReceived;
-          if (remaining > 0) {
+          if (remaining > 0 && li.inventoryItemId) {
             await tx.inventoryItem.update({
               where: { id: li.inventoryItemId },
               data: { onOrderQty: { decrement: remaining } },
@@ -212,6 +285,8 @@ export async function receivePOItems(
         });
 
         const currentItem = lineItem.inventoryItem;
+        if (!currentItem) continue;
+
         const newStock = currentItem.stockQuantity + actualReceived;
         const newOnOrder = Math.max(0, currentItem.onOrderQty - actualReceived);
 

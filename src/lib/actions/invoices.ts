@@ -6,18 +6,17 @@ import { verifySession } from "@/lib/dal";
 import { InvoiceType } from "@prisma/client";
 
 export async function issueInvoice(
-  orderId: string
+  orderId: string,
+  type: InvoiceType = InvoiceType.CUSTOMER
 ): Promise<{ id: string; generatedAt: Date } | { error: string }> {
   await verifySession();
 
   try {
-    // Upsert — one CUSTOMER invoice per order
     const existing = await prisma.invoice.findFirst({
-      where: { orderId, type: InvoiceType.CUSTOMER },
+      where: { orderId, type },
     });
 
     if (existing) {
-      // Re-issue: update the timestamp
       const updated = await prisma.invoice.update({
         where: { id: existing.id },
         data: { generatedAt: new Date() },
@@ -31,7 +30,7 @@ export async function issueInvoice(
     const invoice = await prisma.invoice.create({
       data: {
         orderId,
-        type: InvoiceType.CUSTOMER,
+        type,
         generatedAt: new Date(),
       },
       select: { id: true, generatedAt: true },
@@ -43,5 +42,22 @@ export async function issueInvoice(
   } catch (err) {
     console.error("issueInvoice error:", err);
     return { error: "Failed to record invoice." };
+  }
+}
+
+export async function issueBothInvoices(
+  orderId: string
+): Promise<{ success: true } | { error: string }> {
+  await verifySession();
+
+  try {
+    await Promise.all([
+      issueInvoice(orderId, InvoiceType.CUSTOMER),
+      issueInvoice(orderId, InvoiceType.INTERNAL),
+    ]);
+    return { success: true };
+  } catch (err) {
+    console.error("issueBothInvoices error:", err);
+    return { error: "Failed to issue both invoices." };
   }
 }

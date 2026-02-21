@@ -6,6 +6,7 @@ import { uploadInventoryPhoto } from "@/lib/supabase";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
+import { generateSku, ensureUniqueSku } from "@/lib/utils/sku";
 
 const InventorySchema = z.object({
   brand: z.string().min(1, "Brand is required"),
@@ -78,11 +79,26 @@ export async function createInventoryItem(
   try {
     const styleTags = formData.getAll("styleTags") as string[];
 
+    // Auto-generate SKU if not provided
+    let finalSku = d.sku || null;
+    if (!finalSku) {
+      const base = generateSku({
+        brand: d.brand,
+        model: d.model,
+        colorCode: d.colorCode as string | undefined,
+        eyeSize: d.eyeSize !== "" ? String(d.eyeSize) : undefined,
+        bridge: d.bridgeSize !== "" ? String(d.bridgeSize) : undefined,
+      });
+      if (base && base !== "UNK") {
+        finalSku = await ensureUniqueSku(base);
+      }
+    }
+
     const item = await prisma.inventoryItem.create({
       data: {
         brand: d.brand,
         model: d.model,
-        sku: d.sku || null,
+        sku: finalSku,
         upc: d.upc || null,
         category: d.category as any,
         gender: d.gender as any,
@@ -235,4 +251,57 @@ export async function updateAbcCategory(
   } catch {
     return { error: "Failed to update ABC category." };
   }
+}
+
+export async function markAsDisplayed(
+  inventoryItemId: string,
+  location?: string
+): Promise<{ success: true } | { error: string }> {
+  await verifySession();
+
+  try {
+    await prisma.inventoryItem.update({
+      where: { id: inventoryItemId },
+      data: {
+        isDisplayed: true,
+        displayedAt: new Date(),
+        displayLocation: location || null,
+      },
+    });
+    revalidatePath("/inventory/purchase-orders/received");
+    revalidatePath(`/inventory/${inventoryItemId}`);
+    return { success: true };
+  } catch {
+    return { error: "Failed to mark as displayed." };
+  }
+}
+
+export async function removeFromDisplay(
+  inventoryItemId: string
+): Promise<{ success: true } | { error: string }> {
+  await verifySession();
+
+  try {
+    await prisma.inventoryItem.update({
+      where: { id: inventoryItemId },
+      data: { isDisplayed: false },
+    });
+    revalidatePath("/inventory/purchase-orders/received");
+    return { success: true };
+  } catch {
+    return { error: "Failed to remove from display." };
+  }
+}
+
+export async function autoGenerateSku(parts: {
+  brand?: string;
+  model?: string;
+  colorCode?: string;
+  eyeSize?: string;
+  bridge?: string;
+}): Promise<{ sku: string }> {
+  await verifySession();
+  const base = generateSku(parts);
+  const sku = await ensureUniqueSku(base);
+  return { sku };
 }

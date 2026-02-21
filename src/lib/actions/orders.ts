@@ -52,9 +52,13 @@ type CreateOrderInput = {
   labNotes?: string;
   dueDate?: string;
   lineItems: LineItemInput[];
+  // Eye exam fields
+  examType?: string;
+  examPaymentMethod?: string;
+  insuranceCoveredAmount?: number;
 };
 
-export async function createOrder(input: CreateOrderInput): Promise<{ id: string } | { error: string }> {
+export async function createOrder(input: CreateOrderInput): Promise<{ id: string; orderNumber: string } | { error: string }> {
   const session = await verifySession();
 
   // Calculate totals from line items
@@ -108,6 +112,9 @@ export async function createOrder(input: CreateOrderInput): Promise<{ id: string
         lensAddOns: input.lensAddOns || [],
         insuranceCoverage: input.insuranceCoverage || null,
         referralCredit: input.referralCredit || null,
+        examType: input.examType || null,
+        examPaymentMethod: input.examPaymentMethod || null,
+        insuranceCoveredAmount: input.insuranceCoveredAmount ?? null,
         notes: input.notes || null,
         labNotes: input.labNotes || null,
         dueDate: input.dueDate ? new Date(input.dueDate) : null,
@@ -134,7 +141,7 @@ export async function createOrder(input: CreateOrderInput): Promise<{ id: string
       },
     });
 
-    return { id: order.id };
+    return { id: order.id, orderNumber: order.orderNumber };
   } catch (e) {
     console.error(e);
     return { error: "Failed to create order" };
@@ -217,6 +224,7 @@ export async function advanceOrderStatus(
 type PickupCompleteOptions = {
   sendReviewRequest: boolean;
   enrollInReferralCampaign: boolean;
+  enrollInFamilyPromo?: boolean;
   markAsLowValue: boolean;
   notes?: string;
 };
@@ -230,7 +238,13 @@ export async function handlePickupComplete(
   try {
     const order = await prisma.order.findUnique({
       where: { id: orderId },
-      select: { customerId: true, totalCustomer: true },
+      select: {
+        customerId: true,
+        totalCustomer: true,
+        customer: {
+          select: { familyId: true, family: { select: { customers: { select: { id: true } } } } },
+        },
+      },
     });
     if (!order) return { error: "Order not found" };
 
@@ -242,6 +256,7 @@ export async function handlePickupComplete(
           pickedUpAt: new Date(),
           reviewRequestSent: options.sendReviewRequest,
           referralCampaignEnrolled: options.enrollInReferralCampaign,
+          familyPromoCampaignEnrolled: options.enrollInFamilyPromo,
           pickupNotes: options.notes || null,
           statusHistory: {
             create: {
@@ -272,6 +287,10 @@ export async function handlePickupComplete(
     }
     if (options.enrollInReferralCampaign) {
       console.log(`[SMS PLACEHOLDER] Referral campaign enrollment for customer ${order.customerId} (starts in 3 days)`);
+    }
+    if (options.enrollInFamilyPromo) {
+      const familyMemberIds = order.customer?.family?.customers.map((c) => c.id).filter((id) => id !== order.customerId) ?? [];
+      console.log(`[FAMILY PROMO] Would enroll ${familyMemberIds.length} family members in FAMILY_ADDON campaign`);
     }
 
     revalidatePath(`/orders/${orderId}`);

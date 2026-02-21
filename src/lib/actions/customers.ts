@@ -297,6 +297,79 @@ export async function searchCustomers(query: string): Promise<CustomerSearchResu
   return customers;
 }
 
+export async function findFamilyMatches(
+  phone?: string | null,
+  address?: string | null,
+  excludeId?: string
+): Promise<Array<{ id: string; firstName: string; lastName: string; phone: string | null; familyId: string | null }>> {
+  await verifySession();
+
+  if (!phone && !address) return [];
+
+  const cleanPhone = phone?.replace(/\D/g, "");
+
+  const customers = await prisma.customer.findMany({
+    where: {
+      isActive: true,
+      id: excludeId ? { not: excludeId } : undefined,
+      OR: [
+        cleanPhone ? { phone: cleanPhone } : undefined,
+        address ? { address: { contains: address, mode: "insensitive" } } : undefined,
+      ].filter(Boolean) as any[],
+    },
+    select: { id: true, firstName: true, lastName: true, phone: true, familyId: true },
+    take: 10,
+  });
+
+  return customers;
+}
+
+export async function createFamilyAndLink(
+  familyName: string,
+  customerIds: string[]
+): Promise<{ familyId: string } | { error: string }> {
+  await verifySession();
+
+  if (!familyName || customerIds.length === 0) {
+    return { error: "Family name and at least one customer required" };
+  }
+
+  try {
+    const family = await prisma.family.create({ data: { name: familyName } });
+
+    await prisma.customer.updateMany({
+      where: { id: { in: customerIds } },
+      data: { familyId: family.id },
+    });
+
+    for (const id of customerIds) revalidatePath(`/customers/${id}`);
+    return { familyId: family.id };
+  } catch (e) {
+    console.error(e);
+    return { error: "Failed to create family group" };
+  }
+}
+
+export async function addToFamily(
+  familyId: string,
+  customerId: string
+): Promise<{ success: true } | { error: string }> {
+  await verifySession();
+
+  try {
+    await prisma.customer.update({
+      where: { id: customerId },
+      data: { familyId },
+    });
+
+    revalidatePath(`/customers/${customerId}`);
+    return { success: true };
+  } catch (e) {
+    console.error(e);
+    return { error: "Failed to add to family" };
+  }
+}
+
 export async function quickCreateCustomer(input: {
   firstName: string;
   lastName: string;

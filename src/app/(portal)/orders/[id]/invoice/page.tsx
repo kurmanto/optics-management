@@ -20,7 +20,7 @@ export default async function InvoicePage({
 
   const mode = view === "internal" ? "internal" : "customer";
 
-  const [order, existingInvoice] = await Promise.all([
+  const [order, existingInvoice, existingInternalInvoice] = await Promise.all([
     prisma.order.findUnique({
       where: { id },
       include: {
@@ -61,6 +61,10 @@ export default async function InvoicePage({
       where: { orderId: id, type: InvoiceType.CUSTOMER },
       select: { id: true, generatedAt: true },
     }),
+    prisma.invoice.findFirst({
+      where: { orderId: id, type: InvoiceType.INTERNAL },
+      select: { id: true, generatedAt: true },
+    }),
   ]);
 
   if (!order) notFound();
@@ -79,6 +83,8 @@ export default async function InvoicePage({
         <IssueInvoiceButton
           orderId={order.id}
           issuedAt={existingInvoice?.generatedAt ?? null}
+          isDualInvoice={order.isDualInvoice}
+          internalIssuedAt={existingInternalInvoice?.generatedAt ?? null}
         />
       </div>
 
@@ -117,6 +123,7 @@ export default async function InvoicePage({
       )}
 
       <InvoiceView
+        orderId={order.id}
         orderNumber={order.orderNumber}
         createdAt={order.createdAt}
         mode={mode}

@@ -271,3 +271,132 @@ describe("quickCreateCustomer", () => {
     expect("error" in result).toBe(true);
   });
 });
+
+describe("findFamilyMatches", () => {
+  it("returns [] when both phone and address are null/undefined (no DB call)", async () => {
+    const prisma = await getPrisma();
+
+    const { findFamilyMatches } = await import("@/lib/actions/customers");
+    const result = await findFamilyMatches(null, null);
+    expect(result).toEqual([]);
+    expect(prisma.customer.findMany).not.toHaveBeenCalled();
+  });
+
+  it("returns matching customers by phone (strips non-digits)", async () => {
+    const prisma = await getPrisma();
+    prisma.customer.findMany.mockResolvedValue([
+      { id: "cust-2", firstName: "Bob", lastName: "Smith", phone: "4165550100", familyId: null },
+    ]);
+
+    const { findFamilyMatches } = await import("@/lib/actions/customers");
+    const result = await findFamilyMatches("416-555-0100");
+    expect(prisma.customer.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          OR: expect.arrayContaining([
+            expect.objectContaining({ phone: "4165550100" }),
+          ]),
+        }),
+      })
+    );
+    expect(result).toHaveLength(1);
+    expect(result[0].phone).toBe("4165550100");
+  });
+
+  it("returns matching customers by address (contains match)", async () => {
+    const prisma = await getPrisma();
+    prisma.customer.findMany.mockResolvedValue([
+      { id: "cust-3", firstName: "Carol", lastName: "Jones", phone: null, familyId: null },
+    ]);
+
+    const { findFamilyMatches } = await import("@/lib/actions/customers");
+    const result = await findFamilyMatches(null, "123 Main St");
+    expect(prisma.customer.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          OR: expect.arrayContaining([
+            expect.objectContaining({ address: expect.objectContaining({ contains: "123 Main St" }) }),
+          ]),
+        }),
+      })
+    );
+    expect(result).toHaveLength(1);
+  });
+
+  it("excludes the target customer when excludeId is provided", async () => {
+    const prisma = await getPrisma();
+    prisma.customer.findMany.mockResolvedValue([]);
+
+    const { findFamilyMatches } = await import("@/lib/actions/customers");
+    await findFamilyMatches("4165550100", null, "cust-1");
+    expect(prisma.customer.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          id: { not: "cust-1" },
+        }),
+      })
+    );
+  });
+});
+
+describe("createFamilyAndLink", () => {
+  it("returns { error } when familyName is empty string", async () => {
+    const { createFamilyAndLink } = await import("@/lib/actions/customers");
+    const result = await createFamilyAndLink("", ["cust-1", "cust-2"]);
+    expect("error" in result).toBe(true);
+  });
+
+  it("returns { error } when customerIds array is empty", async () => {
+    const { createFamilyAndLink } = await import("@/lib/actions/customers");
+    const result = await createFamilyAndLink("The Smith Family", []);
+    expect("error" in result).toBe(true);
+  });
+
+  it("calls family.create then customer.updateMany with all IDs, returns { familyId }", async () => {
+    const prisma = await getPrisma();
+    prisma.family.create.mockResolvedValue({ id: "family-1", name: "The Smith Family" });
+    prisma.customer.updateMany.mockResolvedValue({ count: 2 });
+
+    const { createFamilyAndLink } = await import("@/lib/actions/customers");
+    const result = await createFamilyAndLink("The Smith Family", ["cust-1", "cust-2"]);
+
+    expect(prisma.family.create).toHaveBeenCalledWith(
+      expect.objectContaining({ data: { name: "The Smith Family" } })
+    );
+    expect(prisma.customer.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: { in: ["cust-1", "cust-2"] } },
+        data: { familyId: "family-1" },
+      })
+    );
+    expect("familyId" in result).toBe(true);
+    if ("familyId" in result) expect(result.familyId).toBe("family-1");
+  });
+});
+
+describe("addToFamily", () => {
+  it("calls customer.update with familyId and returns { success: true }", async () => {
+    const prisma = await getPrisma();
+    prisma.customer.update.mockResolvedValue({ id: "cust-1" });
+
+    const { addToFamily } = await import("@/lib/actions/customers");
+    const result = await addToFamily("family-1", "cust-1");
+
+    expect(result).toEqual({ success: true });
+    expect(prisma.customer.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: "cust-1" },
+        data: { familyId: "family-1" },
+      })
+    );
+  });
+
+  it("returns { error } when prisma throws", async () => {
+    const prisma = await getPrisma();
+    prisma.customer.update.mockRejectedValue(new Error("DB error"));
+
+    const { addToFamily } = await import("@/lib/actions/customers");
+    const result = await addToFamily("family-1", "cust-missing");
+    expect("error" in result).toBe(true);
+  });
+});

@@ -1,6 +1,8 @@
 "use client";
 
-import { Eye, Printer, Mail } from "lucide-react";
+import { useState } from "react";
+import { Eye, Printer, Mail, CheckCircle, AlertCircle, Loader2 } from "lucide-react";
+import { emailInvoice } from "@/lib/actions/email";
 
 // Business constants
 const BUSINESS = {
@@ -46,6 +48,7 @@ export type InvoicePrescription = {
 };
 
 export type InvoiceViewProps = {
+  orderId?: string;
   orderNumber: string;
   createdAt: Date;
   mode?: "customer" | "internal";
@@ -100,6 +103,9 @@ export function InvoiceView(props: InvoiceViewProps) {
   const mode = props.mode ?? "customer";
   const isInternal = mode === "internal";
 
+  const [emailSending, setEmailSending] = useState(false);
+  const [emailStatus, setEmailStatus] = useState<"idle" | "sent" | "error">("idle");
+
   const invNum = invoiceNumber(props.orderNumber);
   const insurance = props.insuranceCoverage ?? 0;
   const referral = props.referralCredit ?? 0;
@@ -118,11 +124,19 @@ export function InvoiceView(props: InvoiceViewProps) {
     .filter(Boolean)
     .join(", ");
 
-  const emailSubject = `MintVision Invoice #${invNum}`;
-  const emailBody = `Dear ${props.customer.firstName},\n\nThank you for choosing MintVision! Please find your invoice attached.\n\nIf you have any questions, please contact us at ${BUSINESS.email}\nor call us at ${BUSINESS.phone}.\n\nBest regards,\nThe MintVision Team`;
-  const mailtoHref = props.customer.email
-    ? `mailto:${props.customer.email}?subject=${encodeURIComponent(emailSubject)}&body=${encodeURIComponent(emailBody)}`
-    : null;
+  async function handleEmailInvoice() {
+    if (!props.orderId) return;
+    setEmailSending(true);
+    setEmailStatus("idle");
+    const result = await emailInvoice(props.orderId, mode);
+    setEmailSending(false);
+    setEmailStatus("error" in result ? "error" : "sent");
+    if (!("error" in result)) {
+      setTimeout(() => setEmailStatus("idle"), 4000);
+    }
+  }
+
+  const canEmail = !!props.orderId && !!props.customer.email;
 
   const rx = props.prescription;
   const hasRx = !!rx;
@@ -131,14 +145,23 @@ export function InvoiceView(props: InvoiceViewProps) {
     <div className="max-w-2xl mx-auto">
       {/* Action buttons — hidden when printing */}
       <div className="print:hidden flex justify-end mb-4 gap-2">
-        {!isInternal && mailtoHref && (
-          <a
-            href={mailtoHref}
-            className="inline-flex items-center gap-2 border border-gray-300 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors"
+        {canEmail && (
+          <button
+            onClick={handleEmailInvoice}
+            disabled={emailSending}
+            className="inline-flex items-center gap-2 border border-gray-300 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors disabled:opacity-50"
           >
-            <Mail className="w-4 h-4" />
-            Email to Customer
-          </a>
+            {emailSending ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : emailStatus === "sent" ? (
+              <CheckCircle className="w-4 h-4 text-green-500" />
+            ) : emailStatus === "error" ? (
+              <AlertCircle className="w-4 h-4 text-red-500" />
+            ) : (
+              <Mail className="w-4 h-4" />
+            )}
+            {emailSending ? "Sending…" : emailStatus === "sent" ? "Sent!" : emailStatus === "error" ? "Failed" : "Email Invoice"}
+          </button>
         )}
         <button
           onClick={() => window.print()}

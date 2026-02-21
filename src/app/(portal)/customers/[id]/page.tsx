@@ -19,6 +19,11 @@ import {
 import { MedicalHistoryForm } from "@/components/customers/MedicalHistoryForm";
 import { StoreCreditManager } from "@/components/customers/StoreCreditManager";
 import { ExternalPrescriptionUpload } from "@/components/customers/ExternalPrescriptionUpload";
+import { InsurancePolicyManager } from "@/components/customers/InsurancePolicyManager";
+import { FamilyMembersCard } from "@/components/customers/FamilyMembersCard";
+import { ReferralCodeCard } from "@/components/customers/ReferralCodeCard";
+import { SavedFramesCard } from "@/components/customers/SavedFramesCard";
+import { QuickBookAppointment } from "@/components/customers/QuickBookAppointment";
 
 const FORM_TYPE_LABELS: Record<FormTemplateType, string> = {
   NEW_PATIENT: "New Patient Registration",
@@ -60,7 +65,14 @@ export default async function CustomerDetailPage({
   const customer = await prisma.customer.findUnique({
     where: { id, isActive: true },
     include: {
-      family: true,
+      family: {
+        include: {
+          customers: {
+            where: { isActive: true },
+            select: { id: true, firstName: true, lastName: true, phone: true },
+          },
+        },
+      },
       orders: {
         orderBy: { createdAt: "desc" },
         include: { lineItems: true },
@@ -80,6 +92,19 @@ export default async function CustomerDetailPage({
       storeCredits: {
         where: { isActive: true },
         orderBy: { createdAt: "desc" },
+      },
+      savedFrames: {
+        include: { inventoryItem: { select: { id: true, brand: true, model: true, sku: true } } },
+        orderBy: { createdAt: "desc" },
+      },
+      referralsGiven: {
+        include: { referred: { select: { firstName: true, lastName: true } } },
+        orderBy: { createdAt: "desc" },
+      },
+      appointments: {
+        where: { status: { not: "CANCELLED" } },
+        orderBy: { scheduledAt: "asc" },
+        take: 10,
       },
     },
   });
@@ -264,45 +289,37 @@ export default async function CustomerDetailPage({
           </div>
 
           {/* Insurance */}
-          {customer.insurancePolicies.length > 0 && (
-            <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
-              <h2 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
-                <Shield className="w-4 h-4 text-gray-400" />
-                Insurance
-              </h2>
-              <div className="space-y-4">
-                {customer.insurancePolicies.map((policy) => {
-                  const elig = computeInsuranceEligibility(policy);
-                  return (
-                    <div key={policy.id} className="text-sm space-y-1.5">
-                      <p className="font-medium text-gray-900">{policy.providerName}</p>
-                      {policy.policyNumber && (
-                        <p className="text-gray-500 text-xs">Policy: {policy.policyNumber}</p>
-                      )}
-                      {policy.lastClaimDate && (
-                        <p className="text-gray-500 text-xs">
-                          Last claim: {formatDate(policy.lastClaimDate)}
-                        </p>
-                      )}
-                      {elig.nextDate && (
-                        <div className={`text-xs px-2.5 py-1 rounded-lg inline-flex items-center gap-1.5 ${
-                          elig.isEligibleSoon ? "bg-green-50 text-green-700" : "bg-gray-50 text-gray-600"
-                        }`}>
-                          <Calendar className="w-3 h-3" />
-                          Next eligible: {formatDate(elig.nextDate)}
-                          {elig.daysUntil !== null && (
-                            <span className="font-medium">
-                              {elig.daysUntil <= 0 ? " (now!)" : ` (${elig.daysUntil}d)`}
-                            </span>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          )}
+          <InsurancePolicyManager
+            customerId={customer.id}
+            initialPolicies={customer.insurancePolicies.map((p) => ({
+              id: p.id,
+              providerName: p.providerName,
+              policyNumber: p.policyNumber,
+              groupNumber: (p as any).groupNumber ?? null,
+              memberId: (p as any).memberId ?? null,
+              contractNumber: (p as any).contractNumber ?? null,
+              coverageType: p.coverageType ?? "",
+              estimatedCoverage: (p as any).estimatedCoverage ?? null,
+              maxFrames: p.maxFrames,
+              maxLenses: p.maxLenses,
+              maxContacts: (p as any).maxContacts ?? null,
+              maxExam: p.maxExam,
+              lastClaimDate: p.lastClaimDate,
+              eligibilityIntervalMonths: p.eligibilityIntervalMonths ?? 12,
+              notes: (p as any).notes ?? null,
+              isActive: p.isActive,
+            }))}
+          />
+
+          {/* Family Members */}
+          <FamilyMembersCard
+            customerId={customer.id}
+            familyId={customer.familyId}
+            familyName={customer.family?.name ?? null}
+            familyMembers={(customer.family as any)?.customers?.filter((c: any) => c.id !== customer.id) ?? []}
+            customerPhone={customer.phone}
+            customerAddress={customer.address}
+          />
 
           {/* Store Credits */}
           <StoreCreditManager
@@ -505,6 +522,57 @@ export default async function CustomerDetailPage({
               </div>
             )}
           </div>
+
+          {/* Appointments */}
+          <QuickBookAppointment
+            customerId={customer.id}
+            initialAppointments={customer.appointments.map((a) => ({
+              id: a.id,
+              type: a.type as string,
+              scheduledAt: a.scheduledAt,
+              duration: a.duration ?? 30,
+              notes: a.notes,
+              status: a.status as string,
+            }))}
+          />
+
+          {/* Referral Code */}
+          <ReferralCodeCard
+            customerId={customer.id}
+            firstName={customer.firstName}
+            lastName={customer.lastName}
+            referralsGiven={customer.referralsGiven.map((r) => ({
+              id: r.id,
+              code: (r as any).code ?? null,
+              status: r.status,
+              rewardAmount: (r as any).rewardAmount ?? null,
+              createdAt: r.createdAt,
+              referred: r.referred
+                ? { firstName: r.referred.firstName, lastName: r.referred.lastName }
+                : null,
+            }))}
+          />
+
+          {/* Saved Frames */}
+          <SavedFramesCard
+            customerId={customer.id}
+            initialFrames={customer.savedFrames.map((f) => ({
+              id: f.id,
+              brand: f.brand,
+              model: f.model,
+              color: f.color,
+              sku: f.sku,
+              photoUrl: f.photoUrl,
+              notes: f.notes,
+              savedBy: (f as any).savedBy ?? null,
+              isFavorite: f.isFavorite,
+              expectedReturnDate: f.expectedReturnDate,
+              createdAt: f.createdAt,
+              inventoryItem: f.inventoryItem
+                ? { id: f.inventoryItem.id, brand: f.inventoryItem.brand, model: f.inventoryItem.model }
+                : null,
+            }))}
+          />
 
           {/* Forms & Documents */}
           <div className="bg-white rounded-xl border border-gray-100 shadow-sm">

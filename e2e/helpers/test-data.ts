@@ -39,6 +39,11 @@ export const CUSTOMERS = {
   Leblanc:   { firstName: "Etienne",   lastName: "Leblanc",   phone: "5145550118" },
   Moore:     { firstName: "Charlotte", lastName: "Moore",     phone: "4165550119" },
   Bouchard:  { firstName: "Louis",     lastName: "Bouchard",  phone: "5145550120" },
+  // Phase 2 — family group customers
+  AndersonPrimary: { firstName: "Claire", lastName: "Anderson", phone: "4165550201" },
+  AndersonMember:  { firstName: "Mark",   lastName: "Anderson", phone: "4165550201" },
+  // Phase 2 — no-email customer
+  Fletcher: { firstName: "Paul", lastName: "Fletcher", phone: "4165550202" },
 } as const;
 
 // Seeded inventory items
@@ -122,6 +127,16 @@ export function getTestFixtures() {
       poId: string;
       invoiceId: string;
       notificationId: string;
+      // Phase 2 fixtures
+      withFamilyCustomerId: string;
+      familyMemberCustomerId: string;
+      familyId: string;
+      noEmailCustomerId: string;
+      dualInvoiceOrderId: string;
+      standardOrderId: string;
+      receivedPoId: string;
+      frameWithReturnDateId: string;
+      stylingAppointmentId: string;
     };
   } catch {
     throw new Error(

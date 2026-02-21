@@ -2,12 +2,13 @@
 
 import { useState } from "react";
 import { handlePickupComplete } from "@/lib/actions/orders";
-import { X, Star, Users, AlertTriangle } from "lucide-react";
+import { X, Star, Users, AlertTriangle, Gift } from "lucide-react";
 
 type Props = {
   orderId: string;
   orderTotal: number;
   customerMarketingOptOut: boolean;
+  hasFamilyMembers?: boolean;
   onClose: () => void;
   onSuccess: () => void;
 };
@@ -16,11 +17,13 @@ export function PickupCompleteModal({
   orderId,
   orderTotal,
   customerMarketingOptOut,
+  hasFamilyMembers = false,
   onClose,
   onSuccess,
 }: Props) {
   const [sendReviewRequest, setSendReviewRequest] = useState(orderTotal > 500);
   const [enrollInReferralCampaign, setEnrollInReferralCampaign] = useState(true);
+  const [enrollInFamilyPromo, setEnrollInFamilyPromo] = useState(hasFamilyMembers);
   const [markAsLowValue, setMarkAsLowValue] = useState(false);
   const [pickupNotes, setPickupNotes] = useState("");
   const [pending, setPending] = useState(false);
@@ -33,6 +36,7 @@ export function PickupCompleteModal({
     const result = await handlePickupComplete(orderId, {
       sendReviewRequest,
       enrollInReferralCampaign,
+      enrollInFamilyPromo,
       markAsLowValue,
       notes: pickupNotes || undefined,
     });
@@ -110,6 +114,24 @@ export function PickupCompleteModal({
               <p className="text-xs text-gray-500 mt-0.5">Starts in 3 days</p>
             </div>
           </label>
+
+          {hasFamilyMembers && (
+            <label className="flex items-start gap-3 p-3 rounded-xl border border-gray-200 cursor-pointer hover:bg-gray-50 transition-colors">
+              <input
+                type="checkbox"
+                checked={enrollInFamilyPromo}
+                onChange={(e) => setEnrollInFamilyPromo(e.target.checked)}
+                className="mt-0.5 rounded border-gray-300 text-primary focus:ring-primary"
+              />
+              <div className="flex-1">
+                <div className="flex items-center gap-1.5">
+                  <Gift className="w-3.5 h-3.5 text-purple-500" />
+                  <span className="text-sm font-semibold text-gray-900">Send family promo offer</span>
+                </div>
+                <p className="text-xs text-gray-500 mt-0.5">Email/SMS family members a special offer (starts in 7 days)</p>
+              </div>
+            </label>
+          )}
 
           <label className="flex items-start gap-3 p-3 rounded-xl border border-red-100 cursor-pointer hover:bg-red-50 transition-colors">
             <input

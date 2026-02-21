@@ -47,6 +47,10 @@ export function buildPrismaMock() {
     campaignRun: modelMock(),
     message: modelMock(),
     messageTemplate: modelMock(),
+    referral: modelMock(),
+    savedFrame: modelMock(),
+    appointment: modelMock(),
+    family: modelMock(),
     $transaction: vi.fn(async (fn: (tx: unknown) => unknown) => {
       if (typeof fn === "function") {
         return fn(mock);

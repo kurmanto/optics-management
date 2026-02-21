@@ -5,7 +5,7 @@
 
 ---
 
-## Current Version: V2.1.0 — Campaign Engine (Marketing Automation)
+## Current Version: V2.2.0 — Phase 1 & Phase 2 Feature Suite
 
 ---
 
@@ -187,11 +187,35 @@
 
 ---
 
+### Phase 1 & Phase 2 Features (V2.2.0 — Complete)
+
+| Feature | Status | Notes |
+|---------|--------|-------|
+| Eye Exam order sub-flow (3-step: type, payment, insurance amount) | ✅ Complete | |
+| Customer Insurance Manager (CRUD cards on profile) | ✅ Complete | contractNumber, estimatedCoverage added |
+| Family Members Auto-linking (match by phone/address) | ✅ Complete | |
+| Referral Code Tracking ($25 store credit auto-awarded) | ✅ Complete | Code format: MV-{FIRST2}{LAST2}-{4digits} |
+| Saved Frames (photo upload, favorites, expected return) | ✅ Complete | Supabase Storage for photos |
+| Dual Invoice explicit toggle (Customer / Internal tabs) | ✅ Complete | |
+| IssueInvoiceButton — dual invoice dropdown | ✅ Complete | Issue each type separately or both |
+| Auto-generate work order + auto-print on creation | ✅ Complete | `?autoprint=true` query param |
+| Dashboard "Follow Ups" section (3 sub-cards) | ✅ Complete | Saved frames, appointments, quotes |
+| "Add Another Order" success overlay | ✅ Complete | Keeps customer, resets order form |
+| Styling Appointment Quick-Booking | ✅ Complete | STYLING enum, mini-list on customer profile |
+| Automated Invoice Email via Resend | ✅ Complete | Real HTML email, loading/sent/error states |
+| Post-Pickup Family Promo Campaign Toggle | ✅ Complete | Enrolls family members in FAMILY_ADDON campaign |
+| PO Line Item Fields Expansion (14 new fields) | ✅ Complete | Select Existing + Add New Frame modes |
+| SKU Auto-Generation (`RAY-RB5154-2000-49-21` format) | ✅ Complete | `src/lib/utils/sku.ts` |
+| Received Frames tab with Display Tracking | ✅ Complete | `/inventory/purchase-orders/received` |
+| Unit tests for all new actions (50 new tests, 366 total) | ✅ Complete | appointments, insurance, referrals, saved-frames, email, sku |
+
+---
+
 ### V3.0 — Referrals
 
 | Feature | Status | Notes |
 |---------|--------|-------|
-| Referral tracking | 🔲 Future | DB model exists |
+| Referral tracking | ✅ Complete | See Phase 1 & 2 section above |
 
 ---
 
@@ -199,7 +223,7 @@
 
 | Feature | Status | Notes |
 |---------|--------|-------|
-| Appointment scheduling | 🔲 Future | DB model exists |
+| Appointment scheduling | ✅ Partial | STYLING appointments implemented; full calendar view pending |
 | Calendar view | 🔲 Future | |
 
 ---

@@ -114,6 +114,7 @@ model Customer {
   formPackages        FormPackage[]
   medicalHistory      MedicalHistory?
   storeCredits        StoreCredit[]
+  savedFrames         SavedFrame[]
 
   @@index([lastName, firstName])
   @@index([phone])
@@ -264,6 +265,10 @@ model InventoryItem {
   imageUrl      String?
   additionalImageUrls String[] @default([]) @map("additional_image_urls")
   vendorId      String?       @map("vendor_id")
+  // Display tracking
+  isDisplayed    Boolean       @default(false) @map("is_displayed")
+  displayedAt    DateTime?     @map("displayed_at")
+  displayLocation String?      @map("display_location")
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
 
@@ -271,6 +276,7 @@ model InventoryItem {
   orderLineItems         OrderLineItem[]
   purchaseOrderLineItems PurchaseOrderLineItem[]
   ledgerEntries          InventoryLedger[]
+  savedFrames            SavedFrame[]
 
   @@index([brand])
   @@index([category, gender])
@@ -341,15 +347,30 @@ model PurchaseOrder {
 model PurchaseOrderLineItem {
   id               String    @id @default(cuid())
   poId             String    @map("po_id")
-  inventoryItemId  String    @map("inventory_item_id")
+  inventoryItemId  String?   @map("inventory_item_id")
   quantityOrdered  Int       @map("quantity_ordered")
   quantityReceived Int       @default(0) @map("quantity_received")
   unitCost         Float     @map("unit_cost")
   receivedAt       DateTime? @map("received_at")
   conditionNotes   String?   @map("condition_notes")
 
-  po            PurchaseOrder @relation(fields: [poId], references: [id], onDelete: Cascade)
-  inventoryItem InventoryItem @relation(fields: [inventoryItemId], references: [id])
+  // Expanded frame fields for new POs
+  brand       String?
+  model       String?
+  gender      String?
+  eyeSize     String?   @map("eye_size")
+  bridge      String?
+  temple      String?
+  color       String?
+  colorCode   String?   @map("color_code")
+  retailPrice Float?    @map("retail_price")
+  grossProfit Float?    @map("gross_profit")
+  frameType   String?   @map("frame_type")
+  material    String?
+  notes       String?
+
+  po            PurchaseOrder  @relation(fields: [poId], references: [id], onDelete: Cascade)
+  inventoryItem InventoryItem? @relation(fields: [inventoryItemId], references: [id])
 
   @@index([poId])
   @@map("purchase_order_line_items")
@@ -441,9 +462,15 @@ model Order {
   insuranceCoverage Float? @map("insurance_coverage")
   referralCredit    Float? @map("referral_credit")
 
+  // Eye exam fields
+  examType               String?  @map("exam_type")
+  examPaymentMethod      String?  @map("exam_payment_method")
+  insuranceCoveredAmount Float?   @map("insurance_covered_amount")
+
   // Post-pickup marketing
   reviewRequestSent        Boolean   @default(false) @map("review_request_sent")
   referralCampaignEnrolled Boolean   @default(false) @map("referral_campaign_enrolled")
+  familyPromoCampaignEnrolled Boolean @default(false) @map("family_promo_campaign_enrolled")
   pickupNotes              String?   @map("pickup_notes")
 
   verifiedAt DateTime? @map("verified_at")
@@ -607,6 +634,8 @@ model InsurancePolicy {
   maxExam      Float?
   lastClaimDate             DateTime? @map("last_claim_date")
   eligibilityIntervalMonths Int       @default(24) @map("eligibility_interval_months")
+  contractNumber String?   @map("contract_number")
+  estimatedCoverage Float? @map("estimated_coverage")
   notes        String?
   isActive     Boolean      @default(true)
   createdAt    DateTime     @default(now())
@@ -878,15 +907,17 @@ model CampaignRun {
 model Referral {
   id           String    @id @default(cuid())
   referrerId   String // customer who referred
-  referredId   String // customer who was referred
+  referredId   String? // customer who was referred (set when redeemed)
   code         String?   @unique
+  status       String    @default("PENDING") // PENDING, QUALIFIED, REWARDED
+  orderId      String?   @map("order_id") // order that triggered the reward
   rewardAmount Float?
   rewardPaidAt DateTime?
   notes        String?
   createdAt    DateTime  @default(now())
 
-  referrer Customer @relation("referrer", fields: [referrerId], references: [id])
-  referred Customer @relation("referred", fields: [referredId], references: [id])
+  referrer Customer  @relation("referrer", fields: [referrerId], references: [id])
+  referred Customer? @relation("referred", fields: [referredId], references: [id])
 
   @@map("referrals")
 }
@@ -919,6 +950,7 @@ enum AppointmentType {
   FOLLOW_UP
   GLASSES_PICKUP
   ADJUSTMENT
+  STYLING
 }
 
 enum AppointmentStatus {
@@ -1098,6 +1130,32 @@ model StoreCredit {
 
   @@index([customerId])
   @@map("store_credits")
+}
+
+// ─────────────────────────────────────────
+// SAVED FRAMES
+// ─────────────────────────────────────────
+
+model SavedFrame {
+  id                  String    @id @default(cuid())
+  customerId          String    @map("customer_id")
+  inventoryItemId     String?   @map("inventory_item_id")
+  brand               String
+  model               String?
+  color               String?
+  sku                 String?
+  photoUrl            String?   @map("photo_url")
+  notes               String?
+  savedBy             String?   @map("saved_by")
+  isFavorite          Boolean   @default(false) @map("is_favorite")
+  expectedReturnDate  DateTime? @map("expected_return_date")
+  createdAt           DateTime  @default(now()) @map("created_at")
+
+  customer      Customer       @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  inventoryItem InventoryItem? @relation(fields: [inventoryItemId], references: [id])
+
+  @@index([customerId])
+  @@map("saved_frames")
 }
 
 // ─────────────────────────────────────────
