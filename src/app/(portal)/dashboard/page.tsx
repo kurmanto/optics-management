@@ -19,6 +19,7 @@ import {
   Bell,
 } from "lucide-react";
 
+
 // ─────────────────────────────────────────
 // DATA FETCHING
 // ─────────────────────────────────────────
@@ -517,8 +518,11 @@ export default async function DashboardPage() {
         </div>
       </section>
 
-      {/* ── MONEY ON THE TABLE ── */}
-      {totalOpportunities > 0 && (
+      {/* ── MONEY ON THE TABLE + FOLLOW UPS ── */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+      {/* Money on the Table */}
+      {totalOpportunities > 0 ? (
         <section>
           <div className="flex items-center gap-2 mb-4">
             <h2 className="text-base font-semibold text-gray-900">Money on the Table</h2>
@@ -527,7 +531,7 @@ export default async function DashboardPage() {
             </span>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="space-y-4">
 
             {/* Incomplete Orders */}
             {opportunities.incompleteOrders.length > 0 && (
@@ -671,7 +675,106 @@ export default async function DashboardPage() {
             )}
           </div>
         </section>
+      ) : (
+        <section>
+          <div className="flex items-center gap-2 mb-4">
+            <h2 className="text-base font-semibold text-gray-900">Money on the Table</h2>
+          </div>
+          <div className="bg-white border border-[#E5E5E5] rounded-lg px-5 py-8 text-center text-sm text-[#808080]">
+            No open opportunities right now.
+          </div>
+        </section>
       )}
+
+      {/* Follow Ups */}
+      <section>
+        <div className="flex items-center gap-2 mb-4">
+          <Bell className="w-4 h-4 text-gray-500" />
+          <h2 className="text-base font-semibold text-gray-900">Follow Ups</h2>
+          {(followUps.pendingReturnFrames.length + followUps.upcomingStylingAppts.length) > 0 && (
+            <span className="text-xs font-semibold bg-amber-500 text-white px-2 py-0.5 rounded">
+              {followUps.pendingReturnFrames.length + followUps.upcomingStylingAppts.length}
+            </span>
+          )}
+        </div>
+
+        {followUps.pendingReturnFrames.length === 0 && followUps.upcomingStylingAppts.length === 0 ? (
+          <div className="bg-white border border-[#E5E5E5] rounded-lg px-5 py-8 text-center text-sm text-[#808080]">
+            No follow-ups pending.
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {/* Saved Frames Pending Return */}
+            {followUps.pendingReturnFrames.length > 0 && (
+              <div className="bg-white border border-[#E5E5E5] rounded-lg overflow-hidden">
+                <div className="px-5 py-4 border-b border-[#E5E5E5] flex items-center gap-2">
+                  <Glasses className="w-4 h-4 text-[#808080]" />
+                  <h3 className="text-sm font-semibold text-gray-900">Saved Frames — Pending Return</h3>
+                  <span className="ml-auto text-xs text-[#808080] font-medium">{followUps.pendingReturnFrames.length}</span>
+                </div>
+                <div className="divide-y divide-[#F5F5F5]">
+                  {followUps.pendingReturnFrames.map((frame) => {
+                    const isPastDue = frame.expectedReturnDate! < new Date();
+                    return (
+                      <Link
+                        key={frame.id}
+                        href={`/customers/${frame.customer.id}`}
+                        className="flex items-center justify-between px-5 py-3 hover:bg-[#F9F9F9] transition-colors"
+                      >
+                        <div>
+                          <p className="text-sm font-medium text-gray-900">
+                            {frame.customer.firstName} {frame.customer.lastName}
+                          </p>
+                          <p className="text-xs text-[#808080]">{frame.brand} {frame.model}</p>
+                        </div>
+                        <span className={`text-xs font-medium px-2 py-0.5 rounded ${
+                          isPastDue ? "bg-red-100 text-red-700" : "bg-amber-100 text-amber-700"
+                        }`}>
+                          {isPastDue ? "Overdue" : formatDate(frame.expectedReturnDate!)}
+                        </span>
+                      </Link>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Upcoming Styling Appointments */}
+            {followUps.upcomingStylingAppts.length > 0 && (
+              <div className="bg-white border border-[#E5E5E5] rounded-lg overflow-hidden">
+                <div className="px-5 py-4 border-b border-[#E5E5E5] flex items-center gap-2">
+                  <CalendarDays className="w-4 h-4 text-[#808080]" />
+                  <h3 className="text-sm font-semibold text-gray-900">Styling Appointments (7 days)</h3>
+                  <span className="ml-auto text-xs text-[#808080] font-medium">{followUps.upcomingStylingAppts.length}</span>
+                </div>
+                <div className="divide-y divide-[#F5F5F5]">
+                  {followUps.upcomingStylingAppts.map((appt) => (
+                    <Link
+                      key={appt.id}
+                      href={`/customers/${appt.customer.id}`}
+                      className="flex items-center justify-between px-5 py-3 hover:bg-[#F9F9F9] transition-colors"
+                    >
+                      <div>
+                        <p className="text-sm font-medium text-gray-900">
+                          {appt.customer.firstName} {appt.customer.lastName}
+                        </p>
+                        <p className="text-xs text-[#808080]">
+                          {new Date(appt.scheduledAt).toLocaleString("en-CA", { weekday: "short", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
+                        </p>
+                      </div>
+                      <span className="text-xs font-medium bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded">
+                        {appt.duration ?? 30}min
+                      </span>
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </section>
+
+      </div>{/* end Money on the Table + Follow Ups grid */}
 
       {/* ── CONVERSION METRICS ── */}
       <section>
@@ -821,89 +924,6 @@ export default async function DashboardPage() {
                 </div>
               </div>
             </div>
-
-          </div>
-        </section>
-      )}
-
-      {/* ── FOLLOW UPS ── */}
-      {(followUps.pendingReturnFrames.length > 0 || followUps.upcomingStylingAppts.length > 0) && (
-        <section>
-          <div className="flex items-center gap-2 mb-4">
-            <Bell className="w-4 h-4 text-gray-500" />
-            <h2 className="text-base font-semibold text-gray-900">Follow Ups</h2>
-            <span className="text-xs font-semibold bg-amber-500 text-white px-2 py-0.5 rounded">
-              {followUps.pendingReturnFrames.length + followUps.upcomingStylingAppts.length}
-            </span>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-
-            {/* Saved Frames Pending Return */}
-            {followUps.pendingReturnFrames.length > 0 && (
-              <div className="bg-white border border-[#E5E5E5] rounded-lg overflow-hidden">
-                <div className="px-5 py-4 border-b border-[#E5E5E5] flex items-center gap-2">
-                  <Glasses className="w-4 h-4 text-[#808080]" />
-                  <h3 className="text-sm font-semibold text-gray-900">Saved Frames — Pending Return</h3>
-                  <span className="ml-auto text-xs text-[#808080] font-medium">{followUps.pendingReturnFrames.length}</span>
-                </div>
-                <div className="divide-y divide-[#F5F5F5]">
-                  {followUps.pendingReturnFrames.map((frame) => {
-                    const isPastDue = frame.expectedReturnDate! < new Date();
-                    return (
-                      <Link
-                        key={frame.id}
-                        href={`/customers/${frame.customer.id}`}
-                        className="flex items-center justify-between px-5 py-3 hover:bg-[#F9F9F9] transition-colors"
-                      >
-                        <div>
-                          <p className="text-sm font-medium text-gray-900">
-                            {frame.customer.firstName} {frame.customer.lastName}
-                          </p>
-                          <p className="text-xs text-[#808080]">{frame.brand} {frame.model}</p>
-                        </div>
-                        <span className={`text-xs font-medium px-2 py-0.5 rounded ${
-                          isPastDue ? "bg-red-100 text-red-700" : "bg-amber-100 text-amber-700"
-                        }`}>
-                          {isPastDue ? "Overdue" : formatDate(frame.expectedReturnDate!)}
-                        </span>
-                      </Link>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-
-            {/* Upcoming Styling Appointments */}
-            {followUps.upcomingStylingAppts.length > 0 && (
-              <div className="bg-white border border-[#E5E5E5] rounded-lg overflow-hidden">
-                <div className="px-5 py-4 border-b border-[#E5E5E5] flex items-center gap-2">
-                  <CalendarDays className="w-4 h-4 text-[#808080]" />
-                  <h3 className="text-sm font-semibold text-gray-900">Styling Appointments (7 days)</h3>
-                  <span className="ml-auto text-xs text-[#808080] font-medium">{followUps.upcomingStylingAppts.length}</span>
-                </div>
-                <div className="divide-y divide-[#F5F5F5]">
-                  {followUps.upcomingStylingAppts.map((appt) => (
-                    <Link
-                      key={appt.id}
-                      href={`/customers/${appt.customer.id}`}
-                      className="flex items-center justify-between px-5 py-3 hover:bg-[#F9F9F9] transition-colors"
-                    >
-                      <div>
-                        <p className="text-sm font-medium text-gray-900">
-                          {appt.customer.firstName} {appt.customer.lastName}
-                        </p>
-                        <p className="text-xs text-[#808080]">
-                          {new Date(appt.scheduledAt).toLocaleString("en-CA", { weekday: "short", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
-                        </p>
-                      </div>
-                      <span className="text-xs font-medium bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded">
-                        {appt.duration ?? 30}min
-                      </span>
-                    </Link>
-                  ))}
-                </div>
-              </div>
-            )}
 
           </div>
         </section>

@@ -247,17 +247,19 @@ export function NewOrderWizard({
     .slice(0, 10);
 
   function addLineItem() {
-    setLineItems([...lineItems, { type: "OTHER", description: "", quantity: 1, unitPriceCustomer: 0, unitPriceReal: 0 }]);
+    setLineItems(prev => [...prev, { type: "OTHER", description: "", quantity: 1, unitPriceCustomer: 0, unitPriceReal: 0 }]);
   }
 
   function removeLineItem(index: number) {
-    setLineItems(lineItems.filter((_, i) => i !== index));
+    setLineItems(prev => prev.filter((_, i) => i !== index));
   }
 
   function updateLineItem(index: number, field: keyof LineItem, value: unknown) {
-    const updated = [...lineItems];
-    updated[index] = { ...updated[index], [field]: value };
-    setLineItems(updated);
+    setLineItems(prev => {
+      const updated = [...prev];
+      updated[index] = { ...updated[index], [field]: value };
+      return updated;
+    });
   }
 
   function toggleAddon(addon: string) {
@@ -942,7 +944,7 @@ export function NewOrderWizard({
                   </div>
 
                   <div className="p-4 space-y-3">
-                    {inventoryItems.length > 0 && (
+                    {inventoryItems.length > 0 && item.type === "FRAME" && (
                       <div className="space-y-2">
                         <div className="relative">
                           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />

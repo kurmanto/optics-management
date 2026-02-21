@@ -3,7 +3,7 @@ import { verifySession } from "@/lib/dal";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { formatPhone, formatDate, formatCurrency, formatRxValue } from "@/lib/utils/formatters";
-import { ChevronLeft, Edit, Plus, FileText, PenLine, CheckCircle2, Clock, AlertTriangle, TrendingUp, Shield, Calendar } from "lucide-react";
+import { ChevronLeft, Edit, Plus, FileText, PenLine, CheckCircle2, Clock, AlertTriangle, TrendingUp, Shield, Calendar, Glasses } from "lucide-react";
 import { OrderStatus, FormTemplateType } from "@prisma/client";
 import {
   computeCustomerType,
@@ -62,7 +62,8 @@ export default async function CustomerDetailPage({
   await verifySession();
   const { id } = await params;
 
-  const customer = await prisma.customer.findUnique({
+  const [customer, inventoryItems] = await Promise.all([
+  prisma.customer.findUnique({
     where: { id, isActive: true },
     include: {
       family: {
@@ -107,7 +108,13 @@ export default async function CustomerDetailPage({
         take: 10,
       },
     },
-  });
+  }),
+  prisma.inventoryItem.findMany({
+    where: { isActive: true },
+    select: { id: true, brand: true, model: true, color: true, sku: true },
+    orderBy: [{ brand: "asc" }, { model: "asc" }],
+  }),
+  ]);
 
   if (!customer) notFound();
 
@@ -554,25 +561,41 @@ export default async function CustomerDetailPage({
           />
 
           {/* Saved Frames */}
-          <SavedFramesCard
-            customerId={customer.id}
-            initialFrames={customer.savedFrames.map((f) => ({
-              id: f.id,
-              brand: f.brand,
-              model: f.model,
-              color: f.color,
-              sku: f.sku,
-              photoUrl: f.photoUrl,
-              notes: f.notes,
-              savedBy: (f as any).savedBy ?? null,
-              isFavorite: f.isFavorite,
-              expectedReturnDate: f.expectedReturnDate,
-              createdAt: f.createdAt,
-              inventoryItem: f.inventoryItem
-                ? { id: f.inventoryItem.id, brand: f.inventoryItem.brand, model: f.inventoryItem.model }
-                : null,
-            }))}
-          />
+          <div className="bg-white rounded-xl border border-gray-100 shadow-sm">
+            <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
+              <h2 className="font-semibold text-gray-900 flex items-center gap-2">
+                <Glasses className="w-4 h-4 text-gray-400" />
+                Saved Frames
+                {customer.savedFrames.length > 0 && (
+                  <span className="text-xs font-medium bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">
+                    {customer.savedFrames.length}
+                  </span>
+                )}
+              </h2>
+            </div>
+            <div className="p-5">
+              <SavedFramesCard
+                customerId={customer.id}
+                initialFrames={customer.savedFrames.map((f) => ({
+                  id: f.id,
+                  brand: f.brand,
+                  model: f.model,
+                  color: f.color,
+                  sku: f.sku,
+                  photoUrl: f.photoUrl,
+                  notes: f.notes,
+                  savedBy: (f as any).savedBy ?? null,
+                  isFavorite: f.isFavorite,
+                  expectedReturnDate: f.expectedReturnDate,
+                  createdAt: f.createdAt,
+                  inventoryItem: f.inventoryItem
+                    ? { id: f.inventoryItem.id, brand: f.inventoryItem.brand, model: f.inventoryItem.model }
+                    : null,
+                }))}
+                inventoryItems={inventoryItems}
+              />
+            </div>
+          </div>
 
           {/* Forms & Documents */}
           <div className="bg-white rounded-xl border border-gray-100 shadow-sm">

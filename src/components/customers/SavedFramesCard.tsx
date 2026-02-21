@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition, useRef } from "react";
+import { useRouter } from "next/navigation";
 import { Heart, Trash2, Plus, Camera, Search, Calendar } from "lucide-react";
 import { saveFrame, removeSavedFrame, toggleFavorite, updateExpectedReturnDate, uploadFramePhoto } from "@/lib/actions/saved-frames";
 import { formatDate } from "@/lib/utils/formatters";
@@ -35,7 +36,7 @@ type Props = {
 };
 
 export function SavedFramesCard({ customerId, initialFrames, inventoryItems = [] }: Props) {
-  const [frames, setFrames] = useState(initialFrames);
+  const router = useRouter();
   const [showAddForm, setShowAddForm] = useState(false);
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState("");
@@ -48,6 +49,8 @@ export function SavedFramesCard({ customerId, initialFrames, inventoryItems = []
   const [expectedDate, setExpectedDate] = useState("");
   const [photoUploading, setPhotoUploading] = useState(false);
   const [photoUrl, setPhotoUrl] = useState("");
+  const [editingDateId, setEditingDateId] = useState<string | null>(null);
+  const [editingDateValue, setEditingDateValue] = useState("");
   const fileRef = useRef<HTMLInputElement>(null);
 
   const filteredInv = inventoryItems.filter((inv) =>
@@ -96,33 +99,57 @@ export function SavedFramesCard({ customerId, initialFrames, inventoryItems = []
       } else {
         setShowAddForm(false);
         setBrand(""); setModel(""); setColor(""); setNotes(""); setExpectedDate(""); setPhotoUrl(""); setSelectedInvItem(null);
+        router.refresh();
       }
     });
   }
 
   function handleToggleFavorite(frameId: string) {
-    startTransition(async () => { await toggleFavorite(frameId); });
+    startTransition(async () => {
+      await toggleFavorite(frameId);
+      router.refresh();
+    });
   }
 
   function handleRemove(frameId: string) {
     if (!confirm("Remove this saved frame?")) return;
-    startTransition(async () => { await removeSavedFrame(frameId); });
+    startTransition(async () => {
+      await removeSavedFrame(frameId);
+      router.refresh();
+    });
+  }
+
+  function startEditDate(frame: SavedFrame) {
+    setEditingDateId(frame.id);
+    setEditingDateValue(
+      frame.expectedReturnDate
+        ? new Date(frame.expectedReturnDate).toISOString().split("T")[0]
+        : ""
+    );
+  }
+
+  function handleSaveDate(frameId: string) {
+    startTransition(async () => {
+      await updateExpectedReturnDate(frameId, editingDateValue || null);
+      setEditingDateId(null);
+      router.refresh();
+    });
   }
 
   return (
     <div className="space-y-4">
-      {frames.length === 0 && !showAddForm && (
+      {initialFrames.length === 0 && !showAddForm && (
         <p className="text-sm text-gray-400 text-center py-4">No saved frames yet.</p>
       )}
 
       {/* Frame grid */}
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-        {frames.map((frame) => (
+        {initialFrames.map((frame) => (
           <div key={frame.id} className={`border rounded-xl overflow-hidden ${frame.isFavorite ? "border-primary/30 bg-primary/5" : "border-gray-200"}`}>
             {frame.photoUrl && (
               <img src={frame.photoUrl} alt={`${frame.brand} ${frame.model}`} className="w-full h-24 object-cover" />
             )}
-            <div className="p-3 space-y-1">
+            <div className="p-3 space-y-1.5">
               <div className="flex items-start justify-between">
                 <div className="min-w-0">
                   <p className="text-sm font-semibold text-gray-900 truncate">{frame.brand}</p>
@@ -130,21 +157,62 @@ export function SavedFramesCard({ customerId, initialFrames, inventoryItems = []
                   {frame.color && <p className="text-xs text-gray-400">{frame.color}</p>}
                 </div>
                 <div className="flex flex-col items-end gap-1">
-                  <button onClick={() => handleToggleFavorite(frame.id)}>
+                  <button type="button" onClick={() => handleToggleFavorite(frame.id)}>
                     <Heart className={`w-4 h-4 ${frame.isFavorite ? "fill-red-500 text-red-500" : "text-gray-300"}`} />
                   </button>
-                  <button onClick={() => handleRemove(frame.id)}>
+                  <button type="button" onClick={() => handleRemove(frame.id)}>
                     <Trash2 className="w-3.5 h-3.5 text-gray-300 hover:text-red-500" />
                   </button>
                 </div>
               </div>
-              {frame.expectedReturnDate && (
-                <p className={`text-xs flex items-center gap-1 ${new Date(frame.expectedReturnDate) < new Date() ? "text-red-600" : "text-amber-600"}`}>
-                  <Calendar className="w-3 h-3" />
-                  Return by {formatDate(frame.expectedReturnDate)}
-                </p>
+
+              {/* Expected return date — inline edit */}
+              {editingDateId === frame.id ? (
+                <div className="flex items-center gap-1.5">
+                  <input
+                    type="date"
+                    value={editingDateValue}
+                    onChange={(e) => setEditingDateValue(e.target.value)}
+                    className="flex-1 px-2 py-1 border border-gray-300 rounded text-xs focus:outline-none focus:ring-1 focus:ring-primary"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => handleSaveDate(frame.id)}
+                    disabled={pending}
+                    className="text-xs text-primary font-medium hover:underline"
+                  >
+                    Save
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setEditingDateId(null)}
+                    className="text-xs text-gray-400 hover:text-gray-600"
+                  >
+                    ✕
+                  </button>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => startEditDate(frame)}
+                  className="flex items-center gap-1 w-full text-left"
+                >
+                  {frame.expectedReturnDate ? (
+                    <span className={`text-xs flex items-center gap-1 ${new Date(frame.expectedReturnDate) < new Date() ? "text-red-600" : "text-amber-600"}`}>
+                      <Calendar className="w-3 h-3" />
+                      Return by {formatDate(frame.expectedReturnDate)}
+                    </span>
+                  ) : (
+                    <span className="text-xs text-gray-300 flex items-center gap-1 hover:text-gray-400">
+                      <Calendar className="w-3 h-3" />
+                      Set return date
+                    </span>
+                  )}
+                </button>
               )}
+
               {frame.notes && <p className="text-xs text-gray-400 italic truncate">{frame.notes}</p>}
+              {frame.savedBy && <p className="text-xs text-gray-300">by {frame.savedBy}</p>}
             </div>
           </div>
         ))}
@@ -232,14 +300,15 @@ export function SavedFramesCard({ customerId, initialFrames, inventoryItems = []
           </div>
 
           <div className="flex gap-2 justify-end">
-            <button onClick={() => setShowAddForm(false)} className="px-4 py-2 border border-gray-300 rounded-lg text-sm text-gray-700">Cancel</button>
-            <button onClick={handleAdd} disabled={pending} className="px-4 py-2 bg-primary text-white rounded-lg text-sm font-medium disabled:opacity-50">
+            <button type="button" onClick={() => setShowAddForm(false)} className="px-4 py-2 border border-gray-300 rounded-lg text-sm text-gray-700">Cancel</button>
+            <button type="button" onClick={handleAdd} disabled={pending} className="px-4 py-2 bg-primary text-white rounded-lg text-sm font-medium disabled:opacity-50">
               {pending ? "Saving..." : "Save Frame"}
             </button>
           </div>
         </div>
       ) : (
         <button
+          type="button"
           onClick={() => setShowAddForm(true)}
           className="flex items-center gap-2 text-sm text-primary hover:underline font-medium"
         >
