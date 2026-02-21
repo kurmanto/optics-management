@@ -36,8 +36,9 @@ test.describe("Eye Exam Wizard", () => {
         await nextBtn2.click();
         await page.waitForTimeout(400);
       }
-      // Should now see Exam Details heading
-      await expect(page.getByText("Exam Details")).toBeVisible();
+      // Should now see Exam Details heading — use getByRole to avoid strict-mode
+      // violation from the step-indicator <span> that also says "Exam Details".
+      await expect(page.getByRole("heading", { name: "Exam Details" })).toBeVisible();
     } else {
       // Fallback — wizard UI differs; just verify page rendered
       await expect(page.locator("body")).toBeVisible();
