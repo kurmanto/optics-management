@@ -99,12 +99,12 @@ test.describe("Saved Frames Card", () => {
     await page.waitForLoadState("networkidle");
     await expect(page.getByText("DeleteTestBrand999")).toBeVisible();
 
-    // Find that specific card and click its trash button (last button in the card)
-    const frameCard = page.locator("div[class*='rounded-xl'][class*='border']")
+    // Find that specific frame card (overflow-hidden distinguishes individual cards from wrapper)
+    const frameCard = page.locator("div[class*='rounded-xl'][class*='overflow-hidden']")
       .filter({ hasText: "DeleteTestBrand999" })
       .first();
     page.once("dialog", (dialog) => dialog.accept());
-    await frameCard.getByRole("button").last().click();
+    await frameCard.getByRole("button", { name: "Remove frame" }).click();
     await page.waitForTimeout(600);
     await page.reload();
     await page.waitForLoadState("networkidle");
@@ -140,8 +140,9 @@ test.describe("Saved Frames — Inline Return Date Edit", () => {
     const count = await returnDateBtn.count();
     if (count > 0) {
       await returnDateBtn.click();
-      // Inline edit: a date input should appear
-      await expect(page.locator('input[type="date"]').first()).toBeVisible();
+      // Inline edit: a date input should appear — use data-testid to avoid matching
+      // the hidden date input inside InsurancePolicyManager's collapsed form
+      await expect(page.locator('[data-testid="frame-return-date-input"]')).toBeVisible();
     } else {
       // Fallback: verify "Set return date" placeholder is present (frame may not have date)
       await expect(page.locator("button").filter({ hasText: /set return date/i }).first()).toBeVisible();
@@ -154,7 +155,8 @@ test.describe("Saved Frames — Inline Return Date Edit", () => {
     if (count === 0) return; // no frame with date on this customer — skip
 
     await returnDateBtn.click();
-    const dateInput = page.locator('input[type="date"]').first();
+    // Use data-testid to avoid matching InsurancePolicyManager's hidden date input
+    const dateInput = page.locator('[data-testid="frame-return-date-input"]');
     await expect(dateInput).toBeVisible();
 
     // Click the cancel (✕) button
@@ -172,7 +174,8 @@ test.describe("Saved Frames — Inline Return Date Edit", () => {
     if (count === 0) return;
 
     await returnDateBtn.click();
-    const dateInput = page.locator('input[type="date"]').first();
+    // Use data-testid to avoid matching InsurancePolicyManager's hidden date input
+    const dateInput = page.locator('[data-testid="frame-return-date-input"]');
     await expect(dateInput).toBeVisible();
 
     // Set a future date

@@ -160,7 +160,7 @@ export function SavedFramesCard({ customerId, initialFrames, inventoryItems = []
                   <button type="button" onClick={() => handleToggleFavorite(frame.id)}>
                     <Heart className={`w-4 h-4 ${frame.isFavorite ? "fill-red-500 text-red-500" : "text-gray-300"}`} />
                   </button>
-                  <button type="button" onClick={() => handleRemove(frame.id)}>
+                  <button type="button" aria-label="Remove frame" onClick={() => handleRemove(frame.id)}>
                     <Trash2 className="w-3.5 h-3.5 text-gray-300 hover:text-red-500" />
                   </button>
                 </div>
@@ -171,6 +171,7 @@ export function SavedFramesCard({ customerId, initialFrames, inventoryItems = []
                 <div className="flex items-center gap-1.5">
                   <input
                     type="date"
+                    data-testid="frame-return-date-input"
                     value={editingDateValue}
                     onChange={(e) => setEditingDateValue(e.target.value)}
                     className="flex-1 px-2 py-1 border border-gray-300 rounded text-xs focus:outline-none focus:ring-1 focus:ring-primary"
