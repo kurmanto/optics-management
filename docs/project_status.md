@@ -1,11 +1,11 @@
 # Project Status
 ## Mint Vision Optique — Staff Portal
 
-**Last updated:** 2026-02-20
+**Last updated:** 2026-02-21
 
 ---
 
-## Current Version: V2.2.0 — Phase 1 & Phase 2 Feature Suite
+## Current Version: V2.3.0 — Auto-Pickup Invoice Email, Dashboard Follow-Ups Layout, Saved Frames Inline Edit
 
 ---
 
@@ -195,19 +195,20 @@
 | Customer Insurance Manager (CRUD cards on profile) | ✅ Complete | contractNumber, estimatedCoverage added |
 | Family Members Auto-linking (match by phone/address) | ✅ Complete | |
 | Referral Code Tracking ($25 store credit auto-awarded) | ✅ Complete | Code format: MV-{FIRST2}{LAST2}-{4digits} |
-| Saved Frames (photo upload, favorites, expected return) | ✅ Complete | Supabase Storage for photos |
+| Saved Frames (photo upload, favorites, expected return, inline date edit) | ✅ Complete | Inline edit in v2.3.0; Supabase Storage for photos |
 | Dual Invoice explicit toggle (Customer / Internal tabs) | ✅ Complete | |
 | IssueInvoiceButton — dual invoice dropdown | ✅ Complete | Issue each type separately or both |
 | Auto-generate work order + auto-print on creation | ✅ Complete | `?autoprint=true` query param |
-| Dashboard "Follow Ups" section (3 sub-cards) | ✅ Complete | Saved frames, appointments, quotes |
+| Dashboard "Follow Ups" section (side-by-side with Money on the Table) | ✅ Complete | v2.3.0 layout; saved frames, appointments, quotes |
 | "Add Another Order" success overlay | ✅ Complete | Keeps customer, resets order form |
 | Styling Appointment Quick-Booking | ✅ Complete | STYLING enum, mini-list on customer profile |
-| Automated Invoice Email via Resend | ✅ Complete | Real HTML email, loading/sent/error states |
+| Automated Invoice Email via Resend | ✅ Complete | Manual (button) + auto-send on PICKED_UP (v2.3.0) |
+| Auto-send invoice email on pickup | ✅ Complete | Fire-and-forget in handlePickupComplete; skipped if no email |
 | Post-Pickup Family Promo Campaign Toggle | ✅ Complete | Enrolls family members in FAMILY_ADDON campaign |
 | PO Line Item Fields Expansion (14 new fields) | ✅ Complete | Select Existing + Add New Frame modes |
 | SKU Auto-Generation (`RAY-RB5154-2000-49-21` format) | ✅ Complete | `src/lib/utils/sku.ts` |
 | Received Frames tab with Display Tracking | ✅ Complete | `/inventory/purchase-orders/received` |
-| Unit tests for all new actions (50 new tests, 366 total) | ✅ Complete | appointments, insurance, referrals, saved-frames, email, sku |
+| Unit tests (368 total) | ✅ Complete | +2 in v2.3.0 (pickup auto-email); 366 prior |
 
 ---
 

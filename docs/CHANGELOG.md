@@ -428,6 +428,40 @@ Format: `[Version] — Date`
 
 ---
 
+## [2.3.0] — 2026-02-21
+
+### Added
+
+#### Auto-Send Invoice Email on Pickup
+- `handlePickupComplete` now automatically sends a formatted HTML invoice email to the customer via Resend when an order is marked `PICKED_UP`
+- Email is fire-and-forget — pickup action never fails due to email errors
+- Guarded by `if (order.customer.email)` — silently skipped for customers without an email address on file
+- Uses the same `sendInvoiceEmail()` template as the manual Email Invoice button (Mint Vision branded, line items, deposit/balance, insurance deductions)
+
+#### Dashboard Follow Ups Layout
+- "Money on the Table" and "Follow Ups" sections now render in a 2-column side-by-side grid on large screens
+- "Money on the Table" shows an empty-state card when there are no open opportunities (previously the entire section was hidden)
+
+#### Saved Frames — Inline Return Date Edit
+- Expected return date on each saved frame card is now an inline editable field
+- Click the date label (or "Set return date" placeholder) to open a date picker inline; click **Save** to persist or **✕** to cancel
+- After saving, page refreshes via `router.refresh()` (server re-render) instead of local state mutation — always in sync with DB
+- `savedBy` staff name now displayed on each frame card
+
+#### Order Wizard Fixes
+- Fixed stale closure bug in `addLineItem`, `removeLineItem`, and `updateLineItem` — all now use functional `setState(prev => ...)` form
+- Inventory item search restricted to FRAME line items only (was incorrectly showing the search dropdown for all line item types)
+
+### Changed
+- `src/lib/email.ts`: Resend client now lazily initialized via `getResend()` to prevent module-load failures when `RESEND_API_KEY` is not set in test/build environments
+
+### Tests
+- 2 new unit tests in `orders.test.ts`: auto-sends invoice email on pickup, skips when no customer email
+- 4 new E2E tests in `saved-frames.spec.ts`: inline date edit open, cancel, save, seeded frame visibility (Tremblay)
+- 2 new E2E tests in `invoice-email.spec.ts`: pickup modal renders confirm button, modal has engagement checkboxes
+
+---
+
 ## Upcoming
 
 ### [1.1.0] — Planned
