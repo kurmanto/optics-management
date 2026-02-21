@@ -6,7 +6,8 @@ import { uploadInventoryPhoto } from "@/lib/supabase";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
-import { generateSku, ensureUniqueSku } from "@/lib/utils/sku";
+import { generateSku } from "@/lib/utils/sku";
+import { ensureUniqueSku } from "@/lib/utils/sku-server";
 
 const InventorySchema = z.object({
   brand: z.string().min(1, "Brand is required"),

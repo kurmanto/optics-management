@@ -85,20 +85,21 @@ function PolicyForm({
     e.preventDefault();
     const form = e.currentTarget;
     const fd = new FormData(form);
+    const str = (name: string) => (fd.get(name) as string | null) ?? undefined;
     const data = {
       providerName: showCustomProvider ? (fd.get("customProvider") as string) : providerInput,
-      policyNumber: fd.get("policyNumber") as string,
-      groupNumber: fd.get("groupNumber") as string,
-      memberId: fd.get("memberId") as string,
+      policyNumber: str("policyNumber") || undefined,
+      groupNumber: str("groupNumber") || undefined,
+      memberId: str("memberId") || undefined,
       coverageType: fd.get("coverageType") as string,
-      contractNumber: fd.get("contractNumber") as string,
+      contractNumber: str("contractNumber") || undefined,
       estimatedCoverage: fd.get("estimatedCoverage") ? parseFloat(fd.get("estimatedCoverage") as string) : undefined,
       maxFrames: fd.get("maxFrames") ? parseFloat(fd.get("maxFrames") as string) : undefined,
       maxLenses: fd.get("maxLenses") ? parseFloat(fd.get("maxLenses") as string) : undefined,
       maxExam: fd.get("maxExam") ? parseFloat(fd.get("maxExam") as string) : undefined,
-      lastClaimDate: fd.get("lastClaimDate") as string,
+      lastClaimDate: str("lastClaimDate") || undefined,
       eligibilityIntervalMonths: parseInt(fd.get("eligibilityIntervalMonths") as string) || 24,
-      notes: fd.get("notes") as string,
+      notes: str("notes") || undefined,
     };
 
     setError("");

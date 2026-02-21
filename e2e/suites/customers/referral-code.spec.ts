@@ -27,9 +27,10 @@ test.describe("Referral Code Card", () => {
     // Wait for code to appear
     await page.waitForTimeout(1000);
     // Code should match pattern like MV-DANG-1234
-    const codeEl = page.locator(".font-mono");
-    await expect(codeEl).toBeVisible();
-    const codeText = await codeEl.textContent();
+    // Filter to the specific element containing the MV- code (avoids matching other font-mono elements)
+    const codeEl = page.locator(".font-mono").filter({ hasText: /^MV-/ });
+    await expect(codeEl.first()).toBeVisible();
+    const codeText = await codeEl.first().textContent();
     expect(codeText?.trim()).toMatch(/^MV-[A-Z]{4}-\d{4}$/);
   });
 
@@ -60,7 +61,8 @@ test.describe("Referral Code Card", () => {
       await genBtn.click();
       await page.waitForTimeout(1000);
     }
-    const codeEl = page.locator(".font-mono");
+    const codeEl = page.locator(".font-mono").filter({ hasText: /^MV-/ }).first();
+    await expect(codeEl).toBeVisible();
     const originalCode = await codeEl.textContent();
 
     // Navigate away
@@ -72,7 +74,7 @@ test.describe("Referral Code Card", () => {
     await page.waitForLoadState("networkidle");
 
     // Code should be the same (not regenerated)
-    const codeElAgain = page.locator(".font-mono");
+    const codeElAgain = page.locator(".font-mono").filter({ hasText: /^MV-/ }).first();
     await expect(codeElAgain).toBeVisible();
     const newCode = await codeElAgain.textContent();
     expect(newCode?.trim()).toBe(originalCode?.trim());

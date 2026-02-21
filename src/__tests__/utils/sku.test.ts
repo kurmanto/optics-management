@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
-import { generateSku, ensureUniqueSku } from "@/lib/utils/sku";
+import { generateSku } from "@/lib/utils/sku";
+import { ensureUniqueSku } from "@/lib/utils/sku-server";
 
 // ensureUniqueSku uses the global prisma mock from setup.ts
 async function getPrisma() {

@@ -1,43 +1,45 @@
 /**
  * Auth Setup — runs as a Playwright "project" before all test suites.
- * Logs in as admin and staff, saves browser storage state to .auth/.
- * All subsequent test projects use these stored states to skip logging in.
+ *
+ * Session state is now generated PROGRAMMATICALLY in global-setup.ts using
+ * HMAC tokens, bypassing browser-based login. This avoids the Next.js dev-mode
+ * "UnrecognizedActionError" that occurs when server action IDs change after a
+ * .next cache rebuild.
+ *
+ * These tests simply confirm the .auth files were created and contain a valid
+ * mvo_session cookie, so the dependent test projects can start with auth state.
  */
 
 import { test as setup, expect } from "@playwright/test";
+import { existsSync } from "fs";
+import path from "path";
 
 setup.describe("Authentication Setup", () => {
   setup("authenticate as admin", async ({ page }) => {
-    await page.goto("/login");
+    // Auth state created by global-setup.ts — just verify the file exists
+    const authFile = path.resolve(".auth/admin.json");
+    expect(existsSync(authFile), ".auth/admin.json must exist (created by global-setup)").toBe(true);
 
-    // Verify login page is visible
-    await expect(page.getByText("Mint Vision Optique")).toBeVisible();
+    // Navigate to dashboard using the stored session cookie to confirm it works
+    await page.context().addCookies(
+      JSON.parse(require("fs").readFileSync(authFile, "utf-8")).cookies
+    );
+    await page.goto("/dashboard");
+    await expect(page.getByRole("heading", { name: "Dashboard" })).toBeVisible({ timeout: 30_000 });
 
-    await page.getByLabel("Email").fill("admin@mintvisionsoptique.com");
-    await page.getByLabel("Password").fill("changeme123");
-    await page.getByRole("button", { name: "Sign in" }).click();
-
-    // After login, should land on /dashboard (login action redirects directly)
-    await page.waitForURL("/dashboard", { timeout: 30_000 });
-    await expect(page.getByRole("heading", { name: "Dashboard" })).toBeVisible();
-
-    // Save admin auth state
-    await page.context().storageState({ path: ".auth/admin.json" });
-    console.log("✅ Admin session saved to .auth/admin.json");
+    console.log("✅ Admin session validated");
   });
 
   setup("authenticate as staff", async ({ page }) => {
-    await page.goto("/login");
+    const authFile = path.resolve(".auth/staff.json");
+    expect(existsSync(authFile), ".auth/staff.json must exist (created by global-setup)").toBe(true);
 
-    await page.getByLabel("Email").fill("staff@mintvisionsoptique.com");
-    await page.getByLabel("Password").fill("staff1234");
-    await page.getByRole("button", { name: "Sign in" }).click();
+    await page.context().addCookies(
+      JSON.parse(require("fs").readFileSync(authFile, "utf-8")).cookies
+    );
+    await page.goto("/dashboard");
+    await expect(page.getByRole("heading", { name: "Dashboard" })).toBeVisible({ timeout: 30_000 });
 
-    await page.waitForURL("/dashboard", { timeout: 30_000 });
-    await expect(page.getByRole("heading", { name: "Dashboard" })).toBeVisible();
-
-    // Save staff auth state
-    await page.context().storageState({ path: ".auth/staff.json" });
-    console.log("✅ Staff session saved to .auth/staff.json");
+    console.log("✅ Staff session validated");
   });
 });

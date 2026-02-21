@@ -101,9 +101,13 @@ test.describe("Order Detail", () => {
 
   test("invalid order ID shows not found or redirects", async ({ page }) => {
     await page.goto("/orders/invalid-order-id-xyz999");
+    await page.waitForLoadState("networkidle");
     const url = page.url();
-    const notFoundVisible = await page.getByText(/not found|404/i).isVisible().catch(() => false);
+    // Use getByRole("heading") to avoid matching hidden ancestor/alert elements that
+    // also contain "404" or "not found" text — headings are always visible leaf nodes.
+    const h1Visible = await page.getByRole("heading", { name: "404" }).isVisible().catch(() => false);
+    const h2Visible = await page.getByRole("heading", { name: /could not be found|not found/i }).isVisible().catch(() => false);
     const redirected = url.endsWith("/orders") || !url.includes("invalid-order-id-xyz999");
-    expect(notFoundVisible || redirected).toBe(true);
+    expect(h1Visible || h2Visible || redirected).toBe(true);
   });
 });

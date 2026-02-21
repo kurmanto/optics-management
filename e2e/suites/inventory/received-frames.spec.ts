@@ -13,10 +13,7 @@ test.describe("Received Frames", () => {
   });
 
   test("page renders Received Frames heading", async ({ page }) => {
-    await expect(
-      page.getByRole("heading", { name: /received frames/i })
-        .or(page.getByText(/received frames/i).first())
-    ).toBeVisible();
+    await expect(page.getByRole("heading", { name: /received frames/i })).toBeVisible();
   });
 
   test("page is accessible from inventory sidebar link", async ({ page }) => {

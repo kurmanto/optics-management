@@ -34,18 +34,17 @@ test.describe("Family Members Card", () => {
     // withFamilyCustomerId (Claire Anderson, phone 4165550201) should match
     // familyMemberCustomerId (Mark Anderson, same phone)
     // When we visit Claire's page and search, she should already be in a family (from seed)
-    // so let's use a fresh customer - test from the primary's perspective
     await page.goto(`/customers/${withFamilyCustomerId}`);
     await page.waitForLoadState("networkidle");
     // Family members section should show family name and Mark's entry
-    await expect(page.getByText("Anderson")).toBeVisible();
+    await expect(page.getByText("Anderson").first()).toBeVisible();
   });
 
   test("customer with family shows linked member", async ({ page }) => {
     await page.goto(`/customers/${withFamilyCustomerId}`);
     await page.waitForLoadState("networkidle");
     // Mark Anderson should appear as a family member
-    await expect(page.getByText("Mark Anderson")).toBeVisible();
+    await expect(page.getByText("Mark Anderson").first()).toBeVisible();
   });
 
   test("family member name is a link that navigates to their profile", async ({ page }) => {

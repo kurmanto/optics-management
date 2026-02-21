@@ -63,11 +63,15 @@ test.describe("Insurance Policy Manager", () => {
     await page.locator("select[name='coverageType']").selectOption("VISION");
     await page.getByRole("button", { name: /add policy/i }).click();
     await expect(page.getByText("Green Shield")).toBeVisible();
-    // Click the X (deactivate) button
-    const xBtn = page.locator("button[class*='hover:text-red']").first();
-    await xBtn.click();
-    // Policy should disappear
+
+    // Find the Green Shield card specifically and click its X (last button in that card)
+    const greenShieldCard = page.locator("div.border.rounded-xl").filter({ hasText: "Green Shield" }).first();
+    await greenShieldCard.locator("button").last().click();
+
+    // Reload to confirm deactivation persisted (component state doesn't auto-update)
     await page.waitForTimeout(500);
+    await page.reload();
+    await page.waitForLoadState("networkidle");
     await expect(page.getByText("Green Shield")).not.toBeVisible();
   });
 

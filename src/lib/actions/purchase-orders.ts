@@ -5,7 +5,8 @@ import { verifySession } from "@/lib/dal";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createNotification } from "@/lib/notifications";
-import { generateSku, ensureUniqueSku } from "@/lib/utils/sku";
+import { generateSku } from "@/lib/utils/sku";
+import { ensureUniqueSku } from "@/lib/utils/sku-server";
 
 export type POFormState = { error?: string };
 

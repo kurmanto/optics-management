@@ -29,8 +29,8 @@ test.describe("PO New Frame Line Items", () => {
       .first();
     if (await newFrameTab.isVisible().catch(() => false)) {
       await newFrameTab.click();
-      // Should show brand/model fields
-      await expect(page.getByPlaceholder(/brand/i).or(page.locator("input[name='brand']")).first()).toBeVisible();
+      // Brand input has placeholder "e.g. Ray-Ban" (no name attr)
+      await expect(page.getByPlaceholder("e.g. Ray-Ban")).toBeVisible();
     } else {
       // Some implementations show fields directly
       await expect(page.locator("body")).toBeVisible();
@@ -62,18 +62,14 @@ test.describe("PO New Frame Line Items", () => {
       .first();
     if (await newFrameTab.isVisible().catch(() => false)) {
       await newFrameTab.click();
-      // Retail price should be visible
-      await expect(
-        page.getByPlaceholder(/retail/i).or(page.locator("input[name='retailPrice']")).first()
-      ).toBeVisible();
+      // Retail Price label confirms the field is visible (placeholder is "0.00" shared with cost)
+      await expect(page.getByText("Retail Price ($)")).toBeVisible();
     }
   });
 
   test("unit cost field is present on line item form", async ({ page }) => {
-    // Unit cost should always be present on any line item form
-    await expect(
-      page.getByPlaceholder(/cost|unit cost/i).or(page.locator("input[name='unitCost']")).first()
-    ).toBeVisible();
+    // Unit Cost ($) label is visible in the default "Select Existing" mode
+    await expect(page.getByText("Unit Cost ($)")).toBeVisible();
   });
 
   test("Add Line Item button is present on PO form", async ({ page }) => {
