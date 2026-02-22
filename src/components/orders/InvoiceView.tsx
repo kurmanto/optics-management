@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Eye, Printer, Mail, CheckCircle, AlertCircle, Loader2 } from "lucide-react";
 import { emailInvoice } from "@/lib/actions/email";
 
@@ -76,6 +76,7 @@ export type InvoiceViewProps = {
   referralCredit: number | null;
   notes: string | null;
   prescription?: InvoicePrescription | null;
+  autoprint?: boolean;
 };
 
 function invoiceNumber(orderNumber: string): string {
@@ -105,6 +106,13 @@ export function InvoiceView(props: InvoiceViewProps) {
 
   const [emailSending, setEmailSending] = useState(false);
   const [emailStatus, setEmailStatus] = useState<"idle" | "sent" | "error">("idle");
+
+  useEffect(() => {
+    if (props.autoprint) {
+      const t = setTimeout(() => window.print(), 600);
+      return () => clearTimeout(t);
+    }
+  }, [props.autoprint]);
 
   const invNum = invoiceNumber(props.orderNumber);
   const insurance = props.insuranceCoverage ?? 0;

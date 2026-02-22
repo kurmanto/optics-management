@@ -59,7 +59,12 @@ export function OrderStatusActions({
           orderTotal={orderTotal}
           customerMarketingOptOut={customerMarketingOptOut}
           onClose={() => setShowPickupModal(false)}
-          onSuccess={() => setShowPickupModal(false)}
+          onSuccess={(opts) => {
+            setShowPickupModal(false);
+            if (opts.printInvoice) {
+              window.open(`/orders/${orderId}/invoice?autoprint=true`, "_blank");
+            }
+          }}
         />
       )}
     </>

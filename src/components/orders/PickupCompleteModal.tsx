@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { handlePickupComplete } from "@/lib/actions/orders";
-import { X, Star, Users, AlertTriangle, Gift } from "lucide-react";
+import { X, Star, Users, AlertTriangle, Gift, Printer } from "lucide-react";
 
 type Props = {
   orderId: string;
@@ -10,7 +10,7 @@ type Props = {
   customerMarketingOptOut: boolean;
   hasFamilyMembers?: boolean;
   onClose: () => void;
-  onSuccess: () => void;
+  onSuccess: (opts: { printInvoice: boolean }) => void;
 };
 
 export function PickupCompleteModal({
@@ -21,6 +21,7 @@ export function PickupCompleteModal({
   onClose,
   onSuccess,
 }: Props) {
+  const [printInvoice, setPrintInvoice] = useState(true);
   const [sendReviewRequest, setSendReviewRequest] = useState(orderTotal > 500);
   const [enrollInReferralCampaign, setEnrollInReferralCampaign] = useState(true);
   const [enrollInFamilyPromo, setEnrollInFamilyPromo] = useState(hasFamilyMembers);
@@ -47,7 +48,7 @@ export function PickupCompleteModal({
       return;
     }
 
-    onSuccess();
+    onSuccess({ printInvoice });
   }
 
   return (
@@ -146,6 +147,23 @@ export function PickupCompleteModal({
                 <span className="text-sm font-semibold text-red-700">Mark as low-value (no marketing)</span>
               </div>
               <p className="text-xs text-red-500 mt-0.5">Opts this customer out of all future campaigns</p>
+            </div>
+          </label>
+
+          <label className="flex items-start gap-3 p-3 rounded-xl border border-gray-200 cursor-pointer hover:bg-gray-50 transition-colors">
+            <input
+              type="checkbox"
+              checked={printInvoice}
+              onChange={(e) => setPrintInvoice(e.target.checked)}
+              className="mt-0.5 rounded border-gray-300 text-primary focus:ring-primary"
+            />
+            <div className="flex-1">
+              <div className="flex items-center gap-1.5">
+                <Printer className="w-3.5 h-3.5 text-gray-500" />
+                <span className="text-sm font-semibold text-gray-900">Print invoice</span>
+                <span className="text-xs bg-green-100 text-green-700 px-1.5 py-0.5 rounded font-medium">Recommended</span>
+              </div>
+              <p className="text-xs text-gray-500 mt-0.5">Opens invoice in a new tab for printing</p>
             </div>
           </label>
         </div>

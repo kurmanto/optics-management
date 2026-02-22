@@ -12,11 +12,11 @@ export default async function InvoicePage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ view?: string }>;
+  searchParams: Promise<{ view?: string; autoprint?: string }>;
 }) {
   await verifySession();
   const { id } = await params;
-  const { view } = await searchParams;
+  const { view, autoprint } = await searchParams;
 
   const mode = view === "internal" ? "internal" : "customer";
 
@@ -148,6 +148,7 @@ export default async function InvoicePage({
         referralCredit={order.referralCredit}
         notes={order.notes}
         prescription={order.prescription}
+        autoprint={autoprint === "true"}
       />
     </div>
   );
