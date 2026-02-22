@@ -6,6 +6,15 @@ Format: `[Version] — Date`
 
 ---
 
+## [1.5.3] — 2026-02-21
+
+### Added
+- **Referral code redemption in Order Wizard** — the manual "Referral / Promo Credit" dollar input on the Payment step has been replaced with a code lookup field. Staff type a referral code and click "Apply"; the system validates it via `validateReferralCode()`, auto-fills the $25 credit, and shows a green confirmation with the referrer's name. Saving the order calls `redeemReferral()` automatically, awarding $25 store credit to the referrer and updating the referral record status to QUALIFIED.
+- **`referral_id` FK on `orders` table** — orders are now linked to the Referral record that triggered the discount, enabling full audit trail. Schema and SQL migration included.
+- **Unit tests** — 3 new cases in `orders.test.ts`: `redeemReferral` called with correct args, failure is non-fatal (order still succeeds), no call when no referral code applied. Total: 403 tests passing.
+
+---
+
 ## [1.5.2] — 2026-02-21
 
 ### Added

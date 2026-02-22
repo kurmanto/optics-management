@@ -8,6 +8,7 @@ import { generateOrderNumber } from "@/lib/utils/formatters";
 import { createNotification } from "@/lib/notifications";
 import { uploadPrescriptionScan } from "@/lib/supabase";
 import { sendInvoiceEmail } from "@/lib/email";
+import { redeemReferral } from "@/lib/actions/referrals";
 
 export type OrderFormState = {
   error?: string;
@@ -47,6 +48,7 @@ type CreateOrderInput = {
   lensAddOns?: string[];
   insuranceCoverage?: number;
   referralCredit?: number;
+  referralId?: string;
   depositCustomer: number;
   depositReal: number;
   notes?: string;
@@ -113,6 +115,7 @@ export async function createOrder(input: CreateOrderInput): Promise<{ id: string
         lensAddOns: input.lensAddOns || [],
         insuranceCoverage: input.insuranceCoverage || null,
         referralCredit: input.referralCredit || null,
+        referralId: input.referralId || null,
         examType: input.examType || null,
         examPaymentMethod: input.examPaymentMethod || null,
         insuranceCoveredAmount: input.insuranceCoveredAmount ?? null,
@@ -141,6 +144,13 @@ export async function createOrder(input: CreateOrderInput): Promise<{ id: string
         },
       },
     });
+
+    // Redeem referral if a code was applied
+    if (input.referralId) {
+      redeemReferral(input.referralId, input.customerId, order.id).catch((err) =>
+        console.error("[Referral] Failed to redeem referral:", err)
+      );
+    }
 
     return { id: order.id, orderNumber: order.orderNumber };
   } catch (e) {

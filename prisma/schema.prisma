@@ -461,6 +461,8 @@ model Order {
   // Payment/deduction fields
   insuranceCoverage Float? @map("insurance_coverage")
   referralCredit    Float? @map("referral_credit")
+  referralId        String?   @map("referral_id")
+  referral          Referral? @relation(fields: [referralId], references: [id])
 
   // Eye exam fields
   examType               String?  @map("exam_type")
@@ -918,6 +920,7 @@ model Referral {
 
   referrer Customer  @relation("referrer", fields: [referrerId], references: [id])
   referred Customer? @relation("referred", fields: [referredId], references: [id])
+  orders   Order[]
 
   @@map("referrals")
 }
