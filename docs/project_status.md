@@ -1,11 +1,11 @@
 # Project Status
 ## Mint Vision Optique — Staff Portal
 
-**Last updated:** 2026-02-21
+**Last updated:** 2026-02-22
 
 ---
 
-## Current Version: V2.3.0 — Auto-Pickup Invoice Email, Dashboard Follow-Ups Layout, Saved Frames Inline Edit
+## Current Version: V2.4.0 — Appointment Manager (Weekly Calendar)
 
 ---
 
@@ -224,8 +224,10 @@
 
 | Feature | Status | Notes |
 |---------|--------|-------|
-| Appointment scheduling | ✅ Partial | STYLING appointments implemented; full calendar view pending |
-| Calendar view | 🔲 Future | |
+| Appointment scheduling | ✅ Complete | All 6 types; full SCHEDULED→CONFIRMED→CHECKED_IN→COMPLETED flow; Cancel, No Show, Reschedule |
+| Calendar view | ✅ Complete | Weekly grid 9am–7pm; slot-click pre-fill; overlap detection; live time indicator; week navigation |
+| Book Appointment Modal | ✅ Complete | Debounced customer search; 6 types; "+ Book Styling" shortcut; slot-click pre-fill |
+| Appointment Actions Popover | ✅ Complete | Status-aware buttons; reschedule inline datetime picker |
 
 ---
 

@@ -569,7 +569,7 @@
 <nav class="toc-sidebar">
   <div class="toc-brand">
     <div class="brand-name">Mint Vision Optique</div>
-    <div class="brand-sub">Staff Portal Guide v2.2</div>
+    <div class="brand-sub">Staff Portal Guide v2.4</div>
   </div>
   <h2>Contents</h2>
 
@@ -649,7 +649,13 @@
   <a href="#sku-autogen" class="sub-link">SKU Auto-Generation</a>
   <a href="#received-frames-tab" class="sub-link">Received Frames Tab</a>
 
-  <a href="#section-quick-ref" class="section-link">12. Quick Reference</a>
+  <a href="#section-appointments" class="section-link">12. Appointments</a>
+  <a href="#appt-calendar" class="sub-link">Weekly Calendar</a>
+  <a href="#appt-book" class="sub-link">Booking an Appointment</a>
+  <a href="#appt-actions" class="sub-link">Managing Appointments</a>
+  <a href="#appt-types" class="sub-link">Appointment Types</a>
+
+  <a href="#section-quick-ref" class="section-link">13. Quick Reference</a>
   <a href="#cheat-sheet" class="sub-link">Status Cheat Sheet</a>
   <a href="#common-tasks" class="sub-link">Common Tasks</a>
 </nav>
@@ -2153,6 +2159,9 @@
     <li>Click <strong>Book</strong> — the appointment appears in the upcoming list immediately</li>
   </ol>
   <p>Upcoming styling appointments also appear in the <strong>Dashboard → Follow Ups</strong> section so no booking gets missed.</p>
+  <div class="box box-tip">
+    <strong>New in v2.4:</strong> The dedicated <strong>Appointments</strong> page (sidebar → Appointments) shows a full weekly calendar for all appointment types. You can book, view, and manage all appointments there. See <a href="#section-appointments">Section 12</a> for the full guide.
+  </div>
 
   <h2 id="email-invoice-feat">11.7 Email Invoice</h2>
   <p>Send a formatted HTML invoice directly to the patient's email from the invoice page.</p>
@@ -2241,10 +2250,115 @@
 </section>
 
 
-<!-- ==================== SECTION 12: QUICK REFERENCE ==================== -->
-<section class="section" id="section-quick-ref">
+<!-- ==================== SECTION 12: APPOINTMENTS ==================== -->
+<section class="section" id="section-appointments">
   <div class="section-eyebrow">Section 12</div>
   <div class="section-number">12</div>
+  <h1 class="section-title">Appointments</h1>
+  <p class="section-intro">The Appointments page gives you a full weekly calendar to view, book, and manage all patient appointments — eye exams, fittings, pickups, adjustments, and styling sessions — in one place.</p>
+
+  <h2 id="appt-calendar">12.1 Weekly Calendar</h2>
+  <p>Navigate to <strong>Sidebar → Appointments</strong> (calendar icon) to open the calendar. The view always opens on the current week.</p>
+  <ul>
+    <li><strong>7 day columns</strong> (Mon–Sun) with the date number and an appointment count badge per day</li>
+    <li><strong>Time gutter</strong> on the left shows hours from 9 AM to 7 PM in 30-minute slots</li>
+    <li><strong>Today's column</strong> is lightly highlighted; a red horizontal line tracks the current time</li>
+    <li><strong>Appointment cards</strong> are color-coded by type and sized proportionally to their duration</li>
+    <li>If two appointments overlap in the same time slot, they tile side by side within the column</li>
+  </ul>
+
+  <h3>Week Navigation</h3>
+  <ul>
+    <li>Use the <strong>← / →</strong> arrow buttons in the toolbar to move to the previous or next week</li>
+    <li>The URL updates to <code>/appointments?week=YYYY-MM-DD</code> — you can bookmark or share any week view</li>
+    <li>Click <strong>Today</strong> (appears when you're not on the current week) to jump back instantly</li>
+  </ul>
+
+  <h2 id="appt-book">12.2 Booking an Appointment</h2>
+  <p>There are two ways to open the booking modal:</p>
+  <ul>
+    <li>Click <strong>"+ Book Styling"</strong> in the toolbar — opens the modal with <em>Eyewear Styling</em> pre-selected</li>
+    <li>Click any <strong>empty time slot</strong> on the calendar — opens the modal with that day and time pre-filled</li>
+  </ul>
+
+  <div class="wizard-steps">
+    <div class="wizard-step">
+      <div class="wizard-step-num">1</div>
+      <div class="wizard-step-body">
+        <div class="wizard-step-title">Search for the patient</div>
+        <div class="wizard-step-desc">Type a name in the search box. Results appear after 300ms. Click a result to select the patient — a green summary card replaces the search field.</div>
+      </div>
+    </div>
+    <div class="wizard-step">
+      <div class="wizard-step-num">2</div>
+      <div class="wizard-step-body">
+        <div class="wizard-step-title">Set appointment details</div>
+        <div class="wizard-step-desc">Choose the appointment type, date/time, and duration (15/30/45/60/90 min). Add optional notes for the appointment.</div>
+      </div>
+    </div>
+    <div class="wizard-step">
+      <div class="wizard-step-num">3</div>
+      <div class="wizard-step-body">
+        <div class="wizard-step-title">Click Book</div>
+        <div class="wizard-step-desc">The modal closes and the appointment card appears on the calendar immediately. No page refresh needed.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="box box-tip">
+    <div class="box-label">Tip</div>
+    If the patient isn't in the system yet, click <strong>"No match? Add a new patient →"</strong> at the bottom of the search results. It opens <code>/customers/new</code> in a new tab — create the patient there, then come back and search again.
+  </div>
+
+  <h2 id="appt-actions">12.3 Managing Appointments</h2>
+  <p>Click any appointment card to open the <strong>Actions Popover</strong>. It shows the patient name (linked to their profile), appointment type, time range, and current status badge.</p>
+
+  <h3>Status Transitions</h3>
+  <p>The available action buttons change based on the current status:</p>
+  <table>
+    <thead><tr><th>Current Status</th><th>Available Actions</th></tr></thead>
+    <tbody>
+      <tr><td><span class="badge badge-blue">SCHEDULED</span></td><td>Confirm, Check In, Cancel, No Show</td></tr>
+      <tr><td><span class="badge badge-green">CONFIRMED</span></td><td>Check In, Cancel, No Show</td></tr>
+      <tr><td><span class="badge badge-teal">CHECKED IN</span></td><td>Complete</td></tr>
+      <tr><td><span class="badge badge-gray">COMPLETED</span></td><td>Reschedule</td></tr>
+      <tr><td><span class="badge badge-red">CANCELLED</span></td><td>Reschedule</td></tr>
+      <tr><td><span class="badge badge-amber">NO SHOW</span></td><td>Reschedule</td></tr>
+    </tbody>
+  </table>
+
+  <h3>Rescheduling</h3>
+  <p>For CANCELLED, NO SHOW, or COMPLETED appointments, the popover shows a <strong>Reschedule</strong> section with an inline datetime picker. Pick the new date/time and click <strong>Reschedule</strong>. The appointment status resets to SCHEDULED and the card reappears on the calendar at the new time.</p>
+
+  <div class="box box-info">
+    <div class="box-label">Note</div>
+    Cancelled and No-Show appointments appear as <strong>faded/muted cards</strong> on the calendar. This is intentional — they remain visible so you can see the history and reschedule if needed.
+  </div>
+
+  <h2 id="appt-types">12.4 Appointment Types &amp; Colors</h2>
+  <table>
+    <thead><tr><th>Type</th><th>Color</th><th>Typical Use</th></tr></thead>
+    <tbody>
+      <tr><td>Eye Exam</td><td>Blue</td><td>Full optometric examination</td></tr>
+      <tr><td>Contact Lens Fitting</td><td>Purple</td><td>Contact lens trial and fitting</td></tr>
+      <tr><td>Follow-Up</td><td>Orange</td><td>Post-exam or post-order check-in</td></tr>
+      <tr><td>Glasses Pickup</td><td>Green</td><td>Order ready — patient coming to collect</td></tr>
+      <tr><td>Adjustment</td><td>Yellow</td><td>Frame fit adjustment after pickup</td></tr>
+      <tr><td>Eyewear Styling</td><td>Emerald</td><td>Frame selection consultation</td></tr>
+    </tbody>
+  </table>
+
+  <div class="box box-tip">
+    <div class="box-label">Tip</div>
+    Styling appointments booked from the <strong>customer profile page</strong> (via the Appointments card) will also appear on the weekly calendar automatically — there's no duplication.
+  </div>
+</section>
+
+
+<!-- ==================== SECTION 13: QUICK REFERENCE ==================== -->
+<section class="section" id="section-quick-ref">
+  <div class="section-eyebrow">Section 13</div>
+  <div class="section-number">13</div>
   <h1 class="section-title">Quick Reference</h1>
   <p class="section-intro">Tear out this section and keep it at your workstation. Everything you need at a glance.</p>
 
@@ -2415,7 +2529,7 @@
 
   <div style="margin-top:60px; padding:24px; background:#f0fdf4; border-radius:10px; border:1px solid #bbf7d0; text-align:center; font-family:system-ui,sans-serif;">
     <div style="font-size:22px; font-weight:800; color:#15803d; margin-bottom:6px;">Mint Vision Optique — Staff Portal</div>
-    <div style="font-size:13px; color:#16a34a;">Version 2.2 &nbsp;·&nbsp; February 2026 &nbsp;·&nbsp; Confidential — Internal Use Only</div>
+    <div style="font-size:13px; color:#16a34a;">Version 2.4 &nbsp;·&nbsp; February 2026 &nbsp;·&nbsp; Confidential — Internal Use Only</div>
     <div style="margin-top:12px; font-size:13px; color:#64748b;">For technical support, contact your system administrator.</div>
   </div>
 </section>
