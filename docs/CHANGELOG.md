@@ -6,6 +6,48 @@ Format: `[Version] — Date`
 
 ---
 
+## [2.4.0] — 2026-02-22
+
+### Added — Appointment Manager (Weekly Calendar)
+
+#### Calendar View (`/appointments`)
+- New **Appointments** page accessible from the sidebar (CalendarDays icon, between Dashboard and Forms)
+- **Weekly calendar grid**: 9 AM–7 PM, 30-minute slots, Mon–Sun columns
+- Day column headers show day name, date number, and appointment count badge
+- Appointment cards are color-coded by type via inline hex styles (purge-safe):
+  - Blue = Eye Exam, Purple = Contact Lens Fitting, Orange = Follow-Up
+  - Green = Glasses Pickup, Yellow = Adjustment, Emerald = Eyewear Styling
+- **Overlap handling**: greedy grouping algorithm tiles simultaneous appointments side by side
+- **Live time indicator**: red horizontal line at current time (current week only)
+- **Week navigation**: prev/next arrows + "Today" button update URL `?week=YYYY-MM-DD`; `getAppointmentsForRange` re-fetches on week change
+
+#### Book Appointment Modal
+- "+ Book Styling" button in toolbar opens modal with STYLING pre-selected
+- Click any empty time slot to open modal with that date/time pre-filled
+- Debounced customer search (300ms) with dropdown results; "No match?" → `/customers/new` in new tab
+- Fields: type (6 types), datetime-local, duration (15/30/45/60/90 min), notes
+- Booked appointment appears on the calendar immediately via `refresh()` callback
+
+#### Appointment Actions Popover
+- Click any appointment card → floating popover anchored to card position
+- Shows: customer name linked to profile, type, time range, status badge
+- Status-aware action buttons: SCHEDULED → Confirm/CheckIn/Cancel/NoShow; CONFIRMED → CheckIn/Cancel/NoShow; CHECKED_IN → Complete
+- CANCELLED/NO_SHOW/COMPLETED → Reschedule section with inline datetime picker; reschedule resets status to SCHEDULED
+
+#### Server Actions & Types
+- New: `getAppointmentsForRange(startDate, endDate)` — includes customer firstName/lastName/phone
+- New: `rescheduleAppointment(id, scheduledAt)` — updates datetime, resets to SCHEDULED, revalidates paths
+- Updated: `createAppointment` and `updateAppointmentStatus` now call `revalidatePath("/appointments")`
+- New: `src/lib/types/appointment.ts` — `CalendarAppointment` type, label/color/border maps, calendar constants (`CALENDAR_START_HOUR=9`, `CALENDAR_END_HOUR=19`, `SLOT_HEIGHT_PX=44`)
+
+#### Tests
+- **Unit**: 7 new tests — `getAppointmentsForRange` (date range filter + customer include, empty array) and `rescheduleAppointment` (missing id, missing scheduledAt, not found, success + SCHEDULED reset, DB error)
+- **E2E**: 38 Playwright tests (`e2e/suites/appointments/appointments-calendar.spec.ts`) across 7 groups — page structure, week navigation, seeded appointment display, BookAppointmentModal, creating appointments, AppointmentActions popover, and status transitions (all 7 paths). 66 total E2E tests pass.
+- `/appointments` added to global-setup warmup routes
+- Appointments sidebar link test added to `sidebar-navigation.spec.ts`
+
+---
+
 ## [1.5.3] — 2026-02-21
 
 ### Added

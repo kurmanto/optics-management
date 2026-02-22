@@ -9,3 +9,10 @@ export const AppointmentSchema = z.object({
 });
 
 export type AppointmentInput = z.infer<typeof AppointmentSchema>;
+
+export const RescheduleSchema = z.object({
+  id: z.string().min(1, "Appointment ID is required"),
+  scheduledAt: z.string().min(1, "Date and time are required"),
+});
+
+export type RescheduleInput = z.infer<typeof RescheduleSchema>;

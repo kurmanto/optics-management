@@ -19,6 +19,7 @@ import {
   BookOpen,
   ScanLine,
   Megaphone,
+  CalendarDays,
 } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { logout } from "@/lib/actions/auth";
@@ -37,6 +38,11 @@ const navItems = [
       { title: "All Customers", href: "/customers" },
       { title: "Scan Rx", href: "/scan-rx", icon: ScanLine },
     ],
+  },
+  {
+    title: "Appointments",
+    href: "/appointments",
+    icon: CalendarDays,
   },
   {
     title: "Forms",

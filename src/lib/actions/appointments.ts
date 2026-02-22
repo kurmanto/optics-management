@@ -3,8 +3,9 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { verifySession } from "@/lib/dal";
-import { AppointmentSchema } from "@/lib/validations/appointment";
+import { AppointmentSchema, RescheduleSchema } from "@/lib/validations/appointment";
 import { AppointmentType, AppointmentStatus } from "@prisma/client";
+import type { CalendarAppointment } from "@/lib/types/appointment";
 
 export async function createAppointment(
   rawData: unknown
@@ -31,6 +32,7 @@ export async function createAppointment(
     });
 
     revalidatePath(`/customers/${data.customerId}`);
+    revalidatePath("/appointments");
     return { id: appt.id };
   } catch (e) {
     console.error(e);
@@ -49,6 +51,35 @@ export async function getUpcomingAppointments(customerId: string) {
     },
     orderBy: { scheduledAt: "asc" },
   });
+}
+
+export async function getAppointmentsForRange(
+  startDate: Date,
+  endDate: Date
+): Promise<CalendarAppointment[]> {
+  await verifySession();
+
+  const appts = await prisma.appointment.findMany({
+    where: {
+      scheduledAt: { gte: startDate, lt: endDate },
+    },
+    include: {
+      customer: { select: { id: true, firstName: true, lastName: true, phone: true } },
+    },
+    orderBy: { scheduledAt: "asc" },
+  });
+
+  return appts.map((a) => ({
+    id: a.id,
+    type: a.type,
+    status: a.status,
+    scheduledAt: a.scheduledAt.toISOString(),
+    duration: a.duration,
+    notes: a.notes,
+    customerId: a.customerId,
+    customerName: `${a.customer.firstName} ${a.customer.lastName}`,
+    customerPhone: a.customer.phone,
+  }));
 }
 
 export async function updateAppointmentStatus(
@@ -70,10 +101,47 @@ export async function updateAppointmentStatus(
     });
 
     revalidatePath(`/customers/${appt.customerId}`);
+    revalidatePath("/appointments");
     return { success: true };
   } catch (e) {
     console.error(e);
     return { error: "Failed to update appointment" };
+  }
+}
+
+export async function rescheduleAppointment(
+  rawData: unknown
+): Promise<{ success: true } | { error: string }> {
+  await verifySession();
+
+  const parsed = RescheduleSchema.safeParse(rawData);
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? "Invalid data" };
+  }
+
+  const { id, scheduledAt } = parsed.data;
+
+  try {
+    const appt = await prisma.appointment.findUnique({
+      where: { id },
+      select: { customerId: true },
+    });
+    if (!appt) return { error: "Appointment not found" };
+
+    await prisma.appointment.update({
+      where: { id },
+      data: {
+        scheduledAt: new Date(scheduledAt),
+        status: AppointmentStatus.SCHEDULED,
+      },
+    });
+
+    revalidatePath(`/customers/${appt.customerId}`);
+    revalidatePath("/appointments");
+    return { success: true };
+  } catch (e) {
+    console.error(e);
+    return { error: "Failed to reschedule appointment" };
   }
 }
 

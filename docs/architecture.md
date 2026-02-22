@@ -1,7 +1,7 @@
 # Architecture
 ## Mint Vision Optique — Staff Portal
 
-**Last updated:** 2026-02-20
+**Last updated:** 2026-02-22
 
 ---
 
@@ -70,6 +70,8 @@ optics_boutique/
 │   │   │   │   └── [id]/
 │   │   │   │       ├── page.tsx                # Campaign detail
 │   │   │   │       └── edit/page.tsx
+│   │   │   ├── appointments/
+│   │   │   │   └── page.tsx                    # Weekly calendar view
 │   │   │   └── settings/page.tsx
 │   │   ├── (forms)/                            # Public — no auth required
 │   │   │   ├── f/[token]/page.tsx              # Individual form fill
@@ -80,6 +82,7 @@ optics_boutique/
 │   ├── components/
 │   │   ├── auth/              # LoginForm, ChangePasswordForm
 │   │   ├── customers/         # CustomerForm, MedicalHistoryForm, ExternalPrescriptionUpload, StoreCreditManager
+│   │   ├── appointments/      # AppointmentCalendar, AppointmentCard, AppointmentActions, BookAppointmentModal
 │   │   ├── forms/             # FormsHub, SendFormModal, IntakePackageModal, InPersonIntakeButton
 │   │   │   └── public/        # NewPatientForm, HipaaConsentForm, InsuranceVerificationForm, FrameRepairWaiverForm, SignaturePad
 │   │   ├── inventory/         # InventoryForm, VendorForm, PurchaseOrderForm, POStatusButtons, ReceivingWorkflow
@@ -89,6 +92,7 @@ optics_boutique/
 │   ├── lib/
 │   │   ├── actions/           # Server Actions (mutations)
 │   │   │   ├── auth.ts
+│   │   │   ├── appointments.ts  # createAppointment, getAppointmentsForRange, rescheduleAppointment, updateAppointmentStatus, cancelAppointment
 │   │   │   ├── customers.ts
 │   │   │   ├── orders.ts
 │   │   │   ├── forms.ts
@@ -119,7 +123,8 @@ optics_boutique/
 │   │   ├── dal.ts             # verifySession(), verifyAdmin()
 │   │   └── prisma.ts          # Prisma singleton
 │   ├── middleware.ts           # Route guard
-│   └── types/
+│   ├── types/
+│   │   └── appointment.ts     # CalendarAppointment type, label/color maps, calendar constants
 └── docs/
 ```
 
@@ -220,8 +225,8 @@ The Prisma singleton in `src/lib/prisma.ts` uses `@prisma/adapter-pg`.
 | `CampaignRun` | Per-run execution log | ✅ Active (V2.1) |
 | `Message` | SMS/email messages sent | ✅ Active (V2.1) |
 | `MessageTemplate` | Reusable message templates | ✅ Active (V2.1) |
-| `Referral` | Customer referral tracking | 🔲 V3 |
-| `Appointment` | Scheduled appointments | 🔲 V4 |
+| `Referral` | Customer referral tracking | ✅ Active |
+| `Appointment` | Scheduled appointments | ✅ Active (V4) |
 | `AuditLog` | General audit trail | ✅ Schema only |
 | `SystemSetting` | Key-value store for app settings | ✅ Schema only |
 
