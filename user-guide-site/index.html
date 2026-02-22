@@ -598,7 +598,9 @@
   <a href="#new-order-wizard" class="sub-link">New Order Wizard</a>
   <a href="#order-detail" class="sub-link">Order Detail</a>
   <a href="#pickup-modal" class="sub-link">Pickup Complete</a>
+  <a href="#pickup-autoprint" class="sub-link">Invoice Auto-Print</a>
   <a href="#work-order" class="sub-link">Work Order</a>
+  <a href="#order-wizard-addanother" class="sub-link">Queue Another Order</a>
 
   <a href="#section-invoices" class="section-link">5. Invoices</a>
   <a href="#invoice-list" class="sub-link">Invoices List</a>
@@ -642,6 +644,7 @@
   <a href="#family-members" class="sub-link">Family Members</a>
   <a href="#referral-codes" class="sub-link">Referral Codes</a>
   <a href="#saved-frames-feat" class="sub-link">Saved Frames</a>
+  <a href="#frame-image-lookup" class="sub-link">Frame Image Lookup</a>
   <a href="#styling-appointments" class="sub-link">Styling Appointments</a>
   <a href="#email-invoice-feat" class="sub-link">Email Invoice</a>
   <a href="#add-another-order" class="sub-link">Add Another Order</a>
@@ -670,7 +673,7 @@
   <div class="cover-subtitle">Complete Reference for All Staff</div>
   <div class="cover-divider"></div>
   <div class="cover-meta">
-    <strong>Version:</strong> 1.5<br>
+    <strong>Version:</strong> 2.4.1<br>
     <strong>Date:</strong> February 2026<br>
     <strong>Platform:</strong> Web — Chrome recommended<br>
     <strong>Audience:</strong> All Mint Vision Staff
@@ -1313,11 +1316,26 @@
 </figure>
 
   <ul>
-    <li><strong>Review Request</strong> — Did the patient agree to leave a Google / Facebook review? Toggle on to record this.</li>
-    <li><strong>Referral Campaign</strong> — Did the patient opt in to refer a friend? Toggle on if yes.</li>
-    <li><strong>Low-Value Flag</strong> — Was this a difficult or low-margin dispensing? Flag it for manager awareness.</li>
+    <li><strong>Send review request</strong> — SMS the patient a link to leave a Google review. Auto-recommended for orders over $500.</li>
+    <li><strong>Add to referral campaign</strong> — enroll the patient in the referral campaign (starts in 3 days).</li>
+    <li><strong>Send family promo offer</strong> — appears only if the patient has linked family members; sends a special offer to their family (starts in 7 days).</li>
+    <li><strong>Mark as low-value</strong> — opts this patient out of all future marketing campaigns.</li>
+    <li><strong>Print invoice</strong> <span class="badge badge-green">Recommended</span> — opens the invoice in a new browser tab and <strong>prints automatically</strong> after a brief delay. Checked by default.</li>
   </ul>
-  <p>Click <strong>"Complete Pickup"</strong> to finalize. The order moves to <span class="badge badge-gray">PICKED UP</span> status.</p>
+  <p>Click <strong>"Confirm Pickup"</strong> to finalize. The order moves to <span class="badge badge-gray">PICKED UP</span> status.</p>
+
+  <h2 id="pickup-autoprint">4.6.1 Invoice Auto-Print at Pickup</h2>
+  <p>The <strong>Print invoice</strong> checkbox in the Pickup Complete modal (checked by default) triggers automatic printing when you confirm pickup:</p>
+  <ol>
+    <li>Click <strong>"Mark Picked Up"</strong> on a READY order</li>
+    <li>Confirm or adjust the engagement options in the modal</li>
+    <li>Leave <strong>Print invoice</strong> checked (it is by default)</li>
+    <li>Click <strong>"Confirm Pickup"</strong></li>
+    <li>The invoice page opens in a new browser tab and the print dialog appears automatically after ~600 ms</li>
+  </ol>
+  <div class="box box-tip">
+    <strong>Tip:</strong> If you don't want to print right now (e.g. the patient is picking up by phone and the invoice was already emailed), uncheck <strong>Print invoice</strong> before confirming. No new tab will open.
+  </div>
 
   <h2 id="work-order">4.7 Work Order</h2>
   <p>When you click <strong>"Send to Lab"</strong> on any non-exam order, the portal <strong>automatically opens the work order in a new tab and triggers the print dialog</strong>. No extra steps needed — just confirm the print when the dialog appears.</p>
@@ -1341,6 +1359,25 @@
   </ul>
 
   <p>Use Chrome's built-in print function (<kbd>Cmd</kbd>+<kbd>P</kbd> on Mac, <kbd>Ctrl</kbd>+<kbd>P</kbd> on Windows) to print or save as PDF.</p>
+
+  <h2 id="order-wizard-addanother">4.8 Queue Another Order Before Saving</h2>
+  <p>On busy days when a patient is ordering both glasses and contacts, you can queue a second order <em>before</em> the first one is even saved — without clicking through the success overlay.</p>
+  <h3>How to Use</h3>
+  <ol>
+    <li>Fill out the order wizard as normal through step 6 (Prescription)</li>
+    <li>On <strong>Step 7 — Review</strong>, find the <strong>Invoice Actions</strong> card</li>
+    <li>Check <strong>"Add another order for {Patient First Name} after saving"</strong></li>
+    <li>Click <strong>"Create Order"</strong></li>
+    <li>The order is saved, and the wizard <strong>immediately resets to step 1</strong> with the same patient already selected</li>
+    <li>Fill in the next order and repeat</li>
+  </ol>
+  <div class="box box-tip">
+    <strong>Tip:</strong> If you also have <strong>Print Work Order</strong> checked, the work order opens in a new background tab (auto-printing) while the wizard resets — so the lab gets the paperwork right away and you can keep going.
+  </div>
+  <div class="box box-info">
+    <div class="box-label">Success overlay vs. queue mode</div>
+    When the checkbox is <em>not</em> checked, the normal success overlay appears after saving (View Order / Add Another Order / Back to Orders). When it <em>is</em> checked, the overlay is skipped entirely and the wizard resets automatically.
+  </div>
 </section>
 
 
@@ -2149,6 +2186,25 @@
     <li>The Dashboard <em>Follow Ups</em> section surfaces customers with overdue or upcoming expected return dates</li>
   </ul>
 
+  <h2 id="frame-image-lookup">11.5.1 Frame Image Auto-Lookup</h2>
+  <p>Finding a photo of a frame no longer requires manual searching. Two helpers are built into the Add Frame form:</p>
+
+  <h3>Find Image Online Link</h3>
+  <p>While adding a frame, once you've filled in both <strong>Brand</strong> and <strong>Model</strong>, a <strong>"Find image online"</strong> link appears below the camera button:</p>
+  <ol>
+    <li>Open the customer profile → <strong>Saved Frames</strong> → <strong>Save a Frame</strong></li>
+    <li>Type the brand (e.g. <em>Ray-Ban</em>) and model (e.g. <em>RB5154</em>)</li>
+    <li>The <strong>"Find image online"</strong> link appears</li>
+    <li>Click it — Google Images opens in a new tab with search results for <em>"Ray-Ban RB5154 eyeglasses"</em></li>
+    <li>Find the right photo, copy its URL, and paste it into the frame form (or download and upload via the camera button)</li>
+  </ol>
+  <div class="box box-tip">
+    <strong>Tip:</strong> The link disappears if you clear the model field — it only appears when <em>both</em> brand and model are filled in.
+  </div>
+
+  <h3>Photo Auto-Populate from Inventory</h3>
+  <p>If you pick a frame from your <strong>inventory autocomplete</strong> (the search field at the top of the Add Frame form) and that same customer already has a Saved Frame for that inventory item with a photo saved, the photo is automatically pre-filled. You don't have to find or upload it again.</p>
+
   <h2 id="styling-appointments">11.6 Styling Appointment Quick-Booking</h2>
   <p>Book a frame styling appointment directly from the customer profile without leaving the page.</p>
   <ol>
@@ -2180,13 +2236,19 @@
   </div>
 
   <h2 id="add-another-order">11.8 Add Another Order</h2>
-  <p>After submitting an order, instead of being immediately redirected, a <strong>success overlay</strong> appears with three options:</p>
+  <p>There are two ways to add a second order for the same patient — one before saving, one after.</p>
+
+  <h3>Option A — Queue Before Saving (Step 7 Checkbox)</h3>
+  <p>Check <strong>"Add another order for {Patient First Name} after saving"</strong> in the <strong>Invoice Actions</strong> card on the Review step before clicking Create Order. The wizard resets immediately after saving with the same patient selected — no overlay, no detour. See <a href="#order-wizard-addanother">Section 4.8</a> for the full walkthrough.</p>
+
+  <h3>Option B — Success Overlay After Saving</h3>
+  <p>If the checkbox was not checked, a <strong>success overlay</strong> appears after the order is saved with three options:</p>
   <ul>
     <li><strong>View Order</strong> — navigate to the new order's detail page</li>
     <li><strong>Add Another Order for [Patient Name]</strong> — resets the form and keeps the same customer selected (skips customer search step)</li>
     <li><strong>Back to Orders</strong> — return to the fulfillment board</li>
   </ul>
-  <p>This is ideal for same-visit appointments where a patient orders glasses and contacts at the same time.</p>
+  <p>Both options are ideal for same-visit appointments where a patient orders glasses and contacts at the same time.</p>
 
   <h2 id="po-expansion">11.9 Purchase Order — Expanded Line Items</h2>
   <p>The PO creation form now supports two modes per line item:</p>

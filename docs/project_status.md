@@ -5,6 +5,22 @@
 
 ---
 
+## Current Version: V2.4.1 — Missing Features Trio (Frame Lookup · Pickup Auto-Print · Queue Another Order)
+
+---
+
+### V2.4.1 — Missing Features Trio (Complete)
+
+| Feature | Status | Notes |
+|---------|--------|-------|
+| Frame image auto-lookup ("Find image online" link) | ✅ Complete | Appears in SavedFramesCard Add Frame form when brand + model filled; opens Google Images search in new tab |
+| Frame photo auto-populate from inventory | ✅ Complete | If customer already has a SavedFrame for the same inventory item with a photo, photo URL pre-fills automatically on item select |
+| Pickup invoice auto-print | ✅ Complete | "Print invoice" checkbox (default on) in PickupCompleteModal; confirms → opens `/orders/[id]/invoice?autoprint=true` in new tab; `InvoiceView` calls `window.print()` after 600ms |
+| Add another order — step 7 checkbox | ✅ Complete | "Add another order for {firstName}" checkbox in wizard Review step; when checked, creates order then resets wizard to step 1 with same customer (no success overlay) |
+| E2E tests (22 new specs) | ✅ Complete | saved-frames.spec.ts (+6), pickup-autoprint.spec.ts (new, 10), add-another-order.spec.ts (+6) |
+
+---
+
 ## Current Version: V2.4.0 — Appointment Manager (Weekly Calendar)
 
 ---
@@ -75,7 +91,7 @@
 | Coatings + tints config step | ✅ Complete | AR, blue light, photochromic, UV, prism |
 | Work Order view | ✅ Complete | `/orders/[id]/work-order` printable page |
 | External Rx upload (AI OCR) | ✅ Complete | Claude AI parses paper Rx photo |
-| PickupCompleteModal | ✅ Complete | Post-pickup retention workflow |
+| PickupCompleteModal | ✅ Complete | Post-pickup retention workflow; Print invoice checkbox + auto-print in v2.4.1 |
 
 ---
 
@@ -195,12 +211,12 @@
 | Customer Insurance Manager (CRUD cards on profile) | ✅ Complete | contractNumber, estimatedCoverage added |
 | Family Members Auto-linking (match by phone/address) | ✅ Complete | |
 | Referral Code Tracking ($25 store credit auto-awarded) | ✅ Complete | Code format: MV-{FIRST2}{LAST2}-{4digits}; code lookup in order wizard Payment step; `referral_id` FK on orders |
-| Saved Frames (photo upload, favorites, expected return, inline date edit) | ✅ Complete | Inline edit in v2.3.0; Supabase Storage for photos |
+| Saved Frames (photo upload, favorites, expected return, inline date edit) | ✅ Complete | Inline edit in v2.3.0; Supabase Storage for photos; image auto-lookup + "Find image online" in v2.4.1 |
 | Dual Invoice explicit toggle (Customer / Internal tabs) | ✅ Complete | |
 | IssueInvoiceButton — dual invoice dropdown | ✅ Complete | Issue each type separately or both |
 | Auto-generate work order + auto-print on creation | ✅ Complete | `?autoprint=true` query param |
 | Dashboard "Follow Ups" section (side-by-side with Money on the Table) | ✅ Complete | v2.3.0 layout; saved frames, appointments, quotes |
-| "Add Another Order" success overlay | ✅ Complete | Keeps customer, resets order form |
+| "Add Another Order" success overlay | ✅ Complete | Keeps customer, resets order form; also available as step-7 checkbox before saving (v2.4.1) |
 | Styling Appointment Quick-Booking | ✅ Complete | STYLING enum, mini-list on customer profile |
 | Automated Invoice Email via Resend | ✅ Complete | Manual (button) + auto-send on PICKED_UP (v2.3.0) |
 | Auto-send invoice email on pickup | ✅ Complete | Fire-and-forget in handlePickupComplete; skipped if no email |
