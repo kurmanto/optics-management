@@ -127,3 +127,118 @@ describe("cancelAppointment", () => {
     );
   });
 });
+
+describe("getAppointmentsForRange", () => {
+  it("calls findMany with correct date range and includes customer data", async () => {
+    const prisma = await getPrisma();
+    const start = new Date("2026-03-10T00:00:00.000Z");
+    const end = new Date("2026-03-17T00:00:00.000Z");
+
+    const mockAppts = [
+      {
+        id: "appt-1",
+        type: "STYLING",
+        status: "SCHEDULED",
+        scheduledAt: new Date("2026-03-12T10:00:00.000Z"),
+        duration: 30,
+        notes: null,
+        customerId: "cust-1",
+        customer: { id: "cust-1", firstName: "Jane", lastName: "Doe", phone: "6476485809" },
+      },
+    ];
+    prisma.appointment.findMany.mockResolvedValue(mockAppts);
+
+    const { getAppointmentsForRange } = await import("@/lib/actions/appointments");
+    const result = await getAppointmentsForRange(start, end);
+
+    expect(prisma.appointment.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          scheduledAt: { gte: start, lt: end },
+        },
+        include: {
+          customer: { select: { id: true, firstName: true, lastName: true, phone: true } },
+        },
+      })
+    );
+
+    expect(result).toHaveLength(1);
+    expect(result[0]).toMatchObject({
+      id: "appt-1",
+      customerName: "Jane Doe",
+      customerPhone: "6476485809",
+      scheduledAt: "2026-03-12T10:00:00.000Z",
+    });
+  });
+
+  it("returns empty array when no appointments in range", async () => {
+    const prisma = await getPrisma();
+    prisma.appointment.findMany.mockResolvedValue([]);
+
+    const { getAppointmentsForRange } = await import("@/lib/actions/appointments");
+    const result = await getAppointmentsForRange(new Date(), new Date());
+    expect(result).toEqual([]);
+  });
+});
+
+describe("rescheduleAppointment", () => {
+  it("returns error when id is missing", async () => {
+    const { rescheduleAppointment } = await import("@/lib/actions/appointments");
+    const result = await rescheduleAppointment({ id: "", scheduledAt: "2026-03-15T10:00:00.000Z" });
+    expect(result).toHaveProperty("error");
+  });
+
+  it("returns error when scheduledAt is missing", async () => {
+    const { rescheduleAppointment } = await import("@/lib/actions/appointments");
+    const result = await rescheduleAppointment({ id: "appt-1", scheduledAt: "" });
+    expect(result).toHaveProperty("error");
+  });
+
+  it("returns error when appointment not found", async () => {
+    const prisma = await getPrisma();
+    prisma.appointment.findUnique.mockResolvedValue(null);
+
+    const { rescheduleAppointment } = await import("@/lib/actions/appointments");
+    const result = await rescheduleAppointment({
+      id: "appt-missing",
+      scheduledAt: "2026-03-15T10:00:00.000Z",
+    });
+    expect((result as any).error).toBe("Appointment not found");
+  });
+
+  it("updates scheduledAt and resets status to SCHEDULED", async () => {
+    const prisma = await getPrisma();
+    prisma.appointment.findUnique.mockResolvedValue({ customerId: "cust-1" });
+    prisma.appointment.update.mockResolvedValue({});
+
+    const { rescheduleAppointment } = await import("@/lib/actions/appointments");
+    const result = await rescheduleAppointment({
+      id: "appt-1",
+      scheduledAt: "2026-04-01T14:00:00.000Z",
+    });
+
+    expect(result).toEqual({ success: true });
+    expect(prisma.appointment.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: "appt-1" },
+        data: expect.objectContaining({
+          scheduledAt: new Date("2026-04-01T14:00:00.000Z"),
+          status: "SCHEDULED",
+        }),
+      })
+    );
+  });
+
+  it("returns error when prisma throws", async () => {
+    const prisma = await getPrisma();
+    prisma.appointment.findUnique.mockResolvedValue({ customerId: "cust-1" });
+    prisma.appointment.update.mockRejectedValue(new Error("DB error"));
+
+    const { rescheduleAppointment } = await import("@/lib/actions/appointments");
+    const result = await rescheduleAppointment({
+      id: "appt-1",
+      scheduledAt: "2026-04-01T14:00:00.000Z",
+    });
+    expect(result).toHaveProperty("error");
+  });
+});
