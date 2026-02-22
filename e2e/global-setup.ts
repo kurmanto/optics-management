@@ -114,6 +114,7 @@ export default async function globalSetup() {
       "/inventory/purchase-orders",
       "/inventory/analytics",
       "/invoices",
+      "/appointments",
       "/campaigns",
       "/settings",
     ];

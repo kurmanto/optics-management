@@ -36,6 +36,14 @@ test.describe("Sidebar Navigation", () => {
     await expect(page).toHaveURL("/forms");
   });
 
+  test("Appointments link navigates to /appointments", async ({ page }) => {
+    await page.getByRole("link", { name: "Appointments" }).click();
+    await page.waitForURL("/appointments", { timeout: 45_000 });
+    await expect(page).toHaveURL("/appointments");
+    // Calendar heading should be visible
+    await expect(page.getByRole("heading", { name: "Appointments" })).toBeVisible();
+  });
+
   test("Orders group shows sub-nav items when active", async ({ page }) => {
     // Click Orders — it navigates to first child: /orders/board
     await page.getByRole("link", { name: "Orders" }).click();
