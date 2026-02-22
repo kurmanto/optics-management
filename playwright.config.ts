@@ -23,7 +23,7 @@ export default defineConfig({
     : [["html", { open: "on-failure" }], ["list"]],
 
   use: {
-    baseURL: process.env.E2E_BASE_URL || "http://localhost:3000",
+    baseURL: process.env.E2E_BASE_URL || "http://localhost:3001",
     trace: "on-first-retry",
     screenshot: "only-on-failure",
     video: "on-first-retry",
@@ -35,9 +35,11 @@ export default defineConfig({
   globalTeardown: "./e2e/global-teardown.ts",
 
   webServer: {
-    command: "npm run dev",
-    port: 3000,
-    reuseExistingServer: true, // don't restart if already running locally
+    // In CI: use the pre-built production server (starts in ~1s, no JIT).
+    // Locally: use dev server and reuse if already running.
+    command: process.env.CI ? "PORT=3001 npm run start" : "npm run dev",
+    port: 3001,
+    reuseExistingServer: !process.env.CI,
     timeout: 120_000,
   },
 

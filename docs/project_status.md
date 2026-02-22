@@ -1,11 +1,11 @@
 # Project Status
 ## Mint Vision Optique — Staff Portal
 
-**Last updated:** 2026-02-20
+**Last updated:** 2026-02-21
 
 ---
 
-## Current Version: V2.1.0 — Campaign Engine (Marketing Automation)
+## Current Version: V2.3.0 — Auto-Pickup Invoice Email, Dashboard Follow-Ups Layout, Saved Frames Inline Edit
 
 ---
 
@@ -187,11 +187,36 @@
 
 ---
 
+### Phase 1 & Phase 2 Features (V2.2.0 — Complete)
+
+| Feature | Status | Notes |
+|---------|--------|-------|
+| Eye Exam order sub-flow (3-step: type, payment, insurance amount) | ✅ Complete | |
+| Customer Insurance Manager (CRUD cards on profile) | ✅ Complete | contractNumber, estimatedCoverage added |
+| Family Members Auto-linking (match by phone/address) | ✅ Complete | |
+| Referral Code Tracking ($25 store credit auto-awarded) | ✅ Complete | Code format: MV-{FIRST2}{LAST2}-{4digits} |
+| Saved Frames (photo upload, favorites, expected return, inline date edit) | ✅ Complete | Inline edit in v2.3.0; Supabase Storage for photos |
+| Dual Invoice explicit toggle (Customer / Internal tabs) | ✅ Complete | |
+| IssueInvoiceButton — dual invoice dropdown | ✅ Complete | Issue each type separately or both |
+| Auto-generate work order + auto-print on creation | ✅ Complete | `?autoprint=true` query param |
+| Dashboard "Follow Ups" section (side-by-side with Money on the Table) | ✅ Complete | v2.3.0 layout; saved frames, appointments, quotes |
+| "Add Another Order" success overlay | ✅ Complete | Keeps customer, resets order form |
+| Styling Appointment Quick-Booking | ✅ Complete | STYLING enum, mini-list on customer profile |
+| Automated Invoice Email via Resend | ✅ Complete | Manual (button) + auto-send on PICKED_UP (v2.3.0) |
+| Auto-send invoice email on pickup | ✅ Complete | Fire-and-forget in handlePickupComplete; skipped if no email |
+| Post-Pickup Family Promo Campaign Toggle | ✅ Complete | Enrolls family members in FAMILY_ADDON campaign |
+| PO Line Item Fields Expansion (14 new fields) | ✅ Complete | Select Existing + Add New Frame modes |
+| SKU Auto-Generation (`RAY-RB5154-2000-49-21` format) | ✅ Complete | `src/lib/utils/sku.ts` |
+| Received Frames tab with Display Tracking | ✅ Complete | `/inventory/purchase-orders/received` |
+| Unit tests (368 total) | ✅ Complete | +2 in v2.3.0 (pickup auto-email); 366 prior |
+
+---
+
 ### V3.0 — Referrals
 
 | Feature | Status | Notes |
 |---------|--------|-------|
-| Referral tracking | 🔲 Future | DB model exists |
+| Referral tracking | ✅ Complete | See Phase 1 & 2 section above |
 
 ---
 
@@ -199,7 +224,7 @@
 
 | Feature | Status | Notes |
 |---------|--------|-------|
-| Appointment scheduling | 🔲 Future | DB model exists |
+| Appointment scheduling | ✅ Partial | STYLING appointments implemented; full calendar view pending |
 | Calendar view | 🔲 Future | |
 
 ---

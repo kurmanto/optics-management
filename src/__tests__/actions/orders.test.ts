@@ -1,6 +1,10 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { mockSession } from "../mocks/session";
 
+vi.mock("@/lib/email", () => ({
+  sendInvoiceEmail: vi.fn().mockResolvedValue({ id: "email-auto" }),
+}));
+
 async function getPrisma() {
   const { prisma } = await import("@/lib/prisma");
   return prisma as unknown as Record<string, Record<string, ReturnType<typeof vi.fn>>>;
@@ -145,6 +149,40 @@ describe("advanceOrderStatus", () => {
 
     expect(createNotification).not.toHaveBeenCalled();
   });
+
+  // ── LAB_ORDERED — triggers work order auto-print (client-side window.open).
+  // These tests verify the server-action side: DB updated, labOrderedAt set,
+  // and no spurious notification fires (the client handles window.open).
+  it("sets labOrderedAt timestamp when advancing to LAB_ORDERED", async () => {
+    const prisma = await getPrisma();
+    const { advanceOrderStatus } = await import("@/lib/actions/orders");
+    await advanceOrderStatus("order-1", "LAB_ORDERED" as any);
+
+    const callArgs = prisma.order.update.mock.calls[0][0];
+    expect(callArgs.data.status).toBe("LAB_ORDERED");
+    expect(callArgs.data.labOrderedAt).toBeInstanceOf(Date);
+  });
+
+  it("does NOT create any notification when advancing to LAB_ORDERED", async () => {
+    const { createNotification } = await import("@/lib/notifications");
+    const { advanceOrderStatus } = await import("@/lib/actions/orders");
+    await advanceOrderStatus("order-1", "LAB_ORDERED" as any);
+
+    expect(createNotification).not.toHaveBeenCalled();
+  });
+
+  it("records LAB_ORDERED in status history with the actor name", async () => {
+    const prisma = await getPrisma();
+    const { advanceOrderStatus } = await import("@/lib/actions/orders");
+    await advanceOrderStatus("order-1", "LAB_ORDERED" as any, "Sent to Optical Lab");
+
+    const callArgs = prisma.order.update.mock.calls[0][0];
+    expect(callArgs.data.statusHistory.create).toMatchObject({
+      status: "LAB_ORDERED",
+      note: "Sent to Optical Lab",
+      createdBy: mockSession.name,
+    });
+  });
 });
 
 describe("handlePickupComplete", () => {
@@ -152,7 +190,14 @@ describe("handlePickupComplete", () => {
     const prisma = await getPrisma();
     prisma.order.findUnique.mockResolvedValue({
       customerId: "cust-1",
+      orderNumber: "MVO-001",
       totalCustomer: 300,
+      depositCustomer: 0,
+      balanceCustomer: 0,
+      insuranceCoverage: null,
+      referralCredit: null,
+      customer: { firstName: "Alice", lastName: "Brown", email: "alice@example.com", familyId: null, family: null },
+      lineItems: [],
     });
     // $transaction calls the callback with the tx (which is the mock itself)
     (prisma as any).$transaction.mockImplementation(async (fn: (tx: unknown) => unknown) => fn(prisma));
@@ -194,7 +239,14 @@ describe("handlePickupComplete", () => {
     const prisma = await getPrisma();
     prisma.order.findUnique.mockResolvedValue({
       customerId: "cust-1",
+      orderNumber: "MVO-001",
       totalCustomer: 10,
+      depositCustomer: 0,
+      balanceCustomer: 0,
+      insuranceCoverage: null,
+      referralCredit: null,
+      customer: { firstName: "Alice", lastName: "Brown", email: "alice@example.com", familyId: null, family: null },
+      lineItems: [],
     });
     (prisma as any).$transaction.mockImplementation(async (fn: (tx: unknown) => unknown) => fn(prisma));
     prisma.order.update.mockResolvedValue({});
@@ -213,6 +265,64 @@ describe("handlePickupComplete", () => {
         data: expect.objectContaining({ marketingOptOut: true }),
       })
     );
+  });
+
+  it("auto-sends invoice email when customer has email", async () => {
+    const prisma = await getPrisma();
+    prisma.order.findUnique.mockResolvedValue({
+      customerId: "cust-1",
+      orderNumber: "MVO-001",
+      totalCustomer: 300,
+      depositCustomer: 100,
+      balanceCustomer: 200,
+      insuranceCoverage: null,
+      referralCredit: null,
+      customer: { firstName: "Alice", lastName: "Brown", email: "alice@example.com", familyId: null, family: null },
+      lineItems: [{ description: "Frames", quantity: 1, unitPriceCustomer: 300, totalCustomer: 300 }],
+    });
+    (prisma as any).$transaction.mockImplementation(async (fn: (tx: unknown) => unknown) => fn(prisma));
+    prisma.order.update.mockResolvedValue({});
+
+    const { sendInvoiceEmail } = await import("@/lib/email");
+    const { handlePickupComplete } = await import("@/lib/actions/orders");
+    await handlePickupComplete("order-1", { sendReviewRequest: false, enrollInReferralCampaign: false, markAsLowValue: false });
+
+    // Give the fire-and-forget promise a tick to resolve
+    await new Promise((r) => setTimeout(r, 0));
+    expect(sendInvoiceEmail).toHaveBeenCalledWith(
+      expect.objectContaining({
+        to: "alice@example.com",
+        customerName: "Alice Brown",
+        orderNumber: "MVO-001",
+        totalAmount: 300,
+        depositAmount: 100,
+        balanceAmount: 200,
+      })
+    );
+  });
+
+  it("skips invoice email when customer has no email", async () => {
+    const prisma = await getPrisma();
+    prisma.order.findUnique.mockResolvedValue({
+      customerId: "cust-1",
+      orderNumber: "MVO-001",
+      totalCustomer: 300,
+      depositCustomer: 0,
+      balanceCustomer: 0,
+      insuranceCoverage: null,
+      referralCredit: null,
+      customer: { firstName: "Alice", lastName: "Brown", email: null, familyId: null, family: null },
+      lineItems: [],
+    });
+    (prisma as any).$transaction.mockImplementation(async (fn: (tx: unknown) => unknown) => fn(prisma));
+    prisma.order.update.mockResolvedValue({});
+
+    const { sendInvoiceEmail } = await import("@/lib/email");
+    const { handlePickupComplete } = await import("@/lib/actions/orders");
+    await handlePickupComplete("order-1", { sendReviewRequest: false, enrollInReferralCampaign: false, markAsLowValue: false });
+
+    await new Promise((r) => setTimeout(r, 0));
+    expect(sendInvoiceEmail).not.toHaveBeenCalled();
   });
 });
 
@@ -355,6 +465,66 @@ describe("uploadPrescriptionScanAction", () => {
     const result = await uploadPrescriptionScanAction("base64data==", "image/jpeg", "cust-1");
 
     expect("error" in result).toBe(true);
+  });
+});
+
+describe("createOrder — exam fields", () => {
+  it("passes examType, examPaymentMethod, insuranceCoveredAmount to prisma when provided", async () => {
+    const prisma = await getPrisma();
+    prisma.order.create.mockResolvedValue({ id: "order-exam-1" });
+
+    const { createOrder } = await import("@/lib/actions/orders");
+    await createOrder({
+      ...validOrderInput,
+      examType: "COMPREHENSIVE",
+      examPaymentMethod: "INSURANCE_PARTIAL",
+      insuranceCoveredAmount: 75,
+    });
+
+    const callArgs = prisma.order.create.mock.calls[0][0];
+    expect(callArgs.data.examType).toBe("COMPREHENSIVE");
+    expect(callArgs.data.examPaymentMethod).toBe("INSURANCE_PARTIAL");
+    expect(callArgs.data.insuranceCoveredAmount).toBe(75);
+  });
+
+  it("does not include exam fields when they are omitted (backward compat)", async () => {
+    const prisma = await getPrisma();
+    prisma.order.create.mockResolvedValue({ id: "order-no-exam" });
+
+    const { createOrder } = await import("@/lib/actions/orders");
+    await createOrder(validOrderInput);
+
+    const callArgs = prisma.order.create.mock.calls[0][0];
+    expect(callArgs.data.examType).toBeNull();
+    expect(callArgs.data.examPaymentMethod).toBeNull();
+    expect(callArgs.data.insuranceCoveredAmount).toBeNull();
+  });
+});
+
+describe("handlePickupComplete — family promo", () => {
+  it("includes familyPromoCampaignEnrolled: true when enrollInFamilyPromo is true", async () => {
+    const prisma = await getPrisma();
+    prisma.order.findUnique.mockResolvedValue({
+      customerId: "cust-1",
+      totalCustomer: 300,
+      customer: { familyId: "fam-1", family: { customers: [{ id: "cust-2" }] } },
+    });
+    (prisma as any).$transaction.mockImplementation(async (fn: (tx: unknown) => unknown) => fn(prisma));
+    prisma.order.update.mockResolvedValue({});
+
+    const { handlePickupComplete } = await import("@/lib/actions/orders");
+    await handlePickupComplete("order-1", {
+      sendReviewRequest: false,
+      enrollInReferralCampaign: false,
+      enrollInFamilyPromo: true,
+      markAsLowValue: false,
+    });
+
+    expect(prisma.order.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ familyPromoCampaignEnrolled: true }),
+      })
+    );
   });
 });
 

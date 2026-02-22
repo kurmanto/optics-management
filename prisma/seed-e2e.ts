@@ -81,6 +81,8 @@ async function truncateAll() {
   await prisma.inventoryLedger.deleteMany();
   await prisma.purchaseOrderLineItem.deleteMany();
   await prisma.purchaseOrder.deleteMany();
+  // savedFrame references inventoryItem — must be deleted first
+  try { await (prisma as any).savedFrame.deleteMany(); } catch (_) {}
   await prisma.inventoryItem.deleteMany();
   await prisma.vendor.deleteMany();
   await prisma.storeCredit.deleteMany();
@@ -347,6 +349,49 @@ async function main() {
   await createOrder({ customerId: C["Johnson"], userId: admin.id, status: OrderStatus.CONFIRMED, totalReal: 1150, createdAt: todayAt(14), frameIdx: 5 });
   console.log("✅ Today's CONFIRMED orders (3)");
 
+  // ── Work order auto-generate test orders ───────────────────────────────────
+  // These are dedicated fixtures for the work-order-auto E2E spec.
+  // confirmedGlassesOrder → clicking "Send to Lab" should open work order tab.
+  // confirmedExamOrder    → clicking "Send to Lab" should NOT open work order tab.
+  const confirmedGlassesOrder = await createOrder({
+    customerId: C["Patel"],
+    userId: staff.id,
+    type: OrderType.GLASSES,
+    status: OrderStatus.CONFIRMED,
+    totalReal: 480,
+    depositReal: 100,
+    createdAt: daysAgo(1),
+    frameIdx: 2,
+  });
+  const confirmedExamOrder = await prisma.order.create({
+    data: {
+      orderNumber: nextNum(),
+      customerId: C["Hassan"],
+      userId: staff.id,
+      type: OrderType.EXAM_ONLY,
+      status: OrderStatus.CONFIRMED,
+      totalReal: 120,
+      totalCustomer: 120,
+      depositReal: 0,
+      depositCustomer: 0,
+      balanceReal: 120,
+      balanceCustomer: 120,
+      createdAt: daysAgo(1),
+      lineItems: {
+        create: [{
+          type: LineItemType.EXAM,
+          description: "Comprehensive Eye Exam",
+          quantity: 1,
+          unitPriceReal: 120,
+          unitPriceCustomer: 120,
+          totalReal: 120,
+          totalCustomer: 120,
+        }],
+      },
+    },
+  });
+  console.log("✅ Work order auto-generate test orders (glasses + exam_only)");
+
   // Incomplete orders — deposit taken, not picked up
   const tremblay = await createOrder({ customerId: C["Tremblay"], userId: staff.id, status: OrderStatus.LAB_RECEIVED, totalReal: 920, depositReal: 400, createdAt: daysAgo(18), frameIdx: 3 });
   const okafor   = await createOrder({ customerId: C["Okafor"],   userId: admin.id, status: OrderStatus.READY,        totalReal: 640, depositReal: 300, createdAt: daysAgo(12), frameIdx: 1 });
@@ -472,6 +517,138 @@ async function main() {
   }
   console.log("✅ Historical orders (5)");
 
+  // ── Phase 2 seed records ──────────────────────────────────────────────────
+
+  // Family group + linked customers
+  const andersonFamily = await prisma.family.create({ data: { name: "The Anderson Family" } });
+  const andersonPrimary = await prisma.customer.create({
+    data: { firstName: "Claire", lastName: "Anderson", phone: "4165550201", isActive: true, familyId: andersonFamily.id },
+  });
+  const andersonMember = await prisma.customer.create({
+    data: { firstName: "Mark", lastName: "Anderson", phone: "4165550201", isActive: true, familyId: andersonFamily.id },
+  });
+  console.log(`✅ Family group: ${andersonFamily.name} (${andersonPrimary.lastName}, ${andersonMember.lastName})`);
+
+  // No-email customer (for invoice email button tests)
+  const noEmailCustomer = await prisma.customer.create({
+    data: { firstName: "Paul", lastName: "Fletcher", phone: "4165550202", isActive: true },
+  });
+  console.log(`✅ No-email customer: ${noEmailCustomer.firstName} ${noEmailCustomer.lastName}`);
+
+  // Dual-invoice order
+  const dualInvoiceOrder = await prisma.order.create({
+    data: {
+      orderNumber: nextNum(),
+      customerId: C["Okafor"],
+      userId: admin.id,
+      type: "GLASSES" as any,
+      status: "CONFIRMED" as any,
+      isDualInvoice: true,
+      totalReal: 500,
+      totalCustomer: 650,
+      depositReal: 200,
+      depositCustomer: 260,
+      balanceReal: 300,
+      balanceCustomer: 390,
+      createdAt: daysAgo(2),
+      lineItems: {
+        create: [{
+          type: "FRAME" as any,
+          description: "Ray-Ban RB5154 (dual invoice test)",
+          quantity: 1,
+          unitPriceReal: 200,
+          unitPriceCustomer: 285,
+          totalReal: 200,
+          totalCustomer: 285,
+        }],
+      },
+    },
+  });
+  console.log(`✅ Dual-invoice order: ${dualInvoiceOrder.orderNumber}`);
+
+  // Issue invoices for the dual-invoice order (customer + internal types)
+  await prisma.invoice.create({
+    data: { orderId: dualInvoiceOrder.id, type: "CUSTOMER" as any, generatedAt: new Date() },
+  });
+  await prisma.invoice.create({
+    data: { orderId: dualInvoiceOrder.id, type: "INTERNAL" as any, generatedAt: new Date() },
+  });
+
+  // Standard (non-dual) order — use existing okafor order id as reference
+  // okafor.isDualInvoice is false (default), already created above
+
+  // Received PO with ≥2 received line items
+  const receivedPo = await prisma.purchaseOrder.create({
+    data: {
+      poNumber: "PO-2026-TEST-RCV",
+      vendorId: vendor.id,
+      createdBy: admin.id,
+      status: "RECEIVED" as any,
+      receivedAt: daysAgo(3),
+      total: 410,
+      subtotal: 410,
+      shipping: 0,
+      duties: 0,
+      lineItems: {
+        create: [
+          {
+            inventoryItemId: invIds["OX8046-SAT"],
+            quantityOrdered: 2,
+            quantityReceived: 2,
+            unitCost: 90,
+          },
+          {
+            inventoryItemId: invIds["MJ440-BLK"],
+            quantityOrdered: 2,
+            quantityReceived: 2,
+            unitCost: 110,
+          },
+        ],
+      },
+    },
+  });
+  console.log(`✅ Received PO: ${receivedPo.poNumber}`);
+
+  // Mark those inventory items as received (update stockQuantity)
+  await prisma.inventoryItem.update({
+    where: { id: invIds["OX8046-SAT"] },
+    data: { stockQuantity: { increment: 2 }, firstReceivedAt: daysAgo(3) },
+  });
+  await prisma.inventoryItem.update({
+    where: { id: invIds["MJ440-BLK"] },
+    data: { stockQuantity: { increment: 2 }, firstReceivedAt: daysAgo(3) },
+  });
+
+  // SavedFrame with past expectedReturnDate (for follow-ups dashboard)
+  const frameWithReturn = await (prisma as any).savedFrame.create({
+    data: {
+      customerId: C["Tremblay"],
+      brand: "Oakley",
+      model: "OX8046",
+      color: "Satin Black",
+      expectedReturnDate: daysAgo(5),
+    },
+  });
+  console.log(`✅ Saved frame with return date: ${frameWithReturn.id}`);
+
+  // Upcoming styling appointment within 7 days
+  function daysFromNow(n: number): Date {
+    const d = new Date();
+    d.setDate(d.getDate() + n);
+    d.setHours(10, 0, 0, 0);
+    return d;
+  }
+  const stylingAppt = await (prisma as any).appointment.create({
+    data: {
+      customerId: C["Gagnon"],
+      type: "STYLING",
+      status: "SCHEDULED",
+      scheduledAt: daysFromNow(3),
+      duration: 45,
+    },
+  });
+  console.log(`✅ Styling appointment: ${stylingAppt.id} (in 3 days)`);
+
   // ── Export key IDs for tests to use ───────────────────────────────────────
   // Write test fixtures to a JSON file so tests can reference exact IDs
   const testFixtures = {
@@ -487,6 +664,19 @@ async function main() {
     poId: po.id,
     invoiceId: invoice.id,
     notificationId: notification.id,
+    // Phase 2 fixtures
+    withFamilyCustomerId: andersonPrimary.id,
+    familyMemberCustomerId: andersonMember.id,
+    familyId: andersonFamily.id,
+    noEmailCustomerId: noEmailCustomer.id,
+    dualInvoiceOrderId: dualInvoiceOrder.id,
+    standardOrderId: okafor.id,
+    receivedPoId: receivedPo.id,
+    frameWithReturnDateId: frameWithReturn.id,
+    stylingAppointmentId: stylingAppt.id,
+    // Work order auto-generate test orders
+    confirmedGlassesOrderId: confirmedGlassesOrder.id,
+    confirmedExamOrderId: confirmedExamOrder.id,
   };
 
   const fs = await import("fs");

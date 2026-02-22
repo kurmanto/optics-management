@@ -3,10 +3,11 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createOrder } from "@/lib/actions/orders";
+import { emailInvoice as emailInvoiceAction } from "@/lib/actions/email";
 import { formatCurrency } from "@/lib/utils/formatters";
 import {
   Plus, Trash2, ChevronRight, ChevronLeft, Search, X,
-  Glasses, Sun, RefreshCw, Eye, Printer, Mail
+  Glasses, Sun, RefreshCw, Eye, Printer, Mail, CheckCircle
 } from "lucide-react";
 
 type Customer = {
@@ -104,6 +105,20 @@ const LENS_ADDONS = [
 
 const NEEDS_LENS_CONFIG = ["complete", "rx_sunglasses", "lens_update"];
 const NEEDS_FRAME = ["complete", "rx_sunglasses", "non_rx_sunglasses", "lens_update"];
+const NEEDS_EXAM_DETAILS = ["eye_exam"];
+
+const EXAM_TYPES = [
+  { value: "adult", label: "Complete Adult Eye Exam", desc: "Standard comprehensive exam" },
+  { value: "child", label: "Child/Teenager (Under 19)", desc: "Pediatric examination" },
+  { value: "senior", label: "Senior (Above 65)", desc: "Senior comprehensive exam" },
+] as const;
+
+const EXAM_PAYMENT_METHODS = [
+  { value: "insurance_full", label: "Insurance Full", desc: "Fully covered by insurance" },
+  { value: "insurance_partial", label: "Insurance Partial", desc: "Partially covered" },
+  { value: "ohip", label: "OHIP", desc: "OHIP covered" },
+  { value: "self_pay", label: "Self-bill / Out of Pocket", desc: "Patient pays directly" },
+] as const;
 
 function getOrderType(category: string): "GLASSES" | "CONTACTS" | "SUNGLASSES" | "ACCESSORIES" | "EXAM_ONLY" {
   if (category === "contact_lenses") return "CONTACTS";
@@ -175,6 +190,14 @@ export function NewOrderWizard({
   const [emailInvoice, setEmailInvoice] = useState(false);
   const [printWorkOrder, setPrintWorkOrder] = useState(true);
 
+  // Eye exam fields
+  const [examType, setExamType] = useState("");
+  const [examPaymentMethod, setExamPaymentMethod] = useState("");
+  const [insuranceCoveredAmount, setInsuranceCoveredAmount] = useState(0);
+
+  // Add-another-order state
+  const [createdOrder, setCreatedOrder] = useState<{ id: string; orderNumber: string } | null>(null);
+
   const selectedCustomer = allCustomers.find((c) => c.id === selectedCustomerId);
 
   const lineTotal = lineItems.reduce((s, i) => s + i.unitPriceCustomer * i.quantity, 0);
@@ -186,17 +209,29 @@ export function NewOrderWizard({
 
   const needsLensConfig = NEEDS_LENS_CONFIG.includes(orderCategory);
   const needsFrame = NEEDS_FRAME.includes(orderCategory);
+  const needsExamDetails = NEEDS_EXAM_DETAILS.includes(orderCategory);
 
   // Compute actual wizard steps based on category
-  const steps = [
-    { n: 1, label: "Customer" },
-    { n: 2, label: "Order Type" },
-    ...(needsLensConfig ? [{ n: 3, label: "Lens Config" }] : []),
-    ...(needsFrame ? [{ n: needsLensConfig ? 4 : 3, label: "Frame" }] : []),
-    { n: needsLensConfig && needsFrame ? 5 : needsLensConfig || needsFrame ? 4 : 3, label: "Items" },
-    { n: needsLensConfig && needsFrame ? 6 : needsLensConfig || needsFrame ? 5 : 4, label: "Payment" },
-    { n: needsLensConfig && needsFrame ? 7 : needsLensConfig || needsFrame ? 6 : 5, label: "Review" },
-  ];
+  function buildSteps() {
+    const s: Array<{ n: number; label: string }> = [
+      { n: 1, label: "Customer" },
+      { n: 2, label: "Order Type" },
+    ];
+    let n = 3;
+    if (needsExamDetails) { s.push({ n, label: "Exam Details" }); n++; }
+    if (needsLensConfig) { s.push({ n, label: "Lens Config" }); n++; }
+    if (needsFrame) { s.push({ n, label: "Frame" }); n++; }
+    s.push({ n, label: "Items" }); n++;
+    s.push({ n, label: "Payment" }); n++;
+    s.push({ n, label: "Review" });
+    return s;
+  }
+  const steps = buildSteps();
+
+  // Helper to get the step number for a label
+  function stepN(label: string) {
+    return steps.find((s) => s.label === label)?.n ?? 999;
+  }
 
   // Flat step navigation: map visual step to logical step
   // We just track step as a flat number 1-N
@@ -212,17 +247,19 @@ export function NewOrderWizard({
     .slice(0, 10);
 
   function addLineItem() {
-    setLineItems([...lineItems, { type: "OTHER", description: "", quantity: 1, unitPriceCustomer: 0, unitPriceReal: 0 }]);
+    setLineItems(prev => [...prev, { type: "OTHER", description: "", quantity: 1, unitPriceCustomer: 0, unitPriceReal: 0 }]);
   }
 
   function removeLineItem(index: number) {
-    setLineItems(lineItems.filter((_, i) => i !== index));
+    setLineItems(prev => prev.filter((_, i) => i !== index));
   }
 
   function updateLineItem(index: number, field: keyof LineItem, value: unknown) {
-    const updated = [...lineItems];
-    updated[index] = { ...updated[index], [field]: value };
-    setLineItems(updated);
+    setLineItems(prev => {
+      const updated = [...prev];
+      updated[index] = { ...updated[index], [field]: value };
+      return updated;
+    });
   }
 
   function toggleAddon(addon: string) {
@@ -255,6 +292,40 @@ export function NewOrderWizard({
       setLineItems(updated);
     }
     setFrameInventorySearch("");
+  }
+
+  function resetForAnotherOrder() {
+    setOrderCategory("");
+    setExamType("");
+    setExamPaymentMethod("");
+    setInsuranceCoveredAmount(0);
+    setLensType("");
+    setLensDesign("");
+    setLensAddOns([]);
+    setFrameBrand("");
+    setFrameModel("");
+    setFrameColor("");
+    setFrameColourCode("");
+    setFrameEyeSize("");
+    setFrameBridgeState("");
+    setFrameTemple("");
+    setFrameWholesale("");
+    setFrameSku("");
+    setFrameInventorySearch("");
+    setLineItems([
+      { type: "FRAME", description: "", quantity: 1, unitPriceCustomer: 0, unitPriceReal: 0 },
+      { type: "LENS", description: "", quantity: 1, unitPriceCustomer: 0, unitPriceReal: 0 },
+    ]);
+    setDepositCustomer(0);
+    setDepositReal(0);
+    setInsuranceCoverage(0);
+    setReferralCredit(0);
+    setNotes("");
+    setLabNotes("");
+    setInventorySearches({});
+    setCreatedOrder(null);
+    setError("");
+    setStep(2);
   }
 
   function handleNext() {
@@ -308,6 +379,9 @@ export function NewOrderWizard({
       notes: notes || undefined,
       labNotes: labNotes || undefined,
       dueDate: dueDate || undefined,
+      examType: examType || undefined,
+      examPaymentMethod: examPaymentMethod || undefined,
+      insuranceCoveredAmount: insuranceCoveredAmount || undefined,
       lineItems: lineItems.filter((i) => i.description),
     });
 
@@ -317,7 +391,21 @@ export function NewOrderWizard({
       return;
     }
 
-    router.push(`/orders/${result.id}`);
+    // Send email invoice in background if requested
+    if (emailInvoice) {
+      emailInvoiceAction(result.id, "customer").catch(() => {});
+    }
+
+    setSaving(false);
+
+    // Auto-navigate to work order page with auto-print if requested (non-exam orders only)
+    if (printWorkOrder && !needsExamDetails) {
+      router.push(`/orders/${result.id}/work-order?autoprint=true`);
+      return;
+    }
+
+    // Show success overlay
+    setCreatedOrder({ id: result.id, orderNumber: result.orderNumber });
   }
 
   return (
@@ -572,8 +660,85 @@ export function NewOrderWizard({
         </div>
       )}
 
+      {/* ── STEP: Exam Details (eye exam only) ── */}
+      {step === stepN("Exam Details") && needsExamDetails && (
+        <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6 space-y-6">
+          <h2 className="font-semibold text-gray-900">Exam Details</h2>
+
+          {/* Exam Type */}
+          <div>
+            <h3 className="text-sm font-semibold text-gray-700 mb-3">Exam Type</h3>
+            <div className="space-y-2">
+              {EXAM_TYPES.map((et) => (
+                <button
+                  key={et.value}
+                  type="button"
+                  onClick={() => {
+                    setExamType(et.value);
+                    setLineItems([{ type: "EXAM", description: et.label, quantity: 1, unitPriceCustomer: 0, unitPriceReal: 0 }]);
+                  }}
+                  className={`w-full flex items-start gap-3 p-4 rounded-xl border-2 text-left transition-all ${
+                    examType === et.value
+                      ? "border-primary bg-primary/5"
+                      : "border-gray-200 hover:border-gray-300"
+                  }`}
+                >
+                  <Eye className={`w-5 h-5 mt-0.5 flex-shrink-0 ${examType === et.value ? "text-primary" : "text-gray-400"}`} />
+                  <div>
+                    <p className={`text-sm font-semibold ${examType === et.value ? "text-primary" : "text-gray-900"}`}>{et.label}</p>
+                    <p className="text-xs text-gray-500 mt-0.5">{et.desc}</p>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Payment Method */}
+          <div>
+            <h3 className="text-sm font-semibold text-gray-700 mb-3">Payment Method</h3>
+            <div className="space-y-2">
+              {EXAM_PAYMENT_METHODS.map((pm) => (
+                <button
+                  key={pm.value}
+                  type="button"
+                  onClick={() => setExamPaymentMethod(pm.value)}
+                  className={`w-full flex items-start gap-3 p-4 rounded-xl border-2 text-left transition-all ${
+                    examPaymentMethod === pm.value
+                      ? "border-primary bg-primary/5"
+                      : "border-gray-200 hover:border-gray-300"
+                  }`}
+                >
+                  <div className={`w-4 h-4 mt-0.5 rounded-full border-2 flex-shrink-0 ${examPaymentMethod === pm.value ? "border-primary bg-primary" : "border-gray-300"}`} />
+                  <div>
+                    <p className={`text-sm font-semibold ${examPaymentMethod === pm.value ? "text-primary" : "text-gray-900"}`}>{pm.label}</p>
+                    <p className="text-xs text-gray-500 mt-0.5">{pm.desc}</p>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Insurance amount input for partial */}
+          {examPaymentMethod === "insurance_partial" && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Amount Covered by Insurance ($)</label>
+              <input
+                type="number" min="0" step="0.01"
+                value={insuranceCoveredAmount || ""}
+                onChange={(e) => setInsuranceCoveredAmount(parseFloat(e.target.value) || 0)}
+                placeholder="0.00"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+              />
+              {insuranceCoveredAmount > 0 && (
+                <p className="text-xs text-gray-500 mt-1">Patient pays the balance.</p>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
       {/* ── STEP 3: Lens Configuration (conditional) ── */}
-      {step === 3 && needsLensConfig && (
+      {step === stepN("Lens Config") && needsLensConfig && (
         <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6 space-y-6">
           <h2 className="font-semibold text-gray-900">Lens Configuration</h2>
 
@@ -642,8 +807,8 @@ export function NewOrderWizard({
         </div>
       )}
 
-      {/* ── STEP 3 or 4: Frame Details (conditional) ── */}
-      {step === (needsLensConfig ? 4 : 3) && needsFrame && (
+      {/* ── STEP: Frame Details (conditional) ── */}
+      {step === stepN("Frame") && needsFrame && (
         <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6 space-y-4">
           <h2 className="font-semibold text-gray-900">Frame Details</h2>
           <p className="text-xs text-gray-500">
@@ -737,7 +902,7 @@ export function NewOrderWizard({
       )}
 
       {/* ── STEP: Line Items ── */}
-      {step === (needsLensConfig && needsFrame ? 5 : needsLensConfig || needsFrame ? 4 : 3) && (
+      {step === stepN("Items") && (
         <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6 space-y-4">
           <h2 className="font-semibold text-gray-900">Line Items</h2>
 
@@ -779,7 +944,7 @@ export function NewOrderWizard({
                   </div>
 
                   <div className="p-4 space-y-3">
-                    {inventoryItems.length > 0 && (
+                    {inventoryItems.length > 0 && item.type === "FRAME" && (
                       <div className="space-y-2">
                         <div className="relative">
                           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
@@ -894,7 +1059,7 @@ export function NewOrderWizard({
       )}
 
       {/* ── STEP: Payment ── */}
-      {step === (needsLensConfig && needsFrame ? 6 : needsLensConfig || needsFrame ? 5 : 4) && (
+      {step === stepN("Payment") && (
         <div className="space-y-4">
           {/* Deductions */}
           <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6 space-y-4">
@@ -1071,6 +1236,48 @@ export function NewOrderWizard({
                 <span className="text-sm text-gray-700">Print Work Order</span>
                 <span className="text-xs text-primary font-medium ml-auto">Recommended</span>
               </label>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Success Overlay */}
+      {createdOrder && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-sm w-full mx-4 space-y-5">
+            <div className="flex flex-col items-center text-center gap-3">
+              <div className="w-14 h-14 rounded-full bg-green-100 flex items-center justify-center">
+                <CheckCircle className="w-8 h-8 text-green-600" />
+              </div>
+              <div>
+                <h2 className="text-lg font-bold text-gray-900">Order Created!</h2>
+                <p className="text-sm text-gray-500 mt-1">Order #{createdOrder.orderNumber}</p>
+                {emailInvoice && (
+                  <p className="text-xs text-green-600 mt-1">Invoice email sent to customer</p>
+                )}
+              </div>
+            </div>
+            <div className="space-y-2">
+              <button
+                onClick={() => router.push(`/orders/${createdOrder.id}`)}
+                className="w-full bg-primary text-white py-2.5 rounded-xl text-sm font-semibold hover:bg-primary/90 transition-colors"
+              >
+                View Order
+              </button>
+              {selectedCustomer && (
+                <button
+                  onClick={resetForAnotherOrder}
+                  className="w-full bg-gray-50 border border-gray-200 text-gray-700 py-2.5 rounded-xl text-sm font-semibold hover:bg-gray-100 transition-colors"
+                >
+                  Add Another Order for {selectedCustomer.firstName}
+                </button>
+              )}
+              <button
+                onClick={() => router.push("/orders/board")}
+                className="w-full text-gray-400 py-2 text-sm hover:text-gray-600 transition-colors"
+              >
+                Back to Orders Board
+              </button>
             </div>
           </div>
         </div>

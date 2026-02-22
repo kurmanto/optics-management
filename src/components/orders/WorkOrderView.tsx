@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import { Printer } from "lucide-react";
 
 type WorkOrderProps = {
@@ -26,6 +27,7 @@ type WorkOrderProps = {
   lensAddOns: string[];
   lensCoating: string | null;
   labNotes: string | null;
+  autoprint?: boolean;
   prescription: {
     date: Date;
     odSphere: number | null;
@@ -59,6 +61,13 @@ export function WorkOrderView(props: WorkOrderProps) {
   const frameTitle = [props.frameBrand, props.frameModel, props.frameColor]
     .filter(Boolean)
     .join(" ");
+
+  useEffect(() => {
+    if (props.autoprint) {
+      const timer = setTimeout(() => window.print(), 600);
+      return () => clearTimeout(timer);
+    }
+  }, [props.autoprint]);
 
   return (
     <div className="max-w-2xl mx-auto">

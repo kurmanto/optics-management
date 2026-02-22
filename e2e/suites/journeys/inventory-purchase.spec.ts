@@ -46,7 +46,8 @@ test.describe("Inventory Purchase Journey", () => {
     await page.locator('input[name="name"]').fill(vendorName);
     await page.locator('input[name="leadTimeDays"]').fill("7");
     await page.getByRole("button", { name: "Add Vendor" }).click();
-    await page.waitForURL(/\/inventory\/vendors\/[a-z0-9]+/, { timeout: 20_000 });
+    // Exclude "new" from the pattern so we wait for the actual CUID-based vendor detail URL
+    await page.waitForURL(/\/inventory\/vendors\/(?!new)[a-z0-9]+/, { timeout: 20_000 });
 
     // Navigate back to vendor list
     await page.goto("/inventory/vendors");

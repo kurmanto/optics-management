@@ -74,6 +74,146 @@ describe("createPurchaseOrder", () => {
   });
 });
 
+describe("createPurchaseOrder — new item creation", () => {
+  function makeTxMock(opts: {
+    captureInventoryCreates?: Array<unknown>;
+    captureLineItems?: Array<unknown>;
+  }) {
+    return {
+      purchaseOrder: {
+        create: vi.fn().mockResolvedValue({ id: "po-new" }),
+      },
+      purchaseOrderLineItem: {
+        create: vi.fn().mockImplementation((args: unknown) => {
+          opts.captureLineItems?.push(args);
+          return Promise.resolve({});
+        }),
+      },
+      inventoryItem: {
+        create: vi.fn().mockImplementation((args: unknown) => {
+          opts.captureInventoryCreates?.push(args);
+          return Promise.resolve({ id: "new-item-1" });
+        }),
+        update: vi.fn().mockResolvedValue({}),
+      },
+    };
+  }
+
+  it("calls tx.inventoryItem.create when line item has brand+model but no inventoryItemId", async () => {
+    const prisma = await getPrisma();
+    const inventoryCreates: unknown[] = [];
+
+    prisma.purchaseOrder.count.mockResolvedValue(10);
+    prisma.inventoryItem.findMany.mockResolvedValue([]); // no SKU collisions
+
+    (prisma as any).$transaction.mockImplementation(async (fn: (tx: unknown) => unknown) =>
+      fn(makeTxMock({ captureInventoryCreates: inventoryCreates }))
+    );
+
+    const { createPurchaseOrder } = await import("@/lib/actions/purchase-orders");
+    try {
+      await createPurchaseOrder({
+        vendorId: "vendor-1",
+        shipping: 0,
+        duties: 0,
+        lineItems: [{ brand: "Ray-Ban", model: "RB5154", quantityOrdered: 2, unitCost: 85 }],
+      });
+    } catch {
+      // redirect throws after success
+    }
+
+    expect(inventoryCreates).toHaveLength(1);
+    const created = inventoryCreates[0] as { data: { brand: string; model: string } };
+    expect(created.data.brand).toBe("Ray-Ban");
+    expect(created.data.model).toBe("RB5154");
+  });
+
+  it("calls inventoryItem.create exactly once when one new and one existing line item", async () => {
+    const prisma = await getPrisma();
+    const inventoryCreates: unknown[] = [];
+
+    prisma.purchaseOrder.count.mockResolvedValue(11);
+    prisma.inventoryItem.findMany.mockResolvedValue([]); // no SKU collisions
+
+    (prisma as any).$transaction.mockImplementation(async (fn: (tx: unknown) => unknown) =>
+      fn(makeTxMock({ captureInventoryCreates: inventoryCreates }))
+    );
+
+    const { createPurchaseOrder } = await import("@/lib/actions/purchase-orders");
+    try {
+      await createPurchaseOrder({
+        vendorId: "vendor-1",
+        shipping: 0,
+        duties: 0,
+        lineItems: [
+          { inventoryItemId: "existing-item-1", quantityOrdered: 1, unitCost: 50 },
+          { brand: "Tom Ford", model: "TF5634", quantityOrdered: 1, unitCost: 120 },
+        ],
+      });
+    } catch {
+      // redirect throws after success
+    }
+
+    expect(inventoryCreates).toHaveLength(1);
+  });
+
+  it("stores grossProfit = retailPrice - unitCost on line item when retailPrice is provided", async () => {
+    const prisma = await getPrisma();
+    const lineItemCaptures: unknown[] = [];
+
+    prisma.purchaseOrder.count.mockResolvedValue(12);
+
+    (prisma as any).$transaction.mockImplementation(async (fn: (tx: unknown) => unknown) =>
+      fn(makeTxMock({ captureLineItems: lineItemCaptures }))
+    );
+
+    const { createPurchaseOrder } = await import("@/lib/actions/purchase-orders");
+    try {
+      await createPurchaseOrder({
+        vendorId: "vendor-1",
+        shipping: 0,
+        duties: 0,
+        lineItems: [
+          { inventoryItemId: "item-1", quantityOrdered: 1, unitCost: 100, retailPrice: 250 },
+        ],
+      });
+    } catch {
+      // redirect throws after success
+    }
+
+    const li = lineItemCaptures[0] as { data: { grossProfit: number } };
+    expect(li.data.grossProfit).toBe(150);
+  });
+
+  it("sets inventoryItemId: null on line item when neither inventoryItemId nor brand/model provided", async () => {
+    const prisma = await getPrisma();
+    const inventoryCreates: unknown[] = [];
+    const lineItemCaptures: unknown[] = [];
+
+    prisma.purchaseOrder.count.mockResolvedValue(13);
+
+    (prisma as any).$transaction.mockImplementation(async (fn: (tx: unknown) => unknown) =>
+      fn(makeTxMock({ captureInventoryCreates: inventoryCreates, captureLineItems: lineItemCaptures }))
+    );
+
+    const { createPurchaseOrder } = await import("@/lib/actions/purchase-orders");
+    try {
+      await createPurchaseOrder({
+        vendorId: "vendor-1",
+        shipping: 0,
+        duties: 0,
+        lineItems: [{ quantityOrdered: 1, unitCost: 50 }],
+      });
+    } catch {
+      // redirect throws after success
+    }
+
+    expect(inventoryCreates).toHaveLength(0);
+    const li = lineItemCaptures[0] as { data: { inventoryItemId: null } };
+    expect(li.data.inventoryItemId).toBeNull();
+  });
+});
+
 describe("updatePOStatus", () => {
   it("updates status to SENT successfully", async () => {
     const prisma = await getPrisma();

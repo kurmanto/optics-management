@@ -61,6 +61,7 @@ const navItems = [
       { title: "All Frames", href: "/inventory" },
       { title: "Vendors", href: "/inventory/vendors" },
       { title: "Purchase Orders", href: "/inventory/purchase-orders" },
+      { title: "Received Frames", href: "/inventory/purchase-orders/received" },
       { title: "Analytics", href: "/inventory/analytics" },
     ],
   },

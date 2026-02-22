@@ -30,12 +30,16 @@ test.describe("Sidebar Navigation", () => {
 
   test("Forms link navigates to /forms", async ({ page }) => {
     await page.getByRole("link", { name: "Forms" }).click();
+    // Next.js App Router updates the URL only after the RSC response arrives;
+    // on first visit the route may need to compile — use a generous timeout.
+    await page.waitForURL("/forms", { timeout: 45_000 });
     await expect(page).toHaveURL("/forms");
   });
 
   test("Orders group shows sub-nav items when active", async ({ page }) => {
     // Click Orders — it navigates to first child: /orders/board
     await page.getByRole("link", { name: "Orders" }).click();
+    await page.waitForURL("/orders/board", { timeout: 45_000 });
     await expect(page).toHaveURL("/orders/board");
 
     // Sub-nav items should now be visible
@@ -58,6 +62,7 @@ test.describe("Sidebar Navigation", () => {
 
   test("Inventory group shows sub-nav items when active", async ({ page }) => {
     await page.getByRole("link", { name: "Inventory" }).click();
+    await page.waitForURL("/inventory", { timeout: 45_000 });
     await expect(page).toHaveURL("/inventory");
 
     await expect(page.getByRole("link", { name: "All Frames" })).toBeVisible();

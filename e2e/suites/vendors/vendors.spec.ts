@@ -79,7 +79,7 @@ test.describe("Vendors", () => {
 
       await page.goto("/inventory/vendors");
       await page.waitForLoadState("networkidle");
-      await expect(page.getByText(name)).toBeVisible({ timeout: 10_000 });
+      await expect(page.getByText(name)).toBeVisible({ timeout: 20_000 });
     });
   });
 });

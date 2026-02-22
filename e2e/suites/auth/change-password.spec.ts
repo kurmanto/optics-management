@@ -14,7 +14,9 @@ test.describe("Change Password", () => {
   });
 
   test("change password form is visible on settings page", async ({ page }) => {
-    await expect(page.getByText(/change password/i)).toBeVisible();
+    // Use getByRole("heading") to avoid strict-mode violations from parent elements
+    // that also contain "change password" in their innerText.
+    await expect(page.getByRole("heading", { name: /change password/i })).toBeVisible();
     await expect(page.locator('input[name="currentPassword"]')).toBeVisible();
     await expect(page.locator('input[name="newPassword"]')).toBeVisible();
     await expect(page.locator('input[name="confirmPassword"]')).toBeVisible();

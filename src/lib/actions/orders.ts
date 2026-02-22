@@ -7,6 +7,7 @@ import { OrderStatus, LineItemType, OrderType, PrescriptionSource } from "@prism
 import { generateOrderNumber } from "@/lib/utils/formatters";
 import { createNotification } from "@/lib/notifications";
 import { uploadPrescriptionScan } from "@/lib/supabase";
+import { sendInvoiceEmail } from "@/lib/email";
 
 export type OrderFormState = {
   error?: string;
@@ -52,9 +53,13 @@ type CreateOrderInput = {
   labNotes?: string;
   dueDate?: string;
   lineItems: LineItemInput[];
+  // Eye exam fields
+  examType?: string;
+  examPaymentMethod?: string;
+  insuranceCoveredAmount?: number;
 };
 
-export async function createOrder(input: CreateOrderInput): Promise<{ id: string } | { error: string }> {
+export async function createOrder(input: CreateOrderInput): Promise<{ id: string; orderNumber: string } | { error: string }> {
   const session = await verifySession();
 
   // Calculate totals from line items
@@ -108,6 +113,9 @@ export async function createOrder(input: CreateOrderInput): Promise<{ id: string
         lensAddOns: input.lensAddOns || [],
         insuranceCoverage: input.insuranceCoverage || null,
         referralCredit: input.referralCredit || null,
+        examType: input.examType || null,
+        examPaymentMethod: input.examPaymentMethod || null,
+        insuranceCoveredAmount: input.insuranceCoveredAmount ?? null,
         notes: input.notes || null,
         labNotes: input.labNotes || null,
         dueDate: input.dueDate ? new Date(input.dueDate) : null,
@@ -134,7 +142,7 @@ export async function createOrder(input: CreateOrderInput): Promise<{ id: string
       },
     });
 
-    return { id: order.id };
+    return { id: order.id, orderNumber: order.orderNumber };
   } catch (e) {
     console.error(e);
     return { error: "Failed to create order" };
@@ -217,6 +225,7 @@ export async function advanceOrderStatus(
 type PickupCompleteOptions = {
   sendReviewRequest: boolean;
   enrollInReferralCampaign: boolean;
+  enrollInFamilyPromo?: boolean;
   markAsLowValue: boolean;
   notes?: string;
 };
@@ -230,7 +239,32 @@ export async function handlePickupComplete(
   try {
     const order = await prisma.order.findUnique({
       where: { id: orderId },
-      select: { customerId: true, totalCustomer: true },
+      select: {
+        customerId: true,
+        orderNumber: true,
+        totalCustomer: true,
+        depositCustomer: true,
+        balanceCustomer: true,
+        insuranceCoverage: true,
+        referralCredit: true,
+        customer: {
+          select: {
+            firstName: true,
+            lastName: true,
+            email: true,
+            familyId: true,
+            family: { select: { customers: { select: { id: true } } } },
+          },
+        },
+        lineItems: {
+          select: {
+            description: true,
+            quantity: true,
+            unitPriceCustomer: true,
+            totalCustomer: true,
+          },
+        },
+      },
     });
     if (!order) return { error: "Order not found" };
 
@@ -242,6 +276,7 @@ export async function handlePickupComplete(
           pickedUpAt: new Date(),
           reviewRequestSent: options.sendReviewRequest,
           referralCampaignEnrolled: options.enrollInReferralCampaign,
+          familyPromoCampaignEnrolled: options.enrollInFamilyPromo,
           pickupNotes: options.notes || null,
           statusHistory: {
             create: {
@@ -266,12 +301,31 @@ export async function handlePickupComplete(
       }
     });
 
+    // Auto-send invoice email on pickup
+    if (order.customer.email) {
+      sendInvoiceEmail({
+        to: order.customer.email,
+        customerName: `${order.customer.firstName} ${order.customer.lastName}`,
+        orderNumber: order.orderNumber,
+        totalAmount: order.totalCustomer,
+        lineItems: order.lineItems,
+        depositAmount: order.depositCustomer > 0 ? order.depositCustomer : undefined,
+        balanceAmount: order.balanceCustomer > 0 ? order.balanceCustomer : undefined,
+        insuranceCoverage: order.insuranceCoverage ?? undefined,
+        referralCredit: order.referralCredit ?? undefined,
+      }).catch((err) => console.error("[Invoice Email] Failed to send on pickup:", err));
+    }
+
     // SMS placeholder — Twilio integration later
     if (options.sendReviewRequest) {
       console.log(`[SMS PLACEHOLDER] Review request for order ${orderId}, customer ${order.customerId}`);
     }
     if (options.enrollInReferralCampaign) {
       console.log(`[SMS PLACEHOLDER] Referral campaign enrollment for customer ${order.customerId} (starts in 3 days)`);
+    }
+    if (options.enrollInFamilyPromo) {
+      const familyMemberIds = order.customer?.family?.customers.map((c) => c.id).filter((id) => id !== order.customerId) ?? [];
+      console.log(`[FAMILY PROMO] Would enroll ${familyMemberIds.length} family members in FAMILY_ADDON campaign`);
     }
 
     revalidatePath(`/orders/${orderId}`);

@@ -118,8 +118,8 @@ export default async function PurchaseOrderDetailPage({
               {po.lineItems.map((li) => (
                 <tr key={li.id} className="border-b border-gray-50">
                   <td className="py-2.5 pr-4">
-                    <p className="font-medium text-gray-800">{li.inventoryItem.brand} {li.inventoryItem.model}</p>
-                    {li.inventoryItem.sku && <p className="text-xs text-gray-400">{li.inventoryItem.sku}</p>}
+                    <p className="font-medium text-gray-800">{li.inventoryItem?.brand ?? (li as any).brand ?? "—"} {li.inventoryItem?.model ?? (li as any).model ?? ""}</p>
+                    {(li.inventoryItem?.sku ?? (li as any).sku) && <p className="text-xs text-gray-400">{li.inventoryItem?.sku ?? (li as any).sku}</p>}
                   </td>
                   <td className="py-2.5 pr-4 text-center text-gray-700">{li.quantityOrdered}</td>
                   <td className="py-2.5 pr-4 text-center">

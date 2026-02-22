@@ -102,7 +102,7 @@ test.describe("Customer Create", () => {
     await page.locator('input[name="lastName"]').fill(`TestLast${suffix}`);
     await page.getByRole("button", { name: "Create Customer" }).click();
     await page.waitForURL(/\/customers\/[a-z0-9]+/, { timeout: 20_000 });
-    await expect(page.getByText(`TestFirst`)).toBeVisible();
+    await expect(page.getByRole("heading", { name: /TestFirst/i })).toBeVisible();
   });
 
   test("newly created customer appears in search", async ({ page }) => {

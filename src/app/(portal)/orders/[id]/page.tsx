@@ -127,6 +127,7 @@ export default async function OrderDetailPage({
             nextStatus={nextStatus}
             nextLabel={NEXT_STATUS_LABELS[order.status]!}
             currentStatus={order.status}
+            orderType={order.type}
             orderTotal={order.totalCustomer}
             customerMarketingOptOut={order.customer.marketingOptOut ?? false}
           />

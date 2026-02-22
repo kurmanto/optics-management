@@ -6,6 +6,16 @@ Format: `[Version] — Date`
 
 ---
 
+## [1.5.2] — 2026-02-21
+
+### Added
+- **Work order auto-generation** — when staff clicks "Send to Lab" on any non-exam order (`GLASSES`, `SUNGLASSES`, `CONTACTS`, `ACCESSORIES`), the work order page opens automatically in a new browser tab with `?autoprint=true`, triggering the print dialog without any extra clicks. `EXAM_ONLY` orders are excluded (no work order goes to the lab for exams).
+- **E2E seed fixtures** — two dedicated CONFIRMED orders (`confirmedGlassesOrderId`, `confirmedExamOrderId`) added to `prisma/seed-e2e.ts` specifically for testing this flow.
+- **E2E test suite** — `e2e/suites/orders/work-order-auto.spec.ts` (4 tests): new-tab opens with correct URL on GLASSES order, no tab opens for EXAM_ONLY order, work order page renders correctly, autoprint param does not crash.
+- **Unit tests** — 3 new cases in `src/__tests__/actions/orders.test.ts` covering `advanceOrderStatus` to `LAB_ORDERED`: `labOrderedAt` timestamp is set, no notification is fired, status history records actor name.
+
+---
+
 ## [1.0.0] — 2026-02-15
 
 ### Added
@@ -315,6 +325,150 @@ Format: `[Version] — Date`
 - Vitest coverage now includes `src/lib/campaigns/**`
 
 > **Not yet live:** SMS delivery (Twilio stub) and email delivery (Resend stub) are not implemented. See `docs/project_status.md` Known Issues.
+
+---
+
+## [2.2.0] — 2026-02-20
+
+### Added — Phase 1 & Phase 2 Feature Suite (17 features)
+
+#### Eye Exam Sub-flow (Feature 1)
+- New "Eye Exam" order category triggers a dedicated **Exam Details** step in the order wizard
+- Exam Type selector: Complete Adult Eye Exam, Child/Teenager (Under 19), Senior (Above 65)
+- Payment Method selector: Insurance Full, Insurance Partial, OHIP, Self-bill/Out of Pocket
+- "Insurance Partial" reveals an amount-covered input; balance auto-calculates
+- `examType`, `examPaymentMethod`, `insuranceCoveredAmount` fields stored on `Order` model
+
+#### Customer Insurance Enhancement (Feature 2)
+- New `InsurancePolicyManager` component replacing inline insurance display on customer profile
+- Insurance policy cards show: Provider, Contract Number, Member ID, Last Claim Date, Estimated Next Claim Date (auto-computed from last claim + eligibility interval), Estimated Insured Amount
+- Add / edit / deactivate policies without page reload
+- New `src/lib/actions/insurance.ts`: `addInsurancePolicy`, `updateInsurancePolicy`, `deactivateInsurancePolicy`
+- New Zod validation in `src/lib/validations/insurance.ts`
+
+#### Family Members Auto-linking (Feature 4)
+- Auto-suggest family linkage when customers share phone numbers or addresses
+- `FamilyMembersCard` on customer detail: shows linked family members with name/phone/link
+- "Find Family Matches" button surfaces potential matches in real time
+- "Create Family Group" and "Add to Existing Family" workflows
+- New actions: `findFamilyMatches`, `createFamilyAndLink`, `addToFamily` in `customers.ts`
+
+#### Referral Code Tracking System (Feature 5)
+- Unique referral codes generated per customer: format `MV-{FIRST2}{LAST2}-{4digits}`
+- `ReferralCodeCard` on customer profile: shows code, copy-to-clipboard, referral history table
+- Referral code input in Order Wizard payment step — real-time validation shows referrer name
+- Auto-awards **$25 store credit** to referrer when referred customer completes a purchase
+- New `src/lib/actions/referrals.ts`: `generateReferralCode`, `validateReferralCode`, `redeemReferral`, `getCustomerReferrals`
+- `referrals` table gains `status` and `orderId` columns
+
+#### Saved Frames Feature (Feature 6)
+- Save frames to customer profile with optional photo (camera/file upload via Supabase Storage)
+- `SavedFramesCard`: grid of saved frames with photo thumbnails, heart icon, expected return date
+- "Save Frame" form: search existing inventory OR manual brand/model/color entry
+- Toggle favorite, set expected return date, remove with confirmation
+- New `src/lib/actions/saved-frames.ts`: `saveFrame`, `removeSavedFrame`, `toggleFavorite`, `updateExpectedReturnDate`
+- New `saved_frames` DB table
+
+#### Dual Invoicing Explicit Toggle (Feature 7)
+- When `isDualInvoice = true`, invoice page shows amber toggle bar: **Customer View** / **Internal View** tabs
+- Switching tab changes which amounts are displayed in `InvoiceView`
+- `IssueInvoiceButton` updated: dual-invoice mode shows dropdown — "Issue Insurance Invoice", "Issue Actual Invoice", "Issue Both"
+
+#### Auto-Generate Work Order on Completion (Feature 8)
+- "Print work order" checkbox in Order Wizard review step auto-redirects to `/orders/[id]/work-order?autoprint=true` after creation
+- `WorkOrderView` detects `autoprint` prop and triggers `window.print()` after 500ms render delay
+- `InvoiceView` similarly accepts `autoprint` query param
+
+#### Dashboard "Follow Ups" Section (Feature 9)
+- New **Follow Ups** card section on dashboard, alongside existing "Money on the Table"
+- Three sub-cards: Saved Frames (pending return in next 14 days), Styling Appointments (upcoming in 7 days), Quotes Given (walk-ins with quote in last 14 days, no order placed)
+- Each row shows customer name (linked), reason, due date, and action button
+
+#### "Add Another Order" Prompt (Feature 10)
+- After order submission, success overlay appears instead of immediate redirect
+- Options: "View Order", "Add Another Order for {customer}" (resets form, keeps customer), "Back to Orders"
+- Re-creating an order for the same customer skips the customer selection step
+
+#### Eyewear Styling Appointment Quick-Booking (Feature 11)
+- `QuickBookAppointment` component on customer profile — compact modal with date/time/duration/notes
+- Upcoming appointments listed as mini-list on customer profile
+- New `src/lib/actions/appointments.ts`: `createAppointment`, `getUpcomingAppointments`, `updateAppointmentStatus`, `cancelAppointment`
+- `STYLING` added to `AppointmentType` enum
+
+#### Automated Invoice Email via Resend (Feature 12)
+- `emailInvoice` server action sends a formatted HTML invoice email via Resend
+- `InvoiceView` "Email Invoice" button replaces `mailto:` link — shows live loading/sent/error state
+- `emailWorkOrder` server action for work order email delivery
+- New `src/lib/email.ts`: Resend client + `sendInvoiceEmail()` with inline-styled HTML template
+- New dependency: `resend` package
+- New env vars: `RESEND_API_KEY`, `RESEND_FROM_EMAIL`
+
+#### Post-Pickup Campaign Toggle — Family Promo (Feature 13)
+- New "Send family promo offer" checkbox in PickupCompleteModal
+- When checked, family members are enrolled in FAMILY_ADDON campaign
+- `order.familyPromoCampaignEnrolled` field records enrollment
+
+#### PO Line Item Fields Expansion (Feature 15)
+- Purchase Order form now supports two line item modes: **Select Existing** (search inventory) and **Add New Frame** (manual entry)
+- New frame fields per line item: Brand, Model #, Gender, Eye Size, Bridge, Temple, Colour (dropdown), Colour Code, Retail Price, Gross Profit (auto-calc, read-only), Frame Type, Material
+- Live **SKU Preview** shown as fields are filled in: `RAY-RB5154-2000-49-21`
+- "Add New Frame" mode auto-creates an `InventoryItem` linked to the vendor when the PO is saved
+- `purchase_order_line_items` table gains all expanded fields
+
+#### SKU Auto-Generation (Feature 16)
+- New `src/lib/utils/sku.ts`: `generateSku({ brand, model, colorCode, eyeSize, bridge })` + `ensureUniqueSku(baseSku)`
+- SKU format: `{BRAND3}-{MODEL}-{COLORCODE}-{EYESIZE}-{BRIDGE}` (e.g., `RAY-RB5154-2000-49-21`)
+- Brand prefix: first 3 chars uppercase, special characters stripped
+- `ensureUniqueSku` appends `-2`, `-3`, etc. on collision
+- Used in `createInventoryItem` and `createPurchaseOrder` (new items)
+
+#### Received Frames Tab with Display Tracking (Feature 17)
+- New `/inventory/purchase-orders/received` page — table of all received PO line items
+- Filter: Not Yet Displayed (default) / Displayed / All; sort by received date (oldest first)
+- **Mark as Displayed** button per item — records `displayedAt`, `isDisplayed`, optional `displayLocation`
+- `MarkDisplayedButton` client component with location input
+- New actions: `markAsDisplayed(inventoryItemId, location?)`, `removeFromDisplay(inventoryItemId)`
+- Sidebar link "Received Frames" added under Purchase Orders
+
+#### Tests
+- 5 new test files: `appointments.test.ts` (7 tests), `insurance.test.ts` (7 tests), `referrals.test.ts` (9 tests), `saved-frames.test.ts` (12 tests), `email.test.ts` (5 tests)
+- `src/__tests__/utils/sku.test.ts` — 10 tests covering SKU generation + uniqueness
+- Prisma mock extended with `referral`, `savedFrame`, `appointment`, `family` models
+- **366 total tests passing** (50 new)
+
+---
+
+## [2.3.0] — 2026-02-21
+
+### Added
+
+#### Auto-Send Invoice Email on Pickup
+- `handlePickupComplete` now automatically sends a formatted HTML invoice email to the customer via Resend when an order is marked `PICKED_UP`
+- Email is fire-and-forget — pickup action never fails due to email errors
+- Guarded by `if (order.customer.email)` — silently skipped for customers without an email address on file
+- Uses the same `sendInvoiceEmail()` template as the manual Email Invoice button (Mint Vision branded, line items, deposit/balance, insurance deductions)
+
+#### Dashboard Follow Ups Layout
+- "Money on the Table" and "Follow Ups" sections now render in a 2-column side-by-side grid on large screens
+- "Money on the Table" shows an empty-state card when there are no open opportunities (previously the entire section was hidden)
+
+#### Saved Frames — Inline Return Date Edit
+- Expected return date on each saved frame card is now an inline editable field
+- Click the date label (or "Set return date" placeholder) to open a date picker inline; click **Save** to persist or **✕** to cancel
+- After saving, page refreshes via `router.refresh()` (server re-render) instead of local state mutation — always in sync with DB
+- `savedBy` staff name now displayed on each frame card
+
+#### Order Wizard Fixes
+- Fixed stale closure bug in `addLineItem`, `removeLineItem`, and `updateLineItem` — all now use functional `setState(prev => ...)` form
+- Inventory item search restricted to FRAME line items only (was incorrectly showing the search dropdown for all line item types)
+
+### Changed
+- `src/lib/email.ts`: Resend client now lazily initialized via `getResend()` to prevent module-load failures when `RESEND_API_KEY` is not set in test/build environments
+
+### Tests
+- 2 new unit tests in `orders.test.ts`: auto-sends invoice email on pickup, skips when no customer email
+- 4 new E2E tests in `saved-frames.spec.ts`: inline date edit open, cancel, save, seeded frame visibility (Tremblay)
+- 2 new E2E tests in `invoice-email.spec.ts`: pickup modal renders confirm button, modal has engagement checkboxes
 
 ---
 
