@@ -5,6 +5,13 @@ vi.mock("@/lib/email", () => ({
   sendInvoiceEmail: vi.fn().mockResolvedValue({ id: "email-auto" }),
 }));
 
+vi.mock("@/lib/actions/referrals", () => ({
+  redeemReferral: vi.fn().mockResolvedValue({ success: true }),
+  validateReferralCode: vi.fn(),
+  generateReferralCode: vi.fn(),
+  getCustomerReferrals: vi.fn(),
+}));
+
 async function getPrisma() {
   const { prisma } = await import("@/lib/prisma");
   return prisma as unknown as Record<string, Record<string, ReturnType<typeof vi.fn>>>;
@@ -87,6 +94,41 @@ describe("createOrder", () => {
     const callArgs = prisma.order.create.mock.calls[0][0];
     expect(callArgs.data.totalCustomer).toBe(200); // 300 - 100
     expect(callArgs.data.totalReal).toBe(0); // 100 - 100
+  });
+
+  it("calls redeemReferral when referralId is provided", async () => {
+    const prisma = await getPrisma();
+    prisma.order.create.mockResolvedValue({ id: "order-ref-1", orderNumber: "ORD-2026-9999" });
+    const { redeemReferral } = await import("@/lib/actions/referrals");
+    const { createOrder } = await import("@/lib/actions/orders");
+
+    await createOrder({ ...validOrderInput, referralId: "ref-abc", referralCredit: 25 });
+
+    expect(vi.mocked(redeemReferral)).toHaveBeenCalledWith("ref-abc", "cust-1", "order-ref-1");
+  });
+
+  it("returns success even when redeemReferral rejects", async () => {
+    const prisma = await getPrisma();
+    prisma.order.create.mockResolvedValue({ id: "order-ref-2", orderNumber: "ORD-2026-9998" });
+    const { redeemReferral } = await import("@/lib/actions/referrals");
+    vi.mocked(redeemReferral).mockRejectedValueOnce(new Error("DB error"));
+    const { createOrder } = await import("@/lib/actions/orders");
+
+    const result = await createOrder({ ...validOrderInput, referralId: "ref-fail" });
+
+    expect("id" in result).toBe(true);
+    if ("id" in result) expect(result.id).toBe("order-ref-2");
+  });
+
+  it("does not call redeemReferral when no referralId", async () => {
+    const prisma = await getPrisma();
+    prisma.order.create.mockResolvedValue({ id: "order-no-ref", orderNumber: "ORD-2026-9997" });
+    const { redeemReferral } = await import("@/lib/actions/referrals");
+    const { createOrder } = await import("@/lib/actions/orders");
+
+    await createOrder(validOrderInput);
+
+    expect(vi.mocked(redeemReferral)).not.toHaveBeenCalled();
   });
 });
 

@@ -194,7 +194,7 @@
 | Eye Exam order sub-flow (3-step: type, payment, insurance amount) | ✅ Complete | |
 | Customer Insurance Manager (CRUD cards on profile) | ✅ Complete | contractNumber, estimatedCoverage added |
 | Family Members Auto-linking (match by phone/address) | ✅ Complete | |
-| Referral Code Tracking ($25 store credit auto-awarded) | ✅ Complete | Code format: MV-{FIRST2}{LAST2}-{4digits} |
+| Referral Code Tracking ($25 store credit auto-awarded) | ✅ Complete | Code format: MV-{FIRST2}{LAST2}-{4digits}; code lookup in order wizard Payment step; `referral_id` FK on orders |
 | Saved Frames (photo upload, favorites, expected return, inline date edit) | ✅ Complete | Inline edit in v2.3.0; Supabase Storage for photos |
 | Dual Invoice explicit toggle (Customer / Internal tabs) | ✅ Complete | |
 | IssueInvoiceButton — dual invoice dropdown | ✅ Complete | Issue each type separately or both |

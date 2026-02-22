@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createOrder } from "@/lib/actions/orders";
+import { validateReferralCode } from "@/lib/actions/referrals";
 import { emailInvoice as emailInvoiceAction } from "@/lib/actions/email";
 import { formatCurrency } from "@/lib/utils/formatters";
 import {
@@ -182,6 +183,11 @@ export function NewOrderWizard({
   const [depositReal, setDepositReal] = useState(0);
   const [insuranceCoverage, setInsuranceCoverage] = useState(0);
   const [referralCredit, setReferralCredit] = useState(0);
+  const [referralCode, setReferralCode] = useState("");
+  const [referralId, setReferralId] = useState<string | null>(null);
+  const [referralReferrerName, setReferralReferrerName] = useState<string | null>(null);
+  const [referralValidating, setReferralValidating] = useState(false);
+  const [referralError, setReferralError] = useState("");
   const [notes, setNotes] = useState("");
   const [labNotes, setLabNotes] = useState("");
 
@@ -320,12 +326,34 @@ export function NewOrderWizard({
     setDepositReal(0);
     setInsuranceCoverage(0);
     setReferralCredit(0);
+    setReferralCode("");
+    setReferralId(null);
+    setReferralReferrerName(null);
+    setReferralError("");
     setNotes("");
     setLabNotes("");
     setInventorySearches({});
     setCreatedOrder(null);
     setError("");
     setStep(2);
+  }
+
+  async function handleValidateReferralCode() {
+    if (!referralCode.trim()) return;
+    setReferralValidating(true);
+    setReferralError("");
+    const result = await validateReferralCode(referralCode.trim().toUpperCase());
+    setReferralValidating(false);
+    if ("error" in result) {
+      setReferralError(result.error);
+      setReferralId(null);
+      setReferralReferrerName(null);
+      setReferralCredit(0);
+    } else {
+      setReferralId(result.referralId);
+      setReferralReferrerName(result.referrerName);
+      setReferralCredit(result.rewardAmount);
+    }
   }
 
   function handleNext() {
@@ -374,6 +402,7 @@ export function NewOrderWizard({
       lensAddOns,
       insuranceCoverage: insuranceCoverage || undefined,
       referralCredit: referralCredit || undefined,
+      referralId: referralId || undefined,
       depositCustomer,
       depositReal: isDualInvoice ? depositReal : depositCustomer,
       notes: notes || undefined,
@@ -1106,14 +1135,46 @@ export function NewOrderWizard({
                 />
               </div>
               <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1">Referral / Promo Credit ($)</label>
-                <input
-                  type="number" min="0" step="0.01"
-                  value={referralCredit || ""}
-                  onChange={(e) => setReferralCredit(parseFloat(e.target.value) || 0)}
-                  placeholder="0.00"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-                />
+                <label className="block text-xs font-medium text-gray-700 mb-1">Referral Code</label>
+                {referralId ? (
+                  <div className="flex items-center gap-2 px-3 py-2 bg-green-50 border border-green-300 rounded-lg text-sm text-green-800">
+                    <CheckCircle className="w-4 h-4 shrink-0" />
+                    <span className="flex-1">Referred by {referralReferrerName} — {formatCurrency(referralCredit)} applied</span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setReferralId(null);
+                        setReferralReferrerName(null);
+                        setReferralCredit(0);
+                        setReferralCode("");
+                        setReferralError("");
+                      }}
+                      className="text-green-600 hover:text-green-800"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={referralCode}
+                      onChange={(e) => setReferralCode(e.target.value.toUpperCase())}
+                      onKeyDown={(e) => e.key === "Enter" && handleValidateReferralCode()}
+                      placeholder="Enter code"
+                      className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary uppercase"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleValidateReferralCode}
+                      disabled={referralValidating || !referralCode.trim()}
+                      className="px-3 py-2 bg-primary text-white rounded-lg text-sm font-medium disabled:opacity-50"
+                    >
+                      {referralValidating ? "..." : "Apply"}
+                    </button>
+                  </div>
+                )}
+                {referralError && <p className="mt-1 text-xs text-red-600">{referralError}</p>}
               </div>
             </div>
 
