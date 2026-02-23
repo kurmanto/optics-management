@@ -271,6 +271,66 @@ export function CustomerForm({ action, customer, families = [] }: Props) {
         </div>
       </div>
 
+      {/* Primary Contact */}
+      <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6 space-y-4">
+        <h2 className="font-semibold text-gray-900">Primary Contact</h2>
+        <p className="text-xs text-gray-500">Emergency contact or authorized decision-maker for this patient.</p>
+
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Contact Name</label>
+            <input
+              name="primaryContactName"
+              defaultValue={(customer as any)?.primaryContactName || ""}
+              placeholder="e.g. Jane Smith"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Relationship</label>
+            <select
+              name="primaryContactRelation"
+              defaultValue={(customer as any)?.primaryContactRelation || ""}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary bg-white"
+            >
+              <option value="">Not specified</option>
+              <option value="Parent">Parent</option>
+              <option value="Spouse/Partner">Spouse/Partner</option>
+              <option value="Child">Child</option>
+              <option value="Grandparent">Grandparent</option>
+              <option value="Sibling">Sibling</option>
+              <option value="Guardian">Guardian</option>
+              <option value="Caregiver">Caregiver</option>
+              <option value="Friend">Friend</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Contact Phone</label>
+            <input
+              name="primaryContactPhone"
+              type="tel"
+              defaultValue={(customer as any)?.primaryContactPhone || ""}
+              placeholder="(416) 555-0123"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Contact Email</label>
+            <input
+              name="primaryContactEmail"
+              type="email"
+              defaultValue={(customer as any)?.primaryContactEmail || ""}
+              placeholder="contact@example.com"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+            />
+          </div>
+        </div>
+      </div>
+
       {/* Submit */}
       <div className="flex gap-3 justify-end">
         <a

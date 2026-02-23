@@ -14,6 +14,7 @@ type KanbanOrder = {
   totalCustomer: number;
   balanceCustomer: number;
   dueDate: Date | null;
+  createdAt: Date;
   customer: { firstName: string; lastName: string; marketingOptOut?: boolean };
   frameBrand: string | null;
   frameModel: string | null;
@@ -104,6 +105,12 @@ export function KanbanBoard({ orders: initialOrders }: Props) {
                 {colOrders.map((order) => {
                   const nextStatus = NEXT_STATUS[order.status];
                   const isOverdue = order.dueDate && new Date(order.dueDate) < new Date();
+                  const daysSince = Math.floor((Date.now() - new Date(order.createdAt).getTime()) / 86400000);
+                  const dayColor =
+                    daysSince <= 3 ? "bg-green-100 text-green-700" :
+                    daysSince <= 7 ? "bg-yellow-100 text-yellow-700" :
+                    daysSince <= 14 ? "bg-orange-100 text-orange-700" :
+                    "bg-red-100 text-red-700";
 
                   return (
                     <div
@@ -119,9 +126,14 @@ export function KanbanBoard({ orders: initialOrders }: Props) {
                         >
                           {order.orderNumber}
                         </Link>
-                        {isOverdue && (
-                          <span className="text-xs text-red-500 font-medium">Overdue</span>
-                        )}
+                        <div className="flex items-center gap-1.5">
+                          <span className={`text-xs font-medium px-1.5 py-0.5 rounded ${dayColor}`}>
+                            Day {daysSince}
+                          </span>
+                          {isOverdue && (
+                            <span className="text-xs text-red-500 font-medium">Overdue</span>
+                          )}
+                        </div>
                       </div>
 
                       <div>

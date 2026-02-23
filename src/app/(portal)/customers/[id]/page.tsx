@@ -295,6 +295,44 @@ export default async function CustomerDetailPage({
             </dl>
           </div>
 
+          {/* Primary Contact */}
+          {((customer as any).primaryContactName || (customer as any).primaryContactPhone || (customer as any).primaryContactEmail) && (
+            <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
+              <h2 className="font-semibold text-gray-900 mb-4">Primary Contact</h2>
+              <dl className="space-y-3 text-sm">
+                {(customer as any).primaryContactName && (
+                  <div>
+                    <dt className="text-gray-500">Name</dt>
+                    <dd className="text-gray-900 font-medium mt-0.5">
+                      {(customer as any).primaryContactName}
+                      {(customer as any).primaryContactRelation && (
+                        <span className="ml-1.5 text-xs text-gray-500 font-normal">
+                          · {(customer as any).primaryContactRelation}
+                        </span>
+                      )}
+                    </dd>
+                  </div>
+                )}
+                {(customer as any).primaryContactPhone && (
+                  <div>
+                    <dt className="text-gray-500">Phone</dt>
+                    <dd className="text-gray-900 font-medium mt-0.5">
+                      {formatPhone((customer as any).primaryContactPhone)}
+                    </dd>
+                  </div>
+                )}
+                {(customer as any).primaryContactEmail && (
+                  <div>
+                    <dt className="text-gray-500">Email</dt>
+                    <dd className="text-gray-900 font-medium mt-0.5">
+                      {(customer as any).primaryContactEmail}
+                    </dd>
+                  </div>
+                )}
+              </dl>
+            </div>
+          )}
+
           {/* Insurance */}
           <InsurancePolicyManager
             customerId={customer.id}

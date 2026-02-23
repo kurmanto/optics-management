@@ -52,6 +52,10 @@ export async function createCustomer(
       hearAboutUs: data.hearAboutUs || null,
       referredByName: data.referredByName || null,
       occupation: data.occupation || null,
+      primaryContactName: data.primaryContactName || null,
+      primaryContactPhone: data.primaryContactPhone?.replace(/\D/g, "") || null,
+      primaryContactEmail: data.primaryContactEmail || null,
+      primaryContactRelation: data.primaryContactRelation || null,
     },
   });
 
@@ -102,6 +106,10 @@ export async function updateCustomer(
       hearAboutUs: data.hearAboutUs || null,
       referredByName: data.referredByName || null,
       occupation: data.occupation || null,
+      primaryContactName: data.primaryContactName || null,
+      primaryContactPhone: data.primaryContactPhone?.replace(/\D/g, "") || null,
+      primaryContactEmail: data.primaryContactEmail || null,
+      primaryContactRelation: data.primaryContactRelation || null,
     },
   });
 

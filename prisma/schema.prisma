@@ -100,6 +100,11 @@ model Customer {
   optOutDate      DateTime? @map("opt_out_date")
   optOutBy        String?   @map("opt_out_by")
 
+  primaryContactName     String?  @map("primary_contact_name")
+  primaryContactPhone    String?  @map("primary_contact_phone")
+  primaryContactEmail    String?  @map("primary_contact_email")
+  primaryContactRelation String?  @map("primary_contact_relation")
+
   familyId String?
   family   Family? @relation(fields: [familyId], references: [id])
 
@@ -470,6 +475,7 @@ model Order {
   // Eye exam fields
   examType               String?  @map("exam_type")
   examPaymentMethod      String?  @map("exam_payment_method")
+  examBillingCode        String?  @map("exam_billing_code")
   insuranceCoveredAmount Float?   @map("insurance_covered_amount")
 
   // Post-pickup marketing
