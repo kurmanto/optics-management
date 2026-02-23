@@ -20,6 +20,9 @@ import {
   ScanLine,
   Megaphone,
   CalendarDays,
+  Shield,
+  AlertTriangle,
+  ScrollText,
 } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { logout } from "@/lib/actions/auth";
@@ -137,6 +140,40 @@ export function Sidebar({ userName, userRole }: Props) {
 
       {/* Nav */}
       <nav className="flex-1 p-4 space-y-1">
+          {userRole === "ADMIN" && (
+          <div>
+            <div className="flex items-center gap-3 px-3 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider mt-2">
+              <Shield className="w-4 h-4" />
+              Admin
+            </div>
+            <div className="mt-1 space-y-0.5">
+              <Link
+                href="/admin/audit"
+                className={cn(
+                  "flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors",
+                  pathname.startsWith("/admin/audit")
+                    ? "bg-primary text-white font-medium"
+                    : "text-gray-400 hover:text-white hover:bg-gray-800"
+                )}
+              >
+                <ScrollText className="w-4 h-4 flex-shrink-0" />
+                Audit Log
+              </Link>
+              <Link
+                href="/admin/breach"
+                className={cn(
+                  "flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors",
+                  pathname.startsWith("/admin/breach")
+                    ? "bg-primary text-white font-medium"
+                    : "text-gray-400 hover:text-white hover:bg-gray-800"
+                )}
+              >
+                <AlertTriangle className="w-4 h-4 flex-shrink-0" />
+                Breach Reports
+              </Link>
+            </div>
+          </div>
+        )}
         {navItems.map((item) => {
           const isActive = isGroupActive(item);
           const Icon = item.icon;

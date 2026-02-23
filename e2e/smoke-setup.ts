@@ -1,18 +1,20 @@
 /**
- * Playwright Global Setup
- * Runs once before all tests.
- * - Truncates and re-seeds the test database
- * - Generates session tokens for admin + staff and writes .auth/ state files
- *   (avoids browser-based login so action-ID mismatches don't block auth)
+ * Smoke Test Global Setup — lightweight variant of global-setup.ts
+ *
+ * Differences from the full global-setup:
+ * - Skips DB seed (smoke tests are read-only — no seed needed every run)
+ * - Warms routes in parallel instead of sequentially (saves ~5 min)
+ * - Only warms the routes smoke tests actually exercise
+ *
+ * Run the full global-setup at least once before first smoke run so the
+ * .auth/ state files and test data exist.
  */
 
-import { execSync } from "child_process";
-import { mkdirSync, writeFileSync } from "fs";
+import { mkdirSync, writeFileSync, existsSync } from "fs";
 import path from "path";
 import { createHmac } from "crypto";
 import { Pool } from "pg";
 
-// Load env the same way seed-e2e.ts does
 require("dotenv").config({ path: path.resolve(".env.test") });
 require("dotenv").config({ path: path.resolve(".env") });
 
@@ -26,7 +28,7 @@ function createSessionToken(userId: string): string {
 
 function makeStorageState(token: string, baseURL: string): string {
   const url = new URL(baseURL);
-  const domain = url.hostname; // "localhost"
+  const domain = url.hostname;
   const now = Date.now().toString();
   // Include mvo_last_active so the idle-timeout middleware doesn't immediately
   // redirect every test to /login?reason=idle_timeout.
@@ -57,29 +59,8 @@ function makeStorageState(token: string, baseURL: string): string {
   }, null, 2);
 }
 
-export default async function globalSetup() {
-  // Ensure .auth directory exists for storage state files
+export default async function smokeSetup() {
   mkdirSync(path.resolve(".auth"), { recursive: true });
-
-  console.log("\n🌱 [global-setup] Seeding test database...");
-
-  try {
-    execSync("npx tsx prisma/seed-e2e.ts", {
-      cwd: process.cwd(),
-      stdio: "inherit",
-    });
-  } catch (error) {
-    console.error("\n❌ [global-setup] Database seed failed!");
-    console.error("   Make sure your DATABASE_URL is set in .env.test or .env");
-    console.error("   and the database is accessible.\n");
-    throw error;
-  }
-
-  console.log("✅ [global-setup] Database ready for E2E tests\n");
-
-  // Generate session tokens programmatically — avoids browser login
-  // which fails in dev mode due to server action ID churn after .next rebuild
-  console.log("🔑 [global-setup] Generating auth state files...");
 
   const baseURL = process.env.E2E_BASE_URL || "http://localhost:3001";
 
@@ -99,9 +80,12 @@ export default async function globalSetup() {
     const staff = rows.find((r: any) => r.email === "staff@mintvisionsoptique.com");
 
     if (!admin || !staff) {
-      throw new Error("Admin or staff user not found after seed");
+      throw new Error(
+        "Admin or staff user not found. Run the full test suite once first to seed the DB."
+      );
     }
 
+    // Always refresh auth state (tokens are time-based)
     writeFileSync(
       path.resolve(".auth/admin.json"),
       makeStorageState(createSessionToken(admin.id), baseURL)
@@ -111,47 +95,47 @@ export default async function globalSetup() {
       makeStorageState(createSessionToken(staff.id), baseURL)
     );
 
-    console.log("✅ [global-setup] Auth state files created (.auth/admin.json, .auth/staff.json)");
+    console.log("✅ [smoke-setup] Auth state files refreshed");
 
-    // Pre-warm key routes so Next.js dev-server compiles them before tests run.
-    // Without this, the first visit to each route triggers JIT compilation which
-    // can take 15–30 s — causing sidebar navigation tests to time out waiting
-    // for the URL to change (Next.js App Router only updates the URL after the
-    // RSC response is received).
-    const adminToken = createSessionToken(admin.id);
-    const adminCookie = `mvo_session=${adminToken}`;
-    const warmupRoutes = [
+    // Warm only the routes smoke tests visit, in parallel.
+    // Parallel is safe here because we're only GETting (no mutations),
+    // and the dev server handles concurrent RSC requests fine at low concurrency.
+    const adminCookie = `mvo_session=${createSessionToken(admin.id)}`;
+    const smokeRoutes = [
       "/dashboard",
       "/customers",
       "/forms",
+      "/appointments",
       "/orders/board",
       "/orders",
+      "/invoices",
       "/inventory",
       "/inventory/vendors",
       "/inventory/purchase-orders",
       "/inventory/analytics",
-      "/invoices",
-      "/appointments",
-      "/campaigns",
       "/settings",
     ];
 
-    console.log("🔥 [global-setup] Pre-warming routes (avoids cold-start timeouts)...");
-    // Sequential (not parallel) to avoid overwhelming the dev server with
-    // simultaneous DB connections, which can cause flaky test failures.
-    for (const route of warmupRoutes) {
-      try {
+    console.log("🔥 [smoke-setup] Pre-warming routes in parallel...");
+    const results = await Promise.allSettled(
+      smokeRoutes.map(async (route) => {
         const res = await fetch(`${baseURL}${route}`, {
           headers: { cookie: adminCookie },
           redirect: "follow",
-          signal: AbortSignal.timeout(90_000),
+          signal: AbortSignal.timeout(60_000),
         });
-        process.stdout.write(`  ${res.status} ${route}\n`);
-      } catch {
-        process.stdout.write(`  (skipped ${route})\n`);
+        return { route, status: res.status };
+      })
+    );
+
+    for (const r of results) {
+      if (r.status === "fulfilled") {
+        process.stdout.write(`  ${r.value.status} ${r.value.route}\n`);
+      } else {
+        process.stdout.write(`  (failed: ${r.reason})\n`);
       }
     }
-    console.log("✅ [global-setup] Routes warmed\n");
+    console.log("✅ [smoke-setup] Routes warmed\n");
   } finally {
     await pool.end();
   }

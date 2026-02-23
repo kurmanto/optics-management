@@ -4,7 +4,11 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { createSession, destroySession, verifyPassword, hashPassword } from "@/lib/auth";
 import { verifySession } from "@/lib/dal";
+import { logAudit } from "@/lib/audit";
 import { z } from "zod";
+
+const MAX_ATTEMPTS = 5;
+const LOCKOUT_MINUTES = 15;
 
 const LoginSchema = z.object({
   email: z.string().email("Invalid email address"),
@@ -37,23 +41,69 @@ export async function login(
     return { error: "Invalid email or password" };
   }
 
+  // Check account lockout
+  if (user.lockedUntil && user.lockedUntil > new Date()) {
+    const lockedTime = user.lockedUntil.toLocaleTimeString("en-CA", {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+    return { error: `Account locked until ${lockedTime}. Too many failed attempts.` };
+  }
+
   const valid = await verifyPassword(parsed.data.password, user.passwordHash);
+
   if (!valid) {
+    const newAttempts = user.failedLoginAttempts + 1;
+    const isLocked = newAttempts >= MAX_ATTEMPTS;
+    await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        failedLoginAttempts: newAttempts,
+        lockedUntil: isLocked
+          ? new Date(Date.now() + LOCKOUT_MINUTES * 60_000)
+          : user.lockedUntil,
+      },
+    });
+
+    if (isLocked) {
+      void logAudit({ userId: user.id, action: "ACCOUNT_LOCKED", model: "User", recordId: user.id });
+    } else {
+      void logAudit({ userId: user.id, action: "LOGIN_FAILED", model: "User", recordId: user.id });
+    }
+
     return { error: "Invalid email or password" };
   }
+
+  // Successful login — reset lockout state
+  await prisma.user.update({
+    where: { id: user.id },
+    data: { failedLoginAttempts: 0, lockedUntil: null, lastLoginAt: new Date() },
+  });
+
+  void logAudit({ userId: user.id, action: "LOGIN", model: "User", recordId: user.id });
 
   await createSession(user);
   redirect("/dashboard");
 }
 
 export async function logout() {
+  const session = await verifySession().catch(() => null);
+  if (session) {
+    void logAudit({ userId: session.id, action: "LOGOUT", model: "User", recordId: session.id });
+  }
   await destroySession();
   redirect("/login");
 }
 
 const ChangePasswordSchema = z.object({
   currentPassword: z.string().min(1),
-  newPassword: z.string().min(8, "Password must be at least 8 characters"),
+  newPassword: z
+    .string()
+    .min(12, "At least 12 characters")
+    .regex(/[A-Z]/, "One uppercase letter required")
+    .regex(/[a-z]/, "One lowercase letter required")
+    .regex(/[0-9]/, "One number required")
+    .regex(/[^A-Za-z0-9]/, "One special character required"),
   confirmPassword: z.string().min(1),
 }).refine((data) => data.newPassword === data.confirmPassword, {
   message: "Passwords do not match",
@@ -98,6 +148,8 @@ export async function changePassword(
     where: { id: session.id },
     data: { passwordHash, mustChangePassword: false },
   });
+
+  void logAudit({ userId: session.id, action: "PASSWORD_CHANGE", model: "User", recordId: session.id });
 
   return { success: true };
 }

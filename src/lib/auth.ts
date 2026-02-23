@@ -59,6 +59,12 @@ export async function createSession(user: User) {
     maxAge: SESSION_MAX_AGE,
     path: "/",
   });
+
+  cookieStore.set("mvo_last_active", String(Date.now()), {
+    httpOnly: true,
+    sameSite: "lax",
+    path: "/",
+  });
 }
 
 export async function getSession(): Promise<SessionUser | null> {
@@ -97,6 +103,7 @@ export async function getSession(): Promise<SessionUser | null> {
 export async function destroySession() {
   const cookieStore = await cookies();
   cookieStore.delete(SESSION_COOKIE);
+  cookieStore.delete("mvo_last_active");
 }
 
 export async function verifyPassword(plain: string, hash: string): Promise<boolean> {

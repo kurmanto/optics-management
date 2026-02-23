@@ -1,15 +1,37 @@
 # Project Status
 ## Mint Vision Optique — Staff Portal
 
-**Last updated:** 2026-02-22
+**Last updated:** 2026-02-23
 
 ---
 
-## Current Version: V2.4.1 — Missing Features Trio (Frame Lookup · Pickup Auto-Print · Queue Another Order)
+## Current Version: V2.5.0 — PHIPA/PIPEDA Compliance (Security & Audit)
 
 ---
 
-### V2.4.1 — Missing Features Trio (Complete)
+### V2.5.0 — PHIPA/PIPEDA Compliance (Complete)
+
+| Feature | Status | Notes |
+|---------|--------|-------|
+| Security headers (5 HTTP headers) | ✅ Complete | Referrer-Policy, X-Content-Type-Options, X-Frame-Options, X-XSS-Protection, Permissions-Policy added in `next.config.ts` |
+| Session idle timeout (30 min) | ✅ Complete | `mvo_last_active` httpOnly cookie; redirect to `/login?reason=idle_timeout`; yellow banner on login page |
+| Account lockout after 5 failures (15 min) | ✅ Complete | `lockedUntil` field on User; error returned before password check |
+| Password complexity (12+ chars, upper/lower/number/special) | ✅ Complete | Zod schema enforced on Change Password; `PasswordStrengthIndicator` component |
+| Audit logging (`logAudit()`) | ✅ Complete | Fire-and-forget; wired in 10 action files; logs IP, actor, action, model, before/after diff |
+| `verifyRole()` — VIEWER enforcement | ✅ Complete | VIEWER (0) < STAFF (1) < ADMIN (2) hierarchy; all mutations require STAFF; admin actions require ADMIN |
+| Breach report workflow | ✅ Complete | `/admin/breach` list, `/admin/breach/new`, `/admin/breach/[id]` with IPC letter generator; Admin-only |
+| Audit log viewer | ✅ Complete | `/admin/audit` with filters + expandable JSON diff; Admin-only |
+| Admin sidebar section | ✅ Complete | Visible only to ADMIN; links to Audit Log and Breach Reports |
+| SQL migration | ✅ Complete | `compliance_20260222.sql` — User lockout fields + `breach_reports` table |
+| Unit tests (441 total, 31 files) | ✅ Complete | +27 new tests: audit.test.ts, breach.test.ts, dal.test.ts, auth lockout tests |
+
+---
+
+## Previous Version: V2.4.1 — Missing Features Trio (Frame Lookup · Pickup Auto-Print · Queue Another Order)
+
+---
+
+### V2.4.1 — Missing Features Trio (Complete — superseded by V2.5.0)
 
 | Feature | Status | Notes |
 |---------|--------|-------|

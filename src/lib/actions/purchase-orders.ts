@@ -1,7 +1,8 @@
 "use server";
 
 import { prisma } from "@/lib/prisma";
-import { verifySession } from "@/lib/dal";
+import { verifySession, verifyRole } from "@/lib/dal";
+import { logAudit } from "@/lib/audit";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createNotification } from "@/lib/notifications";
@@ -57,7 +58,7 @@ export type LineItemReceivable = {
 export async function createPurchaseOrder(
   input: CreatePOInput
 ): Promise<POFormState> {
-  const session = await verifySession();
+  const session = await verifyRole("STAFF");
 
   if (!input.vendorId) {
     return { error: "Vendor is required." };
@@ -174,6 +175,7 @@ export async function createPurchaseOrder(
       }
     });
 
+    if (newPoId) void logAudit({ userId: session.id, action: "CREATE", model: "PurchaseOrder", recordId: newPoId });
     revalidatePath("/inventory/purchase-orders");
     revalidatePath("/inventory");
     redirect(`/inventory/purchase-orders/${newPoId}`);
@@ -193,7 +195,7 @@ export async function updatePOStatus(
   poId: string,
   status: "SENT" | "CONFIRMED" | "CANCELLED"
 ): Promise<POFormState> {
-  await verifySession();
+  const session = await verifyRole("STAFF");
 
   try {
     await prisma.$transaction(async (tx) => {
@@ -224,6 +226,7 @@ export async function updatePOStatus(
       });
     });
 
+    if (status === "CANCELLED") void logAudit({ userId: session.id, action: "PO_CANCELLED", model: "PurchaseOrder", recordId: poId });
     revalidatePath(`/inventory/purchase-orders/${poId}`);
     revalidatePath("/inventory/purchase-orders");
     revalidatePath("/inventory");
@@ -239,7 +242,7 @@ export async function receivePOItems(
   poId: string,
   lineItemReceivables: LineItemReceivable[]
 ): Promise<POFormState> {
-  const session = await verifySession();
+  const session = await verifyRole("STAFF");
 
   try {
     await prisma.$transaction(async (tx) => {
@@ -399,6 +402,7 @@ export async function receivePOItems(
       }
     }
 
+    void logAudit({ userId: session.id, action: "PO_RECEIVED", model: "PurchaseOrder", recordId: poId });
     revalidatePath(`/inventory/purchase-orders/${poId}`);
     revalidatePath("/inventory/purchase-orders");
     revalidatePath("/inventory");

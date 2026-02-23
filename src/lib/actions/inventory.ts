@@ -1,7 +1,8 @@
 "use server";
 
 import { prisma } from "@/lib/prisma";
-import { verifySession } from "@/lib/dal";
+import { verifySession, verifyRole } from "@/lib/dal";
+import { logAudit } from "@/lib/audit";
 import { uploadInventoryPhoto } from "@/lib/supabase";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
@@ -68,7 +69,7 @@ export async function createInventoryItem(
   _state: InventoryFormState,
   formData: FormData
 ): Promise<InventoryFormState> {
-  await verifySession();
+  const session = await verifyRole("STAFF");
 
   const parsed = InventorySchema.safeParse(parseForm(formData));
   if (!parsed.success) {
@@ -134,6 +135,7 @@ export async function createInventoryItem(
       }
     }
 
+    void logAudit({ userId: session.id, action: "CREATE", model: "InventoryItem", recordId: item.id, changes: { after: { brand: item.brand, model: item.model } } });
     revalidatePath("/inventory");
     redirect(`/inventory/${item.id}`);
   } catch (e: any) {
@@ -150,7 +152,7 @@ export async function updateInventoryItem(
   _state: InventoryFormState,
   formData: FormData
 ): Promise<InventoryFormState> {
-  await verifySession();
+  const session = await verifyRole("STAFF");
 
   const parsed = InventorySchema.safeParse(parseForm(formData));
   if (!parsed.success) {
@@ -202,6 +204,7 @@ export async function updateInventoryItem(
       }
     }
 
+    void logAudit({ userId: session.id, action: "UPDATE", model: "InventoryItem", recordId: id });
     revalidatePath("/inventory");
     revalidatePath(`/inventory/${id}`);
     redirect(`/inventory/${id}`);
@@ -218,7 +221,7 @@ export async function applyMarkdown(
   id: string,
   markdownPct: number
 ): Promise<{ error?: string }> {
-  await verifySession();
+  await verifyRole("STAFF");
 
   const pct = Math.min(100, Math.max(0, Math.round(markdownPct)));
 
@@ -239,7 +242,7 @@ export async function updateAbcCategory(
   id: string,
   category: "A" | "B" | "C" | null
 ): Promise<{ error?: string }> {
-  await verifySession();
+  await verifyRole("STAFF");
 
   try {
     await prisma.inventoryItem.update({
@@ -258,7 +261,7 @@ export async function markAsDisplayed(
   inventoryItemId: string,
   location?: string
 ): Promise<{ success: true } | { error: string }> {
-  await verifySession();
+  await verifyRole("STAFF");
 
   try {
     await prisma.inventoryItem.update({
@@ -280,7 +283,7 @@ export async function markAsDisplayed(
 export async function removeFromDisplay(
   inventoryItemId: string
 ): Promise<{ success: true } | { error: string }> {
-  await verifySession();
+  await verifyRole("STAFF");
 
   try {
     await prisma.inventoryItem.update({
@@ -301,7 +304,7 @@ export async function autoGenerateSku(parts: {
   eyeSize?: string;
   bridge?: string;
 }): Promise<{ sku: string }> {
-  await verifySession();
+  await verifyRole("STAFF");
   const base = generateSku(parts);
   const sku = await ensureUniqueSku(base);
   return { sku };

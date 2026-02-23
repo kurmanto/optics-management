@@ -1,7 +1,7 @@
 # Architecture
 ## Mint Vision Optique — Staff Portal
 
-**Last updated:** 2026-02-22
+**Last updated:** 2026-02-23
 
 ---
 
@@ -70,6 +70,12 @@ optics_boutique/
 │   │   │   │   └── [id]/
 │   │   │   │       ├── page.tsx                # Campaign detail
 │   │   │   │       └── edit/page.tsx
+│   │   │   ├── admin/
+│   │   │   │   ├── audit/page.tsx              # Audit log viewer (Admin only)
+│   │   │   │   └── breach/                     # Breach report workflow (Admin only)
+│   │   │   │       ├── page.tsx                # Breach list
+│   │   │   │       ├── new/page.tsx            # Report a breach
+│   │   │   │       └── [id]/page.tsx           # Detail + IPC letter
 │   │   │   ├── appointments/
 │   │   │   │   └── page.tsx                    # Weekly calendar view
 │   │   │   └── settings/page.tsx
@@ -93,7 +99,9 @@ optics_boutique/
 │   │   ├── actions/           # Server Actions (mutations)
 │   │   │   ├── auth.ts
 │   │   │   ├── appointments.ts  # createAppointment, getAppointmentsForRange, rescheduleAppointment, updateAppointmentStatus, cancelAppointment
+│   │   │   ├── breach.ts        # createBreachReport, updateBreachStatus, generateIPCNotificationText
 │   │   │   ├── customers.ts
+│   │   │   ├── invoices.ts
 │   │   │   ├── orders.ts
 │   │   │   ├── forms.ts
 │   │   │   ├── inventory.ts
@@ -119,8 +127,9 @@ optics_boutique/
 │   │   ├── utils/
 │   │   │   ├── formatters.ts  # formatCurrency, formatDate, formatPhone, formatRxValue
 │   │   │   └── cn.ts          # Tailwind class merging
+│   │   ├── audit.ts           # logAudit() — fire-and-forget audit writer
 │   │   ├── auth.ts            # Session create/verify/destroy
-│   │   ├── dal.ts             # verifySession(), verifyAdmin()
+│   │   ├── dal.ts             # verifySession(), verifyRole(), verifyAdmin()
 │   │   └── prisma.ts          # Prisma singleton
 │   ├── middleware.ts           # Route guard
 │   ├── types/
@@ -150,25 +159,47 @@ Forms use React 19's `useActionState` with uncontrolled inputs + FormData. No `u
 
 ### Auth Flow
 ```
-POST /login → createSession() → HMAC token → httpOnly cookie (mvo_session)
-Every request → middleware.ts → verifySession() → continue or redirect /login
-Every Server Action → verifySession() at top → ensures auth even without middleware
+POST /login → createSession() → HMAC token → httpOnly cookies (mvo_session + mvo_last_active)
+Every request → middleware.ts → verifySession() → idle timeout check → continue or redirect /login
+Every Server Action → verifyRole('STAFF') or verifySession() at top → ensures auth even without middleware
 ```
+
+### Idle Timeout
+A second httpOnly cookie `mvo_last_active` stores a Unix timestamp. Middleware checks it on every authenticated page navigation. If absent or older than 30 minutes, both cookies are deleted and the request redirects to `/login?reason=idle_timeout`.
+
+### Security Headers
+`next.config.ts` exports an async `headers()` function applying these headers to all routes (`source: '/(.*)'`):
+- `Referrer-Policy: no-referrer`
+- `X-Content-Type-Options: nosniff`
+- `X-Frame-Options: DENY`
+- `X-XSS-Protection: 1; mode=block`
+- `Permissions-Policy: camera=(), microphone=(), geolocation=()`
 
 ---
 
 ## Authentication
 
-- **Cookie name:** `mvo_session`
+- **Cookie name:** `mvo_session` (+ `mvo_last_active` for idle timeout)
 - **Algorithm:** HMAC-SHA256 signed token containing `{ id, email, name, role }`
 - **Secret:** `SESSION_SECRET` env var (generate with `openssl rand -base64 32`)
-- **Expiry:** 7 days
+- **Expiry:** 7 days (session cookie; idle timeout enforced separately via `mvo_last_active`)
 - **Password hashing:** bcrypt, cost factor 12
+- **Password policy:** min 12 chars, requires uppercase + lowercase + number + special character
+- **Account lockout:** 5 consecutive failures → locked for 15 min (`lockedUntil` field on `User`)
 
 ### Key files
 - `src/lib/auth.ts` — `createSession()`, `destroySession()`, `getSession()`
-- `src/lib/dal.ts` — `verifySession()` (throws/redirects if unauthenticated), `verifyAdmin()`
-- `src/middleware.ts` — protects all routes except `/login`
+- `src/lib/dal.ts` — `verifySession()` (throws/redirects if unauthenticated), `verifyRole(minRole)`, `verifyAdmin()`
+- `src/lib/audit.ts` — `logAudit()` — fire-and-forget audit event writer
+- `src/middleware.ts` — protects all routes except `/login`; enforces idle timeout
+
+### Role Hierarchy (`verifyRole`)
+```typescript
+const ROLE_HIERARCHY = { VIEWER: 0, STAFF: 1, ADMIN: 2 } as const;
+// All mutating server actions call verifyRole('STAFF')
+// Admin-only actions call verifyRole('ADMIN')
+// Read-only server components call verifySession()
+```
 
 ---
 
@@ -227,7 +258,8 @@ The Prisma singleton in `src/lib/prisma.ts` uses `@prisma/adapter-pg`.
 | `MessageTemplate` | Reusable message templates | ✅ Active (V2.1) |
 | `Referral` | Customer referral tracking | ✅ Active |
 | `Appointment` | Scheduled appointments | ✅ Active (V4) |
-| `AuditLog` | General audit trail | ✅ Schema only |
+| `AuditLog` | General audit trail | ✅ Active (V2.5) |
+| `BreachReport` | PHIPA breach notification records | ✅ Active (V2.5) |
 | `SystemSetting` | Key-value store for app settings | ✅ Schema only |
 
 ---

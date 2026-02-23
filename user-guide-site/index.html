@@ -658,7 +658,14 @@
   <a href="#appt-actions" class="sub-link">Managing Appointments</a>
   <a href="#appt-types" class="sub-link">Appointment Types</a>
 
-  <a href="#section-quick-ref" class="section-link">13. Quick Reference</a>
+  <a href="#section-security" class="section-link">13. Security &amp; Compliance</a>
+  <a href="#idle-timeout" class="sub-link">Session Idle Timeout</a>
+  <a href="#account-lockout" class="sub-link">Password &amp; Lockout</a>
+  <a href="#audit-log" class="sub-link">Audit Log (Admin)</a>
+  <a href="#breach-reports" class="sub-link">Breach Reports (Admin)</a>
+  <a href="#viewer-role" class="sub-link">Viewer Role</a>
+
+  <a href="#section-quick-ref" class="section-link">14. Quick Reference</a>
   <a href="#cheat-sheet" class="sub-link">Status Cheat Sheet</a>
   <a href="#common-tasks" class="sub-link">Common Tasks</a>
 </nav>
@@ -2417,10 +2424,157 @@
 </section>
 
 
-<!-- ==================== SECTION 13: QUICK REFERENCE ==================== -->
-<section class="section" id="section-quick-ref">
+<!-- ==================== SECTION 13: SECURITY & COMPLIANCE ==================== -->
+<section class="section" id="section-security">
   <div class="section-eyebrow">Section 13</div>
   <div class="section-number">13</div>
+  <h1 class="section-title">Security &amp; Compliance</h1>
+  <p class="section-intro">The portal is designed to meet PHIPA and PIPEDA requirements for handling protected health information. This section explains the automatic security controls all staff will encounter, and documents the Admin-only compliance tools.</p>
+
+  <h2 id="idle-timeout">13.1 Session Idle Timeout</h2>
+  <p>For patient privacy, the portal automatically signs you out after <strong>30 minutes of inactivity</strong> (no page navigations during that time).</p>
+  <ul>
+    <li>When this happens, you land on the login page with a yellow banner: <em>"You were signed out due to inactivity."</em></li>
+    <li>Simply log back in — all previously saved work is preserved in the database.</li>
+    <li>Any time you navigate to a new page, the 30-minute timer resets.</li>
+  </ul>
+
+  <div class="box box-tip">
+    <div class="box-label">Best Practice</div>
+    If you're stepping away from the reception desk, log out manually (Settings → Log Out) rather than waiting for the auto-timeout. This ensures patient data is not visible to anyone passing by.
+  </div>
+
+  <h2 id="account-lockout">13.2 Password Policy &amp; Account Lockout</h2>
+  <p>To protect patient records, all passwords must meet these requirements:</p>
+  <ul>
+    <li>Minimum <strong>12 characters</strong></li>
+    <li>At least one <strong>uppercase letter</strong> (A–Z)</li>
+    <li>At least one <strong>lowercase letter</strong> (a–z)</li>
+    <li>At least one <strong>number</strong> (0–9)</li>
+    <li>At least one <strong>special character</strong> (e.g., <code>!</code>, <code>@</code>, <code>#</code>, <code>$</code>)</li>
+  </ul>
+  <p>The Change Password form shows a real-time checklist with a green checkmark next to each rule as you type — you cannot save until all five rules are satisfied.</p>
+
+  <h3>Account Lockout</h3>
+  <p>After <strong>5 consecutive failed login attempts</strong>, the account is automatically locked for <strong>15 minutes</strong>. During this time the login form shows:</p>
+  <p><em>"Account locked until [time]. Too many failed attempts."</em></p>
+  <ul>
+    <li>The lock clears automatically after 15 minutes — no admin action needed in most cases.</li>
+    <li>If you need immediate access, your store manager can clear the lockout in the database.</li>
+  </ul>
+
+  <div class="box box-warning">
+    <div class="box-label">Security Note</div>
+    If your account is locked and you did not enter five wrong passwords yourself, contact your manager immediately — it may indicate an unauthorized access attempt on a patient record system.
+  </div>
+
+  <h2 id="audit-log">13.3 Audit Log <span style="font-size:13px;font-weight:400;color:#64748b;">(Admin Only)</span></h2>
+  <p>Every create, update, delete, login, and logout event in the portal is automatically recorded in a tamper-evident audit log. This log is required by <strong>PHIPA</strong> for any healthcare application that stores protected health information.</p>
+  <p><strong>To access:</strong> Sidebar → <strong>Admin</strong> → <strong>Audit Log</strong><br>
+  <em>(The Admin section is only visible to accounts with the Admin role.)</em></p>
+
+  <h3>What Is Logged</h3>
+  <table>
+    <thead><tr><th>Event</th><th>When It Fires</th></tr></thead>
+    <tbody>
+      <tr><td>LOGIN</td><td>Successful staff sign-in</td></tr>
+      <tr><td>LOGOUT</td><td>Staff clicked Log Out</td></tr>
+      <tr><td>LOGIN_FAILED</td><td>Wrong password entered</td></tr>
+      <tr><td>ACCOUNT_LOCKED</td><td>5th failed attempt triggered lockout</td></tr>
+      <tr><td>PASSWORD_CHANGE</td><td>Staff updated their password</td></tr>
+      <tr><td>CREATE</td><td>New customer, order, prescription, vendor, appointment, etc. added</td></tr>
+      <tr><td>UPDATE</td><td>Customer record edited, order notes changed, etc.</td></tr>
+      <tr><td>DELETE</td><td>Customer soft-deleted, inventory item removed</td></tr>
+      <tr><td>STATUS_CHANGE</td><td>Order status advanced (e.g., LAB_RECEIVED → VERIFIED)</td></tr>
+      <tr><td>FORM_SUBMITTED</td><td>Patient completed an intake form online</td></tr>
+      <tr><td>INTAKE_APPLIED</td><td>Staff applied intake data to patient record</td></tr>
+      <tr><td>PO_RECEIVED</td><td>Purchase order marked as received</td></tr>
+    </tbody>
+  </table>
+
+  <h3>Filtering &amp; Reading the Log</h3>
+  <p>Use the filter bar at the top to narrow results by <strong>Record Type</strong>, <strong>Action</strong>, <strong>Staff Member</strong>, or <strong>Date Range</strong>. Results are ordered newest-first, 50 per page.</p>
+  <p>Click the <strong>▼ Changes</strong> arrow on any row to expand the before/after JSON diff for that event — useful for auditing specific edits to patient records.</p>
+
+  <div class="box box-tip">
+    <div class="box-label">PHIPA Requirement</div>
+    Under PHIPA, you must be able to demonstrate who accessed or modified patient records and when. The Audit Log fulfills this obligation automatically — no manual entry is needed.
+  </div>
+
+  <h2 id="breach-reports">13.4 Breach Reports <span style="font-size:13px;font-weight:400;color:#64748b;">(Admin Only)</span></h2>
+  <p>If a privacy breach occurs — such as unauthorized disclosure of patient health information — <strong>PHIPA requires notifying the IPC (Information and Privacy Commissioner of Ontario) within 30 days</strong> and affected individuals as soon as feasible.</p>
+  <p><strong>To access:</strong> Sidebar → <strong>Admin</strong> → <strong>Breach Reports</strong></p>
+
+  <h3>Filing a New Breach Report</h3>
+  <div class="wizard-steps">
+    <div class="wizard-step">
+      <div class="wizard-step-num">1</div>
+      <div class="wizard-step-body">
+        <div class="wizard-step-title">Go to Admin → Breach Reports → Report a Breach</div>
+        <div class="wizard-step-desc">Accessible only from the Admin section of the sidebar.</div>
+      </div>
+    </div>
+    <div class="wizard-step">
+      <div class="wizard-step-num">2</div>
+      <div class="wizard-step-body">
+        <div class="wizard-step-title">Fill in the breach details</div>
+        <div class="wizard-step-desc">Discovery date, description of what happened, estimated number of affected patients, data types involved (PHI, insurance, prescriptions), and immediate containment actions already taken.</div>
+      </div>
+    </div>
+    <div class="wizard-step">
+      <div class="wizard-step-num">3</div>
+      <div class="wizard-step-body">
+        <div class="wizard-step-title">Click Submit</div>
+        <div class="wizard-step-desc">The report is saved with status <strong>OPEN</strong> and appears in the Breach Reports list.</div>
+      </div>
+    </div>
+  </div>
+
+  <h3>Breach Status Workflow</h3>
+  <div class="status-flow">
+    <span class="badge badge-red">OPEN</span>
+    <span class="status-flow-arrow">→</span>
+    <span class="badge badge-orange">INVESTIGATING</span>
+    <span class="status-flow-arrow">→</span>
+    <span class="badge badge-yellow">IPC NOTIFIED</span>
+    <span class="status-flow-arrow">→</span>
+    <span class="badge badge-blue">INDIVIDUALS NOTIFIED</span>
+    <span class="status-flow-arrow">→</span>
+    <span class="badge badge-green">RESOLVED</span>
+  </div>
+  <p>Advance the status from the breach detail page as each step is completed. Each transition records a timestamp.</p>
+
+  <h3>IPC Notification Letter</h3>
+  <p>From any breach detail page, the system automatically generates a pre-filled IPC notification letter. Click <strong>"View IPC Notification Letter"</strong> to see the text — copy it into an email or letter addressed to the IPC.</p>
+
+  <div class="box box-warning">
+    <div class="box-label">Legal Obligation</div>
+    Failing to report a privacy breach to the IPC within 30 days may result in regulatory action under PHIPA. Contact your privacy officer immediately upon discovering any unauthorized access to patient records.
+  </div>
+
+  <h2 id="viewer-role">13.5 Staff Roles Overview</h2>
+  <p>Each staff account is assigned one of three roles:</p>
+  <table>
+    <thead><tr><th>Role</th><th>Can Do</th><th>Cannot Do</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Admin</strong></td><td>All operations, including Audit Log, Breach Reports, and user management</td><td>—</td></tr>
+      <tr><td><strong>Staff</strong></td><td>All day-to-day operations: create orders, customers, forms, purchase orders, appointments</td><td>Admin-only pages</td></tr>
+      <tr><td><strong>Viewer</strong></td><td>View all records in read-only mode</td><td>Create, edit, or delete anything</td></tr>
+    </tbody>
+  </table>
+  <p>If you are assigned the <strong>Viewer</strong> role, all "New", "Edit", and "Delete" buttons are hidden from the UI. Attempting a write operation via a direct URL redirects to the dashboard with a permissions error.</p>
+
+  <div class="box box-tip">
+    <div class="box-label">Tip</div>
+    The Viewer role is useful for external accountants, locum opticians, or trainees who need read-only access to patient records without the ability to modify anything.
+  </div>
+</section>
+
+
+<!-- ==================== SECTION 14: QUICK REFERENCE ==================== -->
+<section class="section" id="section-quick-ref">
+  <div class="section-eyebrow">Section 14</div>
+  <div class="section-number">14</div>
   <h1 class="section-title">Quick Reference</h1>
   <p class="section-intro">Tear out this section and keep it at your workstation. Everything you need at a glance.</p>
 
@@ -2591,7 +2745,7 @@
 
   <div style="margin-top:60px; padding:24px; background:#f0fdf4; border-radius:10px; border:1px solid #bbf7d0; text-align:center; font-family:system-ui,sans-serif;">
     <div style="font-size:22px; font-weight:800; color:#15803d; margin-bottom:6px;">Mint Vision Optique — Staff Portal</div>
-    <div style="font-size:13px; color:#16a34a;">Version 2.4 &nbsp;·&nbsp; February 2026 &nbsp;·&nbsp; Confidential — Internal Use Only</div>
+    <div style="font-size:13px; color:#16a34a;">Version 2.5 &nbsp;·&nbsp; February 2026 &nbsp;·&nbsp; Confidential — Internal Use Only</div>
     <div style="margin-top:12px; font-size:13px; color:#64748b;">For technical support, contact your system administrator.</div>
   </div>
 </section>

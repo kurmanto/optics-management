@@ -6,6 +6,64 @@ Format: `[Version] — Date`
 
 ---
 
+## [2.5.0] — 2026-02-23
+
+### Added — PHIPA/PIPEDA Compliance (Security & Audit)
+
+#### Security Headers
+- `next.config.ts` applies 5 headers to all routes: `Referrer-Policy: no-referrer`, `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `X-XSS-Protection: 1; mode=block`, `Permissions-Policy: camera=(), microphone=(), geolocation=()`
+
+#### Session Idle Timeout (30 minutes)
+- Middleware reads `mvo_last_active` httpOnly cookie on every authenticated request; if absent or older than 30 min, clears both cookies and redirects to `/login?reason=idle_timeout`
+- Login page shows a yellow "You were signed out due to inactivity" banner
+- `createSession()` and `destroySession()` maintain `mvo_last_active` alongside `mvo_session`
+
+#### Password Policy + Account Lockout
+- Minimum 12 characters, requires uppercase, lowercase, number, and special character
+- 5 consecutive failed login attempts → account locked for 15 minutes
+- New `PasswordStrengthIndicator` component — real-time rule-checks on the Change Password form
+- New User fields: `failedLoginAttempts`, `lockedUntil`, `lastLoginAt`
+
+#### Audit Logging
+- New `logAudit()` helper in `src/lib/audit.ts` — fire-and-forget, never breaks the calling action
+- Writes to `audit_logs` table: actor, action, model, record ID, IP address (`x-forwarded-for`), JSON changes diff
+- Wired into 10 action files: auth, customers, orders, inventory, vendors, purchase-orders, forms, insurance, invoices, appointments
+- Actions logged: LOGIN, LOGOUT, LOGIN_FAILED, ACCOUNT_LOCKED, PASSWORD_CHANGE, CREATE, UPDATE, DELETE, STATUS_CHANGE, FORM_SUBMITTED, INTAKE_APPLIED, PO_RECEIVED, PO_CANCELLED
+
+#### Role Enforcement — VIEWER
+- `verifyRole(minRole)` added to `src/lib/dal.ts` — hierarchy: VIEWER (0) < STAFF (1) < ADMIN (2)
+- All mutating server actions now call `verifyRole('STAFF')` instead of `verifySession()`
+- VIEWER users see all pages but all mutation controls are hidden; direct action calls redirect to `/dashboard?error=insufficient_permissions`
+
+#### Breach Notification Workflow
+- New `BreachReport` DB model + `BreachReportStatus` enum (OPEN → INVESTIGATING → IPC_NOTIFIED → INDIVIDUALS_NOTIFIED → RESOLVED)
+- New `/admin/breach` — list view with status badge, discovered date, affected count
+- New `/admin/breach/new` — report form (discovered date, description, affected count, data types, containment actions)
+- New `/admin/breach/[id]` — detail page + status stepper + generated IPC Privacy Commissioner notification letter text
+- Admin-only (`verifyRole('ADMIN')`)
+
+#### Audit Log Viewer
+- New `/admin/audit` — filter by model, action, userId, date range; 50 records per page; newest-first
+- Expandable Changes column showing before/after JSON diff
+- Admin-only
+
+#### Admin Sidebar Section
+- "Admin" section added to sidebar, visible only to ADMIN-role users
+- Links: Audit Log (`/admin/audit`) and Breach Reports (`/admin/breach`)
+
+#### SQL Migration
+- `prisma/migrations/compliance_20260222.sql` — adds `failed_login_attempts`, `locked_until`, `last_login_at` to `users`; creates `breach_reports` table and `BreachReportStatus` enum
+
+#### Tests
+- 3 new test files: `src/__tests__/lib/audit.test.ts` (6 tests), `src/__tests__/actions/breach.test.ts` (13 tests), `src/__tests__/lib/dal.test.ts` (8 tests)
+- Auth tests extended with 7 new lockout/complexity cases
+- **441 tests, 31 files** — all passing
+
+#### PR
+- PR #29 — branch `feature/phipa-compliance`
+
+---
+
 ## [2.4.1] — 2026-02-22
 
 ### Added — Missing Features Trio (Frame Lookup · Pickup Auto-Print · Queue Another Order)

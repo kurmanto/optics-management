@@ -2,14 +2,15 @@
 
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
-import { verifySession } from "@/lib/dal";
+import { verifyRole } from "@/lib/dal";
+import { logAudit } from "@/lib/audit";
 import { InvoiceType } from "@prisma/client";
 
 export async function issueInvoice(
   orderId: string,
   type: InvoiceType = InvoiceType.CUSTOMER
 ): Promise<{ id: string; generatedAt: Date } | { error: string }> {
-  await verifySession();
+  const session = await verifyRole("STAFF");
 
   try {
     const existing = await prisma.invoice.findFirst({
@@ -36,6 +37,7 @@ export async function issueInvoice(
       select: { id: true, generatedAt: true },
     });
 
+    void logAudit({ userId: session.id, action: "CREATE", model: "Invoice", recordId: invoice.id, changes: { after: { orderId, type } } });
     revalidatePath(`/orders/${orderId}/invoice`);
     revalidatePath("/invoices");
     return invoice;
@@ -48,7 +50,7 @@ export async function issueInvoice(
 export async function issueBothInvoices(
   orderId: string
 ): Promise<{ success: true } | { error: string }> {
-  await verifySession();
+  await verifyRole("STAFF");
 
   try {
     await Promise.all([

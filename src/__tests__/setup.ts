@@ -5,6 +5,7 @@ import { buildPrismaMock } from "./mocks/prisma";
 
 vi.mock("next/headers", () => ({
   cookies: vi.fn(),
+  headers: vi.fn().mockResolvedValue({ get: vi.fn().mockReturnValue(null) }),
 }));
 
 vi.mock("next/cache", () => ({
@@ -26,10 +27,13 @@ vi.mock("@/lib/prisma", () => ({
 
 // ── Auth/DAL mocks ────────────────────────────────────────────────────────────
 
-vi.mock("@/lib/dal", () => ({
-  verifySession: vi.fn(),
-  verifyAdmin: vi.fn(),
-}));
+vi.mock("@/lib/dal", () => {
+  const verifySession = vi.fn();
+  const verifyAdmin = vi.fn();
+  // verifyRole delegates to verifySession so action tests don't need separate setup
+  const verifyRole = vi.fn().mockImplementation(async () => verifySession());
+  return { verifySession, verifyAdmin, verifyRole };
+});
 
 vi.mock("@/lib/notifications", () => ({
   createNotification: vi.fn(),

@@ -2,7 +2,8 @@
 
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
-import { verifySession } from "@/lib/dal";
+import { verifyRole } from "@/lib/dal";
+import { logAudit } from "@/lib/audit";
 import { InsurancePolicySchema } from "@/lib/validations/insurance";
 import { CoverageType } from "@prisma/client";
 
@@ -10,7 +11,7 @@ export async function addInsurancePolicy(
   customerId: string,
   rawData: unknown
 ): Promise<{ id: string } | { error: string }> {
-  await verifySession();
+  const session = await verifyRole("STAFF");
 
   const parsed = InsurancePolicySchema.safeParse(rawData);
   if (!parsed.success) {
@@ -40,6 +41,7 @@ export async function addInsurancePolicy(
       },
     });
 
+    void logAudit({ userId: session.id, action: "CREATE", model: "InsurancePolicy", recordId: policy.id, changes: { after: { customerId, providerName: data.providerName } } });
     revalidatePath(`/customers/${customerId}`);
     return { id: policy.id };
   } catch (e) {
@@ -52,7 +54,7 @@ export async function updateInsurancePolicy(
   id: string,
   rawData: unknown
 ): Promise<{ success: true } | { error: string }> {
-  const session = await verifySession();
+  const session = await verifyRole("STAFF");
 
   const parsed = InsurancePolicySchema.safeParse(rawData);
   if (!parsed.success) {
@@ -88,6 +90,7 @@ export async function updateInsurancePolicy(
       },
     });
 
+    void logAudit({ userId: session.id, action: "UPDATE", model: "InsurancePolicy", recordId: id });
     revalidatePath(`/customers/${policy.customerId}`);
     return { success: true };
   } catch (e) {
@@ -99,7 +102,7 @@ export async function updateInsurancePolicy(
 export async function deactivateInsurancePolicy(
   id: string
 ): Promise<{ success: true } | { error: string }> {
-  await verifySession();
+  await verifyRole("STAFF");
 
   try {
     const policy = await prisma.insurancePolicy.findUnique({

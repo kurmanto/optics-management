@@ -1,7 +1,7 @@
 # Developer Reference
 ## Mint Vision Optique — Staff Portal
 
-**Last updated:** 2026-02-20
+**Last updated:** 2026-02-23
 
 ---
 
@@ -11,7 +11,8 @@
 |------|---------|
 | `src/lib/prisma.ts` | Prisma singleton — import from here everywhere |
 | `src/lib/auth.ts` | `createSession()`, `destroySession()`, `getSession()` |
-| `src/lib/dal.ts` | `verifySession()`, `verifyAdmin()` — call at top of every page/action |
+| `src/lib/dal.ts` | `verifySession()`, `verifyRole(minRole)`, `verifyAdmin()` — call at top of every page/action |
+| `src/lib/audit.ts` | `logAudit(params)` — fire-and-forget audit event writer |
 | `src/lib/utils/formatters.ts` | `formatCurrency`, `formatDate`, `formatPhone`, `formatRxValue`, `generateOrderNumber` |
 | `src/lib/utils/cn.ts` | `cn()` — Tailwind class merging |
 | `src/lib/actions/auth.ts` | Login, logout, change password actions |
@@ -22,6 +23,7 @@
 | `src/lib/actions/vendors.ts` | `createVendor`, `updateVendor`, `deleteVendor` |
 | `src/lib/actions/purchase-orders.ts` | `createPurchaseOrder`, `updatePOStatus`, `receivePOLineItems` |
 | `src/lib/actions/campaigns.ts` | `createCampaign`, `updateCampaign`, `deleteCampaign`, `activateCampaign`, `pauseCampaign`, `archiveCampaign`, `enrollCustomer`, `removeRecipient`, `triggerCampaignRun` (Admin), `getCampaignAnalytics`, `previewSegment`, `createMessageTemplate`, `updateMessageTemplate`, `deleteMessageTemplate` |
+| `src/lib/actions/breach.ts` | `createBreachReport`, `updateBreachStatus`, `generateIPCNotificationText` (all Admin-only) |
 | `src/lib/campaigns/campaign-engine.ts` | `processCampaign(id)`, `processAllCampaigns()` |
 | `src/lib/campaigns/segment-engine.ts` | `executeSegment(config)`, `previewSegmentCount(config)`, `previewSegmentSample(config)` |
 | `src/lib/campaigns/dispatch.ts` | `dispatchMessage(opts)` — creates Message record + sends (SMS/email stubs) |
@@ -42,15 +44,16 @@
 All mutations use Server Actions. They always return an error-first result object (never throw).
 
 ```typescript
-// Pattern
+// Pattern (mutating action — staff or above)
 export async function doSomething(
   prevState: { error?: string },
   formData: FormData
 ): Promise<{ error?: string }> {
-  await verifySession(); // always first
+  const session = await verifyRole("STAFF"); // replaces verifySession() for mutations
 
   // ... validate with Zod
   // ... mutate with Prisma
+  void logAudit({ userId: session.id, action: "CREATE", model: "...", recordId: "..." });
   // ... revalidatePath()
 
   redirect("/somewhere"); // or return {}
@@ -64,22 +67,50 @@ export async function doSomething(
 
 ---
 
-## verifySession()
+## verifySession() / verifyRole()
 
 Call at the top of every Server Component page and Server Action.
 
 ```typescript
-import { verifySession } from "@/lib/dal";
+import { verifySession, verifyRole } from "@/lib/dal";
 
-// In a Server Component:
+// In a read-only Server Component:
 const session = await verifySession();
-// session = { id, email, name, role }
+// session = { id, email, name, role, ... }
 
-// In a Server Action:
-await verifySession();
+// In a mutating Server Action (staff-level):
+const session = await verifyRole("STAFF");
+// → redirects to /dashboard?error=insufficient_permissions if VIEWER
+
+// In an admin-only Server Action:
+const session = await verifyRole("ADMIN");
+// → redirects if STAFF or VIEWER
 ```
 
+Role hierarchy: `VIEWER (0) < STAFF (1) < ADMIN (2)`
+
 Redirects to `/login` if not authenticated.
+
+---
+
+## logAudit()
+
+Fire-and-forget audit event writer. Never throws — failures are silently swallowed.
+
+```typescript
+import { logAudit } from "@/lib/audit";
+
+// After a successful DB write:
+void logAudit({
+  userId: session.id,          // optional — null for public actions
+  action: "CREATE",            // AuditAction union type
+  model: "Customer",           // DB model name
+  recordId: customer.id,
+  changes: { after: created }, // optional before/after diff
+});
+```
+
+Available `AuditAction` values: `LOGIN | LOGOUT | LOGIN_FAILED | PASSWORD_CHANGE | ACCOUNT_LOCKED | CREATE | UPDATE | DELETE | STATUS_CHANGE | FORM_SUBMITTED | INTAKE_APPLIED | PO_RECEIVED | PO_CANCELLED`
 
 ---
 
@@ -225,6 +256,9 @@ Format: `ORD-YYYY-NNN` (e.g. `ORD-2026-001`).
 
 ### UserRole
 `ADMIN | STAFF | VIEWER`
+
+### BreachReportStatus
+`OPEN | INVESTIGATING | IPC_NOTIFIED | INDIVIDUALS_NOTIFIED | RESOLVED`
 
 ### Gender
 `MALE | FEMALE | OTHER | PREFER_NOT_TO_SAY`

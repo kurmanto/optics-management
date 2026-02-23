@@ -2,7 +2,8 @@
 
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
-import { verifySession } from "@/lib/dal";
+import { verifySession, verifyRole } from "@/lib/dal";
+import { logAudit } from "@/lib/audit";
 import { OrderStatus, LineItemType, OrderType, PrescriptionSource } from "@prisma/client";
 import { generateOrderNumber } from "@/lib/utils/formatters";
 import { createNotification } from "@/lib/notifications";
@@ -62,7 +63,7 @@ type CreateOrderInput = {
 };
 
 export async function createOrder(input: CreateOrderInput): Promise<{ id: string; orderNumber: string } | { error: string }> {
-  const session = await verifySession();
+  const session = await verifyRole("STAFF");
 
   // Calculate totals from line items
   const lineTotal = input.lineItems.reduce(
@@ -152,6 +153,7 @@ export async function createOrder(input: CreateOrderInput): Promise<{ id: string
       );
     }
 
+    void logAudit({ userId: session.id, action: "CREATE", model: "Order", recordId: order.id, changes: { after: { orderNumber: order.orderNumber, customerId: input.customerId } } });
     return { id: order.id, orderNumber: order.orderNumber };
   } catch (e) {
     console.error(e);
@@ -164,7 +166,7 @@ export async function advanceOrderStatus(
   newStatus: OrderStatus,
   note?: string
 ) {
-  const session = await verifySession();
+  const session = await verifyRole("STAFF");
 
   const statusTimestamps: Partial<Record<OrderStatus, object>> = {
     LAB_ORDERED: { labOrderedAt: new Date() },
@@ -227,6 +229,7 @@ export async function advanceOrderStatus(
     });
   }
 
+  void logAudit({ userId: session.id, action: "STATUS_CHANGE", model: "Order", recordId: orderId, changes: { after: { status: newStatus } } });
   revalidatePath(`/orders/${orderId}`);
   revalidatePath("/orders");
   revalidatePath("/orders/board");
@@ -244,7 +247,7 @@ export async function handlePickupComplete(
   orderId: string,
   options: PickupCompleteOptions
 ): Promise<{ success: true } | { error: string }> {
-  const session = await verifySession();
+  const session = await verifyRole("STAFF");
 
   try {
     const order = await prisma.order.findUnique({
@@ -354,7 +357,7 @@ export async function uploadPrescriptionScanAction(
   mimeType: string,
   customerId: string
 ): Promise<{ url: string } | { error: string }> {
-  await verifySession();
+  await verifyRole("STAFF");
 
   try {
     const url = await uploadPrescriptionScan(base64, mimeType, customerId);
@@ -389,7 +392,7 @@ type ExternalPrescriptionInput = {
 export async function addExternalPrescription(
   input: ExternalPrescriptionInput
 ): Promise<{ id: string } | { error: string }> {
-  await verifySession();
+  await verifyRole("STAFF");
 
   try {
     const prescription = await prisma.prescription.create({
@@ -439,7 +442,7 @@ export async function transcribePrescriptionImage(
   base64Image: string,
   mimeType: string = "image/jpeg"
 ): Promise<{ data: TranscribeResult } | { error: string }> {
-  await verifySession();
+  await verifyRole("STAFF");
 
   try {
     const Anthropic = (await import("@anthropic-ai/sdk")).default;
@@ -493,7 +496,7 @@ export async function updateOrderNotes(
   orderId: string,
   data: { notes?: string; labNotes?: string; dueDate?: string }
 ) {
-  await verifySession();
+  await verifyRole("STAFF");
 
   await prisma.order.update({
     where: { id: orderId },
@@ -514,7 +517,7 @@ export async function addPayment(
   reference?: string,
   note?: string
 ) {
-  await verifySession();
+  await verifyRole("STAFF");
 
   const order = await prisma.order.findUnique({ where: { id: orderId } });
   if (!order) throw new Error("Order not found");

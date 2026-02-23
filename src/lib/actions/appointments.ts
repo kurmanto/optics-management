@@ -2,7 +2,8 @@
 
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
-import { verifySession } from "@/lib/dal";
+import { verifySession, verifyRole } from "@/lib/dal";
+import { logAudit } from "@/lib/audit";
 import { AppointmentSchema, RescheduleSchema } from "@/lib/validations/appointment";
 import { AppointmentType, AppointmentStatus } from "@prisma/client";
 import type { CalendarAppointment } from "@/lib/types/appointment";
@@ -10,7 +11,7 @@ import type { CalendarAppointment } from "@/lib/types/appointment";
 export async function createAppointment(
   rawData: unknown
 ): Promise<{ id: string } | { error: string }> {
-  await verifySession();
+  const session = await verifyRole("STAFF");
 
   const parsed = AppointmentSchema.safeParse(rawData);
   if (!parsed.success) {
@@ -31,6 +32,7 @@ export async function createAppointment(
       },
     });
 
+    void logAudit({ userId: session.id, action: "CREATE", model: "Appointment", recordId: appt.id });
     revalidatePath(`/customers/${data.customerId}`);
     revalidatePath("/appointments");
     return { id: appt.id };
@@ -86,7 +88,7 @@ export async function updateAppointmentStatus(
   id: string,
   status: AppointmentStatus
 ): Promise<{ success: true } | { error: string }> {
-  await verifySession();
+  const session = await verifyRole("STAFF");
 
   try {
     const appt = await prisma.appointment.findUnique({
@@ -100,6 +102,7 @@ export async function updateAppointmentStatus(
       data: { status },
     });
 
+    void logAudit({ userId: session.id, action: "STATUS_CHANGE", model: "Appointment", recordId: id, changes: { after: { status } } });
     revalidatePath(`/customers/${appt.customerId}`);
     revalidatePath("/appointments");
     return { success: true };
@@ -112,7 +115,7 @@ export async function updateAppointmentStatus(
 export async function rescheduleAppointment(
   rawData: unknown
 ): Promise<{ success: true } | { error: string }> {
-  await verifySession();
+  const session = await verifyRole("STAFF");
 
   const parsed = RescheduleSchema.safeParse(rawData);
   if (!parsed.success) {
@@ -136,6 +139,7 @@ export async function rescheduleAppointment(
       },
     });
 
+    void logAudit({ userId: session.id, action: "UPDATE", model: "Appointment", recordId: id, changes: { after: { scheduledAt } } });
     revalidatePath(`/customers/${appt.customerId}`);
     revalidatePath("/appointments");
     return { success: true };
