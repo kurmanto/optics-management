@@ -597,3 +597,127 @@ describe("addPayment", () => {
     );
   });
 });
+
+describe("handlePickupComplete — campaign enrollment", () => {
+  const baseOrder = {
+    customerId: "cust-1",
+    orderNumber: "MVO-001",
+    totalCustomer: 300,
+    depositCustomer: 0,
+    balanceCustomer: 0,
+    insuranceCoverage: null,
+    referralCredit: null,
+    customer: { firstName: "Alice", lastName: "Brown", email: null, familyId: null, family: null },
+    lineItems: [],
+  };
+
+  it("enrolls customer in POST_PURCHASE_REFERRAL campaign when toggle is true", async () => {
+    const prisma = await getPrisma();
+    prisma.order.findUnique.mockResolvedValue(baseOrder);
+    (prisma as any).$transaction.mockImplementation(async (fn: (tx: unknown) => unknown) => fn(prisma));
+    prisma.order.update.mockResolvedValue({});
+    prisma.campaign.findFirst.mockResolvedValue({ id: "camp-referral" });
+    prisma.campaignRecipient.upsert.mockResolvedValue({});
+
+    const { handlePickupComplete } = await import("@/lib/actions/orders");
+    await handlePickupComplete("order-1", {
+      sendReviewRequest: false,
+      enrollInReferralCampaign: true,
+      markAsLowValue: false,
+    });
+
+    await new Promise((r) => setTimeout(r, 0));
+
+    expect(prisma.campaign.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { type: "POST_PURCHASE_REFERRAL", status: "ACTIVE" } })
+    );
+    expect(prisma.campaignRecipient.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { campaignId_customerId: { campaignId: "camp-referral", customerId: "cust-1" } },
+        create: expect.objectContaining({ campaignId: "camp-referral", customerId: "cust-1", status: "ACTIVE", currentStep: 0 }),
+        update: { status: "ACTIVE" },
+      })
+    );
+  });
+
+  it("skips referral enrollment when no active POST_PURCHASE_REFERRAL campaign exists", async () => {
+    const prisma = await getPrisma();
+    prisma.order.findUnique.mockResolvedValue(baseOrder);
+    (prisma as any).$transaction.mockImplementation(async (fn: (tx: unknown) => unknown) => fn(prisma));
+    prisma.order.update.mockResolvedValue({});
+    prisma.campaign.findFirst.mockResolvedValue(null);
+    prisma.campaignRecipient.upsert.mockResolvedValue({});
+
+    const { handlePickupComplete } = await import("@/lib/actions/orders");
+    await handlePickupComplete("order-1", {
+      sendReviewRequest: false,
+      enrollInReferralCampaign: true,
+      markAsLowValue: false,
+    });
+
+    await new Promise((r) => setTimeout(r, 0));
+    expect(prisma.campaignRecipient.upsert).not.toHaveBeenCalled();
+  });
+
+  it("enrolls family members in FAMILY_ADDON campaign when toggle is true", async () => {
+    const prisma = await getPrisma();
+    prisma.order.findUnique.mockResolvedValue({
+      ...baseOrder,
+      customer: {
+        firstName: "Alice",
+        lastName: "Brown",
+        email: null,
+        familyId: "fam-1",
+        family: { customers: [{ id: "cust-1" }, { id: "cust-2" }, { id: "cust-3" }] },
+      },
+    });
+    (prisma as any).$transaction.mockImplementation(async (fn: (tx: unknown) => unknown) => fn(prisma));
+    prisma.order.update.mockResolvedValue({});
+    prisma.campaign.findFirst.mockResolvedValue({ id: "camp-family" });
+    prisma.campaignRecipient.upsert.mockResolvedValue({});
+
+    const { handlePickupComplete } = await import("@/lib/actions/orders");
+    await handlePickupComplete("order-1", {
+      sendReviewRequest: false,
+      enrollInReferralCampaign: false,
+      enrollInFamilyPromo: true,
+      markAsLowValue: false,
+    });
+
+    await new Promise((r) => setTimeout(r, 0));
+
+    expect(prisma.campaign.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { type: "FAMILY_ADDON", status: "ACTIVE" } })
+    );
+    // Should enroll cust-2 and cust-3, but NOT cust-1 (the purchaser)
+    expect(prisma.campaignRecipient.upsert).toHaveBeenCalledTimes(2);
+    expect(prisma.campaignRecipient.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { campaignId_customerId: { campaignId: "camp-family", customerId: "cust-2" } },
+      })
+    );
+    expect(prisma.campaignRecipient.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { campaignId_customerId: { campaignId: "camp-family", customerId: "cust-3" } },
+      })
+    );
+  });
+
+  it("does not enroll in any campaign when both toggles are false", async () => {
+    const prisma = await getPrisma();
+    prisma.order.findUnique.mockResolvedValue(baseOrder);
+    (prisma as any).$transaction.mockImplementation(async (fn: (tx: unknown) => unknown) => fn(prisma));
+    prisma.order.update.mockResolvedValue({});
+
+    const { handlePickupComplete } = await import("@/lib/actions/orders");
+    await handlePickupComplete("order-1", {
+      sendReviewRequest: false,
+      enrollInReferralCampaign: false,
+      markAsLowValue: false,
+    });
+
+    await new Promise((r) => setTimeout(r, 0));
+    expect(prisma.campaign.findFirst).not.toHaveBeenCalled();
+    expect(prisma.campaignRecipient.upsert).not.toHaveBeenCalled();
+  });
+});

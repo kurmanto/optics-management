@@ -6,6 +6,20 @@ Format: `[Version] — Date`
 
 ---
 
+## [2.5.1] — 2026-02-23
+
+### Fixed — Post-Purchase Campaign Enrollment (Pickup Flow)
+
+- `handlePickupComplete` now calls `prisma.campaignRecipient.upsert()` when pickup toggles are checked, replacing `console.log` placeholders
+- **Referral toggle on** — looks up the active `POST_PURCHASE_REFERRAL` campaign and enrolls the purchasing customer (step 0, status ACTIVE)
+- **Family promo toggle on** — looks up the active `FAMILY_ADDON` campaign and enrolls all linked family members excluding the purchaser
+- Graceful degradation: if no active campaign of the target type exists, enrollment is silently skipped; pickup never fails
+- Fire-and-forget pattern: enrollment runs after the transaction so a campaign DB error never blocks pickup confirmation
+- 4 new unit tests: referral enrollment happy path, skip when no active campaign, family member enrollment (purchaser excluded), no-op when both toggles off
+- **445 tests, 31 files** — all passing
+
+---
+
 ## [2.5.0] — 2026-02-23
 
 ### Added — PHIPA/PIPEDA Compliance (Security & Audit)

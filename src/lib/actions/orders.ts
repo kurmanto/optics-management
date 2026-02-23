@@ -333,13 +333,47 @@ export async function handlePickupComplete(
     if (options.sendReviewRequest) {
       console.log(`[SMS PLACEHOLDER] Review request for order ${orderId}, customer ${order.customerId}`);
     }
-    if (options.enrollInReferralCampaign) {
-      console.log(`[SMS PLACEHOLDER] Referral campaign enrollment for customer ${order.customerId} (starts in 3 days)`);
-    }
-    if (options.enrollInFamilyPromo) {
-      const familyMemberIds = order.customer?.family?.customers.map((c) => c.id).filter((id) => id !== order.customerId) ?? [];
-      console.log(`[FAMILY PROMO] Would enroll ${familyMemberIds.length} family members in FAMILY_ADDON campaign`);
-    }
+
+    // Campaign enrollment — fire-and-forget, errors don't fail pickup
+    void (async () => {
+      try {
+        if (options.enrollInReferralCampaign) {
+          const campaign = await prisma.campaign.findFirst({
+            where: { type: "POST_PURCHASE_REFERRAL", status: "ACTIVE" },
+            select: { id: true },
+          });
+          if (campaign) {
+            await prisma.campaignRecipient.upsert({
+              where: { campaignId_customerId: { campaignId: campaign.id, customerId: order.customerId } },
+              create: { campaignId: campaign.id, customerId: order.customerId, status: "ACTIVE", currentStep: 0 },
+              update: { status: "ACTIVE" },
+            });
+          }
+        }
+
+        if (options.enrollInFamilyPromo) {
+          const campaign = await prisma.campaign.findFirst({
+            where: { type: "FAMILY_ADDON", status: "ACTIVE" },
+            select: { id: true },
+          });
+          if (campaign) {
+            const familyMemberIds =
+              order.customer?.family?.customers.map((c) => c.id).filter((id) => id !== order.customerId) ?? [];
+            await Promise.all(
+              familyMemberIds.map((memberId) =>
+                prisma.campaignRecipient.upsert({
+                  where: { campaignId_customerId: { campaignId: campaign.id, customerId: memberId } },
+                  create: { campaignId: campaign.id, customerId: memberId, status: "ACTIVE", currentStep: 0 },
+                  update: { status: "ACTIVE" },
+                })
+              )
+            );
+          }
+        }
+      } catch (err) {
+        console.error("[Campaign Enrollment] Failed:", err);
+      }
+    })();
 
     revalidatePath(`/orders/${orderId}`);
     revalidatePath("/orders");
