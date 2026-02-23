@@ -3,7 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { verifySession } from "@/lib/dal";
+import { verifySession, verifyRole } from "@/lib/dal";
+import { logAudit } from "@/lib/audit";
 import { CustomerSchema, MedicalHistorySchema, StoreCreditSchema } from "@/lib/validations/customer";
 import { Gender } from "@prisma/client";
 
@@ -16,7 +17,7 @@ export async function createCustomer(
   prevState: CustomerFormState,
   formData: FormData
 ): Promise<CustomerFormState> {
-  await verifySession();
+  const session = await verifyRole("STAFF");
 
   const raw = Object.fromEntries(formData.entries());
   const parsed = CustomerSchema.safeParse({
@@ -32,7 +33,6 @@ export async function createCustomer(
   }
 
   const data = parsed.data;
-
   const customer = await prisma.customer.create({
     data: {
       firstName: data.firstName,
@@ -55,6 +55,7 @@ export async function createCustomer(
     },
   });
 
+  void logAudit({ userId: session.id, action: "CREATE", model: "Customer", recordId: customer.id, changes: { after: { firstName: customer.firstName, lastName: customer.lastName } } });
   revalidatePath("/customers");
   redirect(`/customers/${customer.id}`);
 }
@@ -64,7 +65,7 @@ export async function updateCustomer(
   prevState: CustomerFormState,
   formData: FormData
 ): Promise<CustomerFormState> {
-  await verifySession();
+  const session = await verifyRole("STAFF");
 
   const raw = Object.fromEntries(formData.entries());
   const parsed = CustomerSchema.safeParse({
@@ -104,17 +105,20 @@ export async function updateCustomer(
     },
   });
 
+  void logAudit({ userId: session.id, action: "UPDATE", model: "Customer", recordId: id });
   revalidatePath(`/customers/${id}`);
   redirect(`/customers/${id}`);
 }
 
 export async function deleteCustomer(id: string) {
-  await verifySession();
+  const session = await verifyRole("STAFF");
 
   await prisma.customer.update({
     where: { id },
     data: { isActive: false },
   });
+
+  void logAudit({ userId: session.id, action: "DELETE", model: "Customer", recordId: id });
 
   revalidatePath("/customers");
   redirect("/customers");
@@ -130,7 +134,7 @@ export async function saveMedicalHistory(
   prevState: MedicalHistoryFormState,
   formData: FormData
 ): Promise<MedicalHistoryFormState> {
-  await verifySession();
+  await verifyRole("STAFF");
 
   const raw = Object.fromEntries(formData.entries());
 
@@ -212,7 +216,7 @@ export async function addStoreCredit(
   prevState: StoreCreditFormState,
   formData: FormData
 ): Promise<StoreCreditFormState> {
-  await verifySession();
+  await verifyRole("STAFF");
 
   const raw = Object.fromEntries(formData.entries());
   const parsed = StoreCreditSchema.safeParse({
@@ -245,7 +249,7 @@ export async function addStoreCredit(
 }
 
 export async function deactivateStoreCredit(creditId: string): Promise<{ error?: string }> {
-  await verifySession();
+  await verifyRole("STAFF");
 
   const credit = await prisma.storeCredit.findUnique({ where: { id: creditId } });
   if (!credit) return { error: "Credit not found." };
@@ -328,7 +332,7 @@ export async function createFamilyAndLink(
   familyName: string,
   customerIds: string[]
 ): Promise<{ familyId: string } | { error: string }> {
-  await verifySession();
+  await verifyRole("STAFF");
 
   if (!familyName || customerIds.length === 0) {
     return { error: "Family name and at least one customer required" };
@@ -354,7 +358,7 @@ export async function addToFamily(
   familyId: string,
   customerId: string
 ): Promise<{ success: true } | { error: string }> {
-  await verifySession();
+  await verifyRole("STAFF");
 
   try {
     await prisma.customer.update({
@@ -376,7 +380,7 @@ export async function quickCreateCustomer(input: {
   phone?: string;
   email?: string;
 }): Promise<{ id: string; name: string } | { error: string }> {
-  await verifySession();
+  await verifyRole("STAFF");
 
   const firstName = input.firstName.trim();
   const lastName = input.lastName.trim();

@@ -136,6 +136,122 @@ describe("logout action", () => {
   });
 });
 
+describe("login account lockout", () => {
+  beforeEach(async () => {
+    vi.clearAllMocks();
+    const prisma = await getPrisma();
+    prisma.user.update.mockResolvedValue({} as any);
+  });
+
+  it("returns locked error when account is currently locked", async () => {
+    const prisma = await getPrisma();
+    const futureDate = new Date(Date.now() + 10 * 60_000); // 10 min from now
+    prisma.user.findUnique.mockResolvedValue({
+      id: "u1",
+      email: "user@test.com",
+      isActive: true,
+      passwordHash: "anything",
+      failedLoginAttempts: 5,
+      lockedUntil: futureDate,
+    });
+
+    const { login } = await import("@/lib/actions/auth");
+    const fd = makeFormData({ email: "user@test.com", password: "anypassword" });
+    const result = await login({}, fd);
+
+    expect(result.error).toMatch(/Account locked until/);
+    expect(prisma.user.update).not.toHaveBeenCalled();
+  });
+
+  it("increments failedLoginAttempts on wrong password", async () => {
+    const { hashPassword } = await import("@/lib/auth");
+    const hash = await hashPassword("correctPassword");
+
+    const prisma = await getPrisma();
+    prisma.user.findUnique.mockResolvedValue({
+      id: "u1",
+      email: "user@test.com",
+      isActive: true,
+      passwordHash: hash,
+      failedLoginAttempts: 2,
+      lockedUntil: null,
+    });
+
+    const { login } = await import("@/lib/actions/auth");
+    const fd = makeFormData({ email: "user@test.com", password: "wrongPassword" });
+    await login({}, fd);
+
+    expect(prisma.user.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: "u1" },
+        data: expect.objectContaining({ failedLoginAttempts: 3 }),
+      })
+    );
+  });
+
+  it("sets lockedUntil on 5th failed attempt", async () => {
+    const { hashPassword } = await import("@/lib/auth");
+    const hash = await hashPassword("correctPassword");
+
+    const prisma = await getPrisma();
+    prisma.user.findUnique.mockResolvedValue({
+      id: "u1",
+      email: "user@test.com",
+      isActive: true,
+      passwordHash: hash,
+      failedLoginAttempts: 4,
+      lockedUntil: null,
+    });
+
+    const { login } = await import("@/lib/actions/auth");
+    const fd = makeFormData({ email: "user@test.com", password: "wrongPassword" });
+    await login({}, fd);
+
+    expect(prisma.user.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          failedLoginAttempts: 5,
+          lockedUntil: expect.any(Date),
+        }),
+      })
+    );
+  });
+
+  it("resets failedLoginAttempts to 0 on successful login", async () => {
+    const { hashPassword } = await import("@/lib/auth");
+    const hash = await hashPassword("correctPassword");
+
+    const prisma = await getPrisma();
+    prisma.user.findUnique.mockResolvedValue({
+      id: "u1",
+      email: "user@test.com",
+      isActive: true,
+      passwordHash: hash,
+      failedLoginAttempts: 3,
+      lockedUntil: null,
+    });
+
+    const { login } = await import("@/lib/actions/auth");
+    const fd = makeFormData({ email: "user@test.com", password: "correctPassword" });
+    try {
+      await login({}, fd);
+    } catch {
+      // redirect() throws — expected
+    }
+
+    expect(prisma.user.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: "u1" },
+        data: expect.objectContaining({
+          failedLoginAttempts: 0,
+          lockedUntil: null,
+          lastLoginAt: expect.any(Date),
+        }),
+      })
+    );
+  });
+});
+
 describe("changePassword action", () => {
   beforeEach(async () => {
     vi.clearAllMocks();

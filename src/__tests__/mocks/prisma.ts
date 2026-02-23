@@ -51,6 +51,8 @@ export function buildPrismaMock() {
     savedFrame: modelMock(),
     appointment: modelMock(),
     family: modelMock(),
+    auditLog: modelMock(),
+    breachReport: modelMock(),
     $transaction: vi.fn(async (fn: (tx: unknown) => unknown) => {
       if (typeof fn === "function") {
         return fn(mock);

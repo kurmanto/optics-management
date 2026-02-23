@@ -1,7 +1,8 @@
 "use server";
 
 import { prisma } from "@/lib/prisma";
-import { verifySession } from "@/lib/dal";
+import { verifyRole } from "@/lib/dal";
+import { logAudit } from "@/lib/audit";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
@@ -53,7 +54,7 @@ export async function createVendor(
   _state: VendorFormState,
   formData: FormData
 ): Promise<VendorFormState> {
-  await verifySession();
+  const session = await verifyRole("STAFF");
   const raw = parseForm(formData);
   const parsed = VendorSchema.safeParse(raw);
   if (!parsed.success) {
@@ -80,6 +81,7 @@ export async function createVendor(
         notes: d.notes || null,
       },
     });
+    void logAudit({ userId: session.id, action: "CREATE", model: "Vendor", recordId: vendor.id, changes: { after: { name: vendor.name } } });
     revalidatePath("/inventory/vendors");
     redirect(`/inventory/vendors/${vendor.id}`);
   } catch (e: any) {
@@ -93,7 +95,7 @@ export async function updateVendor(
   _state: VendorFormState,
   formData: FormData
 ): Promise<VendorFormState> {
-  await verifySession();
+  const session = await verifyRole("STAFF");
   const raw = parseForm(formData);
   const parsed = VendorSchema.safeParse(raw);
   if (!parsed.success) {
@@ -121,6 +123,7 @@ export async function updateVendor(
         notes: d.notes || null,
       },
     });
+    void logAudit({ userId: session.id, action: "UPDATE", model: "Vendor", recordId: id });
     revalidatePath("/inventory/vendors");
     revalidatePath(`/inventory/vendors/${id}`);
     redirect(`/inventory/vendors/${id}`);
@@ -131,9 +134,10 @@ export async function updateVendor(
 }
 
 export async function deleteVendor(id: string): Promise<{ error?: string }> {
-  await verifySession();
+  const session = await verifyRole("STAFF");
   try {
     await prisma.vendor.update({ where: { id }, data: { isActive: false } });
+    void logAudit({ userId: session.id, action: "DELETE", model: "Vendor", recordId: id });
     revalidatePath("/inventory/vendors");
     return {};
   } catch {

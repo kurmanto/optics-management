@@ -2,7 +2,8 @@
 
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
-import { verifySession } from "@/lib/dal";
+import { verifySession, verifyRole } from "@/lib/dal";
+import { logAudit } from "@/lib/audit";
 import { CreateFormSubmissionSchema } from "@/lib/validations/forms";
 import { FormTemplateType, Gender } from "@prisma/client";
 import { createNotification } from "@/lib/notifications";
@@ -19,7 +20,7 @@ export async function createFormSubmission(
   prevState: FormActionState,
   formData: FormData
 ): Promise<FormActionState> {
-  const session = await verifySession();
+  const session = await verifyRole("STAFF");
 
   const raw = Object.fromEntries(formData.entries());
   const parsed = CreateFormSubmissionSchema.safeParse(raw);
@@ -52,6 +53,7 @@ export async function createFormSubmission(
     },
   });
 
+  void logAudit({ userId: session.id, action: "FORM_SUBMITTED", model: "FormSubmission", recordId: submission.id });
   revalidatePath("/forms");
   return { submissionId: submission.id, token: submission.token };
 }
@@ -60,7 +62,7 @@ export async function createIntakePackage(
   prevState: FormActionState,
   formData: FormData
 ): Promise<FormActionState> {
-  const session = await verifySession();
+  const session = await verifyRole("STAFF");
 
   const customerName = String(formData.get("customerName") || "").trim();
   const customerEmail = String(formData.get("customerEmail") || "").trim() || null;
@@ -123,7 +125,7 @@ export async function createIntakePackage(
 }
 
 export async function autoPopulateFromSubmission(submissionId: string): Promise<FormActionState> {
-  const session = await verifySession();
+  const session = await verifyRole("STAFF");
   void session;
 
   const submission = await prisma.formSubmission.findUnique({
@@ -228,7 +230,7 @@ export async function autoPopulateFromSubmission(submissionId: string): Promise<
 export async function applyIntakePackage(
   packageId: string
 ): Promise<{ error?: string; customerId?: string }> {
-  const session = await verifySession();
+  const session = await verifyRole("STAFF");
 
   const pkg = await prisma.formPackage.findUnique({
     where: { id: packageId },
@@ -337,6 +339,7 @@ export async function applyIntakePackage(
     return { error: "Failed to apply intake data" };
   }
 
+  void logAudit({ userId: session.id, action: "INTAKE_APPLIED", model: "FormPackage", recordId: packageId });
   revalidatePath("/forms");
   if (pkg.customerId) revalidatePath(`/customers/${pkg.customerId}`);
   void session;
