@@ -590,6 +590,7 @@
   <a href="#customer-detail" class="sub-link">Customer Detail</a>
   <a href="#customer-create" class="sub-link">Creating a Customer</a>
   <a href="#scan-rx" class="sub-link">Scan Rx</a>
+  <a href="#current-glasses" class="sub-link">Current Glasses Reading</a>
 
   <a href="#section-orders" class="section-link">4. Orders</a>
   <a href="#order-status-flow" class="sub-link">Status Flow</a>
@@ -613,6 +614,7 @@
   <a href="#intake-packages" class="sub-link">Intake Packages</a>
   <a href="#kiosk-mode" class="sub-link">Kiosk Mode</a>
   <a href="#form-review" class="sub-link">Reviewing Forms</a>
+  <a href="#smart-intake" class="sub-link">Smart Intake Link</a>
 
   <a href="#section-inventory" class="section-link">7. Inventory</a>
   <a href="#frames-browser" class="sub-link">All Frames Browser</a>
@@ -1121,6 +1123,38 @@
     </ul>
   </div>
 
+  <h2 id="current-glasses">3.6 Current Glasses Reading (Lensometer)</h2>
+  <p>Record the prescription of the lenses a patient is <strong>currently wearing</strong>. This is useful for comparing against a new Rx after an exam — it's distinct from "External Prescriptions" (which are paper Rx scripts from other providers) and "Our Prescriptions" (which are Rx written at your clinic).</p>
+
+  <h3>Where to Find It</h3>
+  <p>On the <strong>Customer Detail Page</strong>, scroll to the <strong>Prescriptions</strong> card. Above "Our Prescriptions", you'll see a teal-badged section labelled <strong>"Current Glasses Reading"</strong> with the subtitle "What they're wearing".</p>
+
+  <h3>Recording a Reading</h3>
+  <ol>
+    <li>Click <strong>"Record New Reading"</strong> to expand the form.</li>
+    <li>Enter the <strong>date</strong> (defaults to today).</li>
+    <li>Fill in the <strong>OD (right eye)</strong> and <strong>OS (left eye)</strong> values: Sphere, Cylinder, Axis, Add.</li>
+    <li>Enter <strong>PD (binocular)</strong> if available.</li>
+    <li>Optionally snap a <strong>lensometer photo</strong> using the camera button — this uploads and stores the image alongside the reading.</li>
+    <li>Add any <strong>notes</strong> (e.g., "Scratched lenses, patient reports headaches").</li>
+    <li>Click <strong>"Save Reading"</strong>.</li>
+  </ol>
+
+  <h3>How It Behaves</h3>
+  <ul>
+    <li>Only <strong>one active</strong> Current Glasses reading per patient. Recording a new one automatically deactivates the previous.</li>
+    <li>The reading does <em>not</em> appear under "Our Prescriptions" or "External Prescriptions" — it has its own dedicated section.</li>
+    <li>If a lensometer photo was uploaded, a "View Photo" link appears next to the reading.</li>
+  </ul>
+
+  <div class="box box-tip">
+    <div class="box-label">Tip</div>
+    <ul style="margin:0;padding-left:1.2em">
+      <li>Take the lensometer reading <em>before</em> the eye exam so you have a baseline for comparison.</li>
+      <li>The photo feature works best with a phone or tablet — tap the camera button and photograph the lensometer display directly.</li>
+    </ul>
+  </div>
+
 
 <!-- ==================== SECTION 4: ORDERS ==================== -->
 <section class="section" id="section-orders">
@@ -1570,6 +1604,37 @@
     <li>Shows a branded "Thank You" success page after submission</li>
   </ul>
   <p>Links expire after the form is submitted — a patient cannot submit the same link twice.</p>
+
+  <h2 id="smart-intake">6.7 Smart Intake Link (Self-Service Onboarding)</h2>
+  <p>The <strong>Smart Intake Link</strong> is a universal URL (<code>/intake/start</code>) that you can share with any patient — via SMS after booking, on your website, or as a QR code in-store. Unlike the staff-created intake package, this link is always the same and requires no staff action to set up.</p>
+
+  <h3>How It Works</h3>
+  <ol>
+    <li>Patient opens the link and sees two options: <strong>"I'm a New Patient"</strong> and <strong>"I'm a Returning Patient"</strong>.</li>
+    <li><strong>New Patient</strong>: A fresh intake package (Registration + Privacy + Insurance) is created and the patient is redirected to fill it out.</li>
+    <li><strong>Returning Patient</strong>: The patient enters their phone number. If found, their existing data (name, contact, address, insurance) is <em>pre-filled</em> into the forms so they only need to verify and update. If the phone isn't found, they can try their email. If neither matches, they're redirected to the new patient flow.</li>
+  </ol>
+
+  <h3>What Gets Pre-Filled</h3>
+  <ul>
+    <li>First and last name</li>
+    <li>Phone, email, date of birth, gender</li>
+    <li>Address, city, province, postal code</li>
+    <li>Insurance provider, policy number, group number, member ID, coverage type</li>
+  </ul>
+  <p>Sensitive data (medical history, prescriptions, health card) is <strong>never</strong> exposed through the lookup.</p>
+
+  <div class="box box-tip">
+    <div class="box-label">Tip</div>
+    <ul style="margin:0;padding-left:1.2em">
+      <li>Print a QR code pointing to your <code>/intake/start</code> URL and display it at reception — patients can start paperwork on their own phone while waiting.</li>
+      <li>The lookup is rate-limited and timing-safe to prevent anyone from guessing patient information.</li>
+      <li>When a returning patient submits, their existing record is <em>updated</em> (not duplicated) with any changes they made.</li>
+    </ul>
+  </div>
+
+  <h3>On the Staff Side</h3>
+  <p>Self-service packages appear in the <strong>Forms Hub</strong> just like staff-created ones. The "Sent by" column shows <strong>"Self-service"</strong> instead of a staff name. Review and Apply workflows work identically.</p>
 </section>
 
 

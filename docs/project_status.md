@@ -5,7 +5,29 @@
 
 ---
 
-## Current Version: V2.5.1 — Post-Purchase Campaign Enrollment
+## Current Version: V2.6.0 — Smart Intake Form + Current Glasses Reading
+
+---
+
+### V2.6.0 — Smart Intake Form + Current Glasses Reading (Complete)
+
+| Feature | Status | Notes |
+|---------|--------|-------|
+| Universal `/intake/start` public route | ✅ Complete | Shareable link for SMS, website, QR code; patients choose New or Returning |
+| Returning patient phone/email lookup | ✅ Complete | Rate-limited (5/identifier, 10/IP per 15 min) + 500ms timing-safe delay |
+| Email fallback for returning patients | ✅ Complete | If phone not found, option to try email before falling back to new patient flow |
+| Pre-fill forms for returning patients | ✅ Complete | Name, contact, address, insurance fields auto-populated from existing record |
+| Self-service intake packages (`sentByUserId: null`) | ✅ Complete | `createSelfServiceIntakePackage` action; view pages show "Self-service" |
+| Returning patient update (no duplicate) | ✅ Complete | `completeIntakeStep` updates existing customer when `pkg.customerId` already set |
+| `CURRENT_GLASSES` prescription source | ✅ Complete | New enum value; `recordCurrentGlassesReading` action with `$transaction` |
+| Current Glasses Form + customer detail section | ✅ Complete | Teal section above "Our Prescriptions"; OD/OS table, PD, optional lensometer photo |
+| Prescription filter fix | ✅ Complete | "Our Prescriptions" now uses `source === "INTERNAL"` to exclude CURRENT_GLASSES |
+| In-memory rate limiter (`src/lib/rate-limit.ts`) | ✅ Complete | Sliding window, auto-cleanup every 5 min |
+| Unit tests (470 total, 32 files) | ✅ Complete | +29 tests: intake lookup, self-service packages, returning patient update, glasses reading, rate-limit utility |
+
+---
+
+### Previous Version: V2.5.1 — Post-Purchase Campaign Enrollment (Complete)
 
 ---
 
@@ -22,6 +44,8 @@
 ---
 
 ## Previous Version: V2.5.0 — PHIPA/PIPEDA Compliance (Security & Audit)
+
+---
 
 ---
 

@@ -346,6 +346,302 @@ export async function applyIntakePackage(
   return { customerId: pkg.customerId ?? undefined };
 }
 
+// ─── Send Intake Link from Customer Page ─────────────────────────────────────
+
+export async function sendIntakeLinkEmail(
+  customerId: string
+): Promise<{ token: string } | { error: string }> {
+  const session = await verifyRole("STAFF");
+
+  const customer = await prisma.customer.findUnique({
+    where: { id: customerId },
+    select: { id: true, firstName: true, lastName: true, email: true },
+  });
+
+  if (!customer) return { error: "Customer not found" };
+  if (!customer.email) return { error: "Customer has no email address on file" };
+
+  const customerName = `${customer.firstName} ${customer.lastName}`.trim();
+
+  // Create intake package
+  const intakeOrder: FormTemplateType[] = [
+    "NEW_PATIENT",
+    "HIPAA_CONSENT",
+    "INSURANCE_VERIFICATION",
+  ];
+  const templates = await prisma.formTemplate.findMany({
+    where: { type: { in: intakeOrder }, isActive: true },
+  });
+
+  if (templates.length === 0) return { error: "Intake form templates not found" };
+
+  const pkg = await prisma.$transaction(async (tx) => {
+    const newPkg = await tx.formPackage.create({
+      data: {
+        customerName,
+        customerEmail: customer.email,
+        customerId: customer.id,
+        sentByUserId: session.id,
+      },
+    });
+
+    for (let i = 0; i < intakeOrder.length; i++) {
+      const template = templates.find((t) => t.type === intakeOrder[i]);
+      if (!template) continue;
+      await tx.formSubmission.create({
+        data: {
+          templateId: template.id,
+          customerId: customer.id,
+          customerName,
+          sentByUserId: session.id,
+          packageId: newPkg.id,
+          packageOrder: i,
+        },
+      });
+    }
+
+    return newPkg;
+  });
+
+  // Send email
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+  const intakeUrl = `${baseUrl}/intake/${pkg.token}`;
+
+  try {
+    const { sendIntakeEmail } = await import("@/lib/email");
+    const result = await sendIntakeEmail({
+      to: customer.email,
+      customerName,
+      intakeUrl,
+    });
+
+    if (result.error) {
+      return { error: "Failed to send email" };
+    }
+  } catch {
+    return { error: "Failed to send email" };
+  }
+
+  void logAudit({
+    userId: session.id,
+    action: "FORM_SUBMITTED",
+    model: "FormPackage",
+    recordId: pkg.id,
+    changes: { method: "email", email: customer.email },
+  });
+
+  revalidatePath("/forms");
+  return { token: pkg.token };
+}
+
+export async function createIntakeLinkForCustomer(
+  customerId: string
+): Promise<{ token: string } | { error: string }> {
+  const session = await verifyRole("STAFF");
+
+  const customer = await prisma.customer.findUnique({
+    where: { id: customerId },
+    select: { id: true, firstName: true, lastName: true, email: true },
+  });
+
+  if (!customer) return { error: "Customer not found" };
+
+  const customerName = `${customer.firstName} ${customer.lastName}`.trim();
+
+  const intakeOrder: FormTemplateType[] = [
+    "NEW_PATIENT",
+    "HIPAA_CONSENT",
+    "INSURANCE_VERIFICATION",
+  ];
+  const templates = await prisma.formTemplate.findMany({
+    where: { type: { in: intakeOrder }, isActive: true },
+  });
+
+  if (templates.length === 0) return { error: "Intake form templates not found" };
+
+  const pkg = await prisma.$transaction(async (tx) => {
+    const newPkg = await tx.formPackage.create({
+      data: {
+        customerName,
+        customerEmail: customer.email,
+        customerId: customer.id,
+        sentByUserId: session.id,
+      },
+    });
+
+    for (let i = 0; i < intakeOrder.length; i++) {
+      const template = templates.find((t) => t.type === intakeOrder[i]);
+      if (!template) continue;
+      await tx.formSubmission.create({
+        data: {
+          templateId: template.id,
+          customerId: customer.id,
+          customerName,
+          sentByUserId: session.id,
+          packageId: newPkg.id,
+          packageOrder: i,
+        },
+      });
+    }
+
+    return newPkg;
+  });
+
+  void logAudit({
+    userId: session.id,
+    action: "FORM_SUBMITTED",
+    model: "FormPackage",
+    recordId: pkg.id,
+    changes: { method: "copy_link" },
+  });
+
+  revalidatePath("/forms");
+  return { token: pkg.token };
+}
+
+// ─── Public Self-Service Actions (no auth required) ─────────────────────────
+
+export async function lookupReturningPatient(
+  identifier: string,
+  type: "phone" | "email",
+  dateOfBirth: string
+): Promise<{ prefill: import("@/lib/types/forms").ReturningPatientPrefill } | { notFound: true } | { error: string }> {
+  const { checkRateLimit, timingSafeDelay } = await import("@/lib/rate-limit");
+
+  // Validate input
+  if (type === "phone") {
+    const digits = identifier.replace(/\D/g, "");
+    if (digits.length < 10) return { error: "Phone number must be at least 10 digits" };
+    identifier = digits;
+  } else {
+    if (!identifier.includes("@") || identifier.length < 5) return { error: "Invalid email format" };
+    identifier = identifier.trim().toLowerCase();
+  }
+
+  // Validate date of birth
+  if (!dateOfBirth || !/^\d{4}-\d{2}-\d{2}$/.test(dateOfBirth)) {
+    return { error: "Date of birth is required for verification" };
+  }
+
+  // Rate limit: 5 per identifier, 10 per IP per 15 min window
+  const identifierKey = `lookup:${type}:${identifier}`;
+  if (!checkRateLimit(identifierKey, 5)) {
+    await timingSafeDelay();
+    return { error: "Too many attempts. Please try again in a few minutes." };
+  }
+
+  // Fixed delay to prevent timing attacks
+  await timingSafeDelay();
+
+  try {
+    const customer = await prisma.customer.findFirst({
+      where: {
+        isActive: true,
+        ...(type === "phone" ? { phone: identifier } : { email: identifier }),
+      },
+      include: {
+        insurancePolicies: {
+          where: { isActive: true },
+          take: 1,
+          orderBy: { createdAt: "desc" },
+        },
+      },
+    });
+
+    if (!customer) return { notFound: true };
+
+    // Verify date of birth — return generic "not found" to avoid leaking that the phone/email exists
+    const customerDob = customer.dateOfBirth?.toISOString().split("T")[0] ?? null;
+    if (customerDob !== dateOfBirth) {
+      return { notFound: true };
+    }
+
+    const insurance = customer.insurancePolicies[0] ?? null;
+
+    return {
+      prefill: {
+        customerId: customer.id,
+        firstName: customer.firstName,
+        lastName: customer.lastName,
+        email: customer.email,
+        phone: customer.phone,
+        dateOfBirth: customerDob,
+        gender: customer.gender,
+        address: customer.address,
+        city: customer.city,
+        province: customer.province,
+        postalCode: customer.postalCode,
+        occupation: customer.occupation,
+        hearAboutUs: customer.hearAboutUs,
+        insurance: insurance
+          ? {
+              providerName: insurance.providerName,
+              policyNumber: insurance.policyNumber,
+              groupNumber: insurance.groupNumber,
+              memberId: insurance.memberId,
+              coverageType: insurance.coverageType,
+            }
+          : null,
+      },
+    };
+  } catch (e) {
+    console.error("lookupReturningPatient error:", e);
+    return { error: "Something went wrong. Please try again." };
+  }
+}
+
+export async function createSelfServiceIntakePackage(
+  customerName: string,
+  customerId?: string
+): Promise<{ token: string } | { error: string }> {
+  if (!customerName.trim()) return { error: "Patient name is required" };
+
+  const intakeOrder: FormTemplateType[] = [
+    "NEW_PATIENT",
+    "HIPAA_CONSENT",
+    "INSURANCE_VERIFICATION",
+  ];
+  const templates = await prisma.formTemplate.findMany({
+    where: { type: { in: intakeOrder }, isActive: true },
+  });
+
+  if (templates.length === 0) return { error: "Intake form templates not found" };
+
+  try {
+    const pkg = await prisma.$transaction(async (tx) => {
+      const newPkg = await tx.formPackage.create({
+        data: {
+          customerName: customerName.trim(),
+          customerId: customerId || null,
+          sentByUserId: null, // self-service — no staff sender
+        },
+      });
+
+      for (let i = 0; i < intakeOrder.length; i++) {
+        const template = templates.find((t) => t.type === intakeOrder[i]);
+        if (!template) continue;
+        await tx.formSubmission.create({
+          data: {
+            templateId: template.id,
+            customerId: customerId || null,
+            customerName: customerName.trim(),
+            sentByUserId: null, // self-service
+            packageId: newPkg.id,
+            packageOrder: i,
+          },
+        });
+      }
+
+      return newPkg;
+    });
+
+    return { token: pkg.token };
+  } catch (e) {
+    console.error("createSelfServiceIntakePackage error:", e);
+    return { error: "Failed to create intake package" };
+  }
+}
+
 // ─── Public Actions (no auth required) ──────────────────────────────────────
 
 export async function completeFormSubmission(
@@ -455,6 +751,34 @@ export async function completeIntakeStep(
       where: { packageId: pkg.id },
       data: { customerId: newCustomer.id },
     });
+  } else if (submission.template.type === "NEW_PATIENT" && pkg.customerId) {
+    // Returning patient — update their info with any changes they made
+    const d = formData;
+    await prisma.customer.update({
+      where: { id: pkg.customerId },
+      data: {
+        firstName: String(d.firstName || ""),
+        lastName: String(d.lastName || ""),
+        email: d.email ? String(d.email) : undefined,
+        phone: d.phone ? String(d.phone).replace(/\D/g, "") : undefined,
+        dateOfBirth: d.dateOfBirth ? new Date(String(d.dateOfBirth)) : undefined,
+        gender: d.gender ? (String(d.gender) as Gender) : undefined,
+        address: d.address ? String(d.address) : undefined,
+        city: d.city ? String(d.city) : undefined,
+        province: d.province ? String(d.province) : undefined,
+        postalCode: d.postalCode ? String(d.postalCode) : undefined,
+        hearAboutUs: d.hearAboutUs ? String(d.hearAboutUs) : undefined,
+        referredByName: d.referredByName ? String(d.referredByName) : undefined,
+        occupation: d.occupation ? String(d.occupation) : undefined,
+      },
+    });
+
+    if (pkg.status === "PENDING") {
+      await prisma.formPackage.update({
+        where: { id: pkg.id },
+        data: { status: "IN_PROGRESS" },
+      });
+    }
   } else if (pkg.status === "PENDING") {
     await prisma.formPackage.update({
       where: { id: pkg.id },

@@ -4,14 +4,23 @@ import { useState } from "react";
 import { completeFormSubmission } from "@/lib/actions/forms";
 import { useRouter } from "next/navigation";
 
+type InsurancePrefill = {
+  providerName: string;
+  policyNumber: string | null;
+  groupNumber: string | null;
+  memberId: string | null;
+  coverageType: string;
+};
+
 type Props = {
   token: string;
   prefillName?: string | null;
+  prefillInsurance?: InsurancePrefill | null;
   packageToken?: string;
   redirectUrl?: string;
 };
 
-export function InsuranceVerificationForm({ token, prefillName, packageToken, redirectUrl }: Props) {
+export function InsuranceVerificationForm({ token, prefillName, prefillInsurance, packageToken, redirectUrl }: Props) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -42,6 +51,12 @@ export function InsuranceVerificationForm({ token, prefillName, packageToken, re
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
+      {prefillInsurance && (
+        <div className="bg-teal-50 border border-teal-200 rounded-xl px-4 py-3 text-sm text-teal-700">
+          We&apos;ve filled in your insurance details from our records — please verify everything is up to date.
+        </div>
+      )}
+
       <div className="bg-white rounded-xl border border-gray-200 p-6 space-y-4">
         <h2 className="font-semibold text-gray-900">Patient Information</h2>
 
@@ -83,6 +98,7 @@ export function InsuranceVerificationForm({ token, prefillName, packageToken, re
           <input
             name="insuranceProviderName"
             required
+            defaultValue={prefillInsurance?.providerName ?? ""}
             placeholder="e.g. Sun Life, Green Shield, Manulife, OHIP"
             className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
           />
@@ -92,6 +108,7 @@ export function InsuranceVerificationForm({ token, prefillName, packageToken, re
           <label className="block text-sm font-medium text-gray-700 mb-1">Coverage Type</label>
           <select
             name="coverageType"
+            defaultValue={prefillInsurance?.coverageType ?? ""}
             className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
           >
             <option value="">— Select —</option>
@@ -107,6 +124,7 @@ export function InsuranceVerificationForm({ token, prefillName, packageToken, re
             <label className="block text-sm font-medium text-gray-700 mb-1">Policy Number</label>
             <input
               name="policyNumber"
+              defaultValue={prefillInsurance?.policyNumber ?? ""}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
             />
           </div>
@@ -114,6 +132,7 @@ export function InsuranceVerificationForm({ token, prefillName, packageToken, re
             <label className="block text-sm font-medium text-gray-700 mb-1">Group Number</label>
             <input
               name="groupNumber"
+              defaultValue={prefillInsurance?.groupNumber ?? ""}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
             />
           </div>
@@ -121,6 +140,7 @@ export function InsuranceVerificationForm({ token, prefillName, packageToken, re
             <label className="block text-sm font-medium text-gray-700 mb-1">Member ID</label>
             <input
               name="memberId"
+              defaultValue={prefillInsurance?.memberId ?? ""}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
             />
           </div>

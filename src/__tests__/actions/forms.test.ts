@@ -2,6 +2,18 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 import { mockSession } from "../mocks/session";
 import { makeFormData } from "../mocks/formdata";
 
+// Mock rate limiter for public actions
+vi.mock("@/lib/rate-limit", () => ({
+  checkRateLimit: vi.fn().mockReturnValue(true),
+  timingSafeDelay: vi.fn().mockResolvedValue(undefined),
+}));
+
+// Mock email module for intake link tests
+vi.mock("@/lib/email", () => ({
+  sendInvoiceEmail: vi.fn(),
+  sendIntakeEmail: vi.fn().mockResolvedValue({ id: "email-ok" }),
+}));
+
 async function getPrisma() {
   const { prisma } = await import("@/lib/prisma");
   return prisma as unknown as Record<string, Record<string, ReturnType<typeof vi.fn>>>;
@@ -574,5 +586,481 @@ describe("applyIntakePackage", () => {
     expect(result.error).toBeUndefined();
     expect(result.customerId).toBe("cust-1");
     expect(capturedAppliedAt).toBeInstanceOf(Date);
+  });
+});
+
+// ── lookupReturningPatient ─────────────────────────────────────────────────
+
+describe("lookupReturningPatient", () => {
+  it("returns error for short phone number", async () => {
+    const { lookupReturningPatient } = await import("@/lib/actions/forms");
+    const result = await lookupReturningPatient("123", "phone", "1990-01-15");
+    expect(result).toHaveProperty("error");
+    expect((result as { error: string }).error).toMatch(/10 digits/i);
+  });
+
+  it("returns error for invalid email", async () => {
+    const { lookupReturningPatient } = await import("@/lib/actions/forms");
+    const result = await lookupReturningPatient("bad", "email", "1990-01-15");
+    expect(result).toHaveProperty("error");
+    expect((result as { error: string }).error).toMatch(/invalid email/i);
+  });
+
+  it("returns error when DOB is missing", async () => {
+    const { lookupReturningPatient } = await import("@/lib/actions/forms");
+    const result = await lookupReturningPatient("6476485809", "phone", "");
+    expect(result).toHaveProperty("error");
+    expect((result as { error: string }).error).toMatch(/date of birth/i);
+  });
+
+  it("returns error when DOB format is invalid", async () => {
+    const { lookupReturningPatient } = await import("@/lib/actions/forms");
+    const result = await lookupReturningPatient("6476485809", "phone", "15-01-1990");
+    expect(result).toHaveProperty("error");
+    expect((result as { error: string }).error).toMatch(/date of birth/i);
+  });
+
+  it("returns notFound when customer not in DB", async () => {
+    const prisma = await getPrisma();
+    prisma.customer.findFirst.mockResolvedValue(null);
+
+    const { lookupReturningPatient } = await import("@/lib/actions/forms");
+    const result = await lookupReturningPatient("6476485809", "phone", "1990-01-15");
+    expect(result).toHaveProperty("notFound", true);
+  });
+
+  it("returns notFound when DOB does not match (prevents info leakage)", async () => {
+    const prisma = await getPrisma();
+    prisma.customer.findFirst.mockResolvedValue({
+      id: "cust-1",
+      firstName: "Jane",
+      lastName: "Doe",
+      email: "jane@test.com",
+      phone: "6476485809",
+      dateOfBirth: new Date("1990-01-15"),
+      gender: "FEMALE",
+      address: "123 Main St",
+      city: "Toronto",
+      province: "ON",
+      postalCode: "M1A 2B3",
+      occupation: "Teacher",
+      hearAboutUs: "GOOGLE",
+      isActive: true,
+      insurancePolicies: [],
+    });
+
+    const { lookupReturningPatient } = await import("@/lib/actions/forms");
+    // Phone matches but DOB is wrong — should return notFound, not an error
+    const result = await lookupReturningPatient("6476485809", "phone", "2000-06-01");
+    expect(result).toHaveProperty("notFound", true);
+  });
+
+  it("returns prefill data when phone + DOB both match", async () => {
+    const prisma = await getPrisma();
+    prisma.customer.findFirst.mockResolvedValue({
+      id: "cust-1",
+      firstName: "Jane",
+      lastName: "Doe",
+      email: "jane@test.com",
+      phone: "6476485809",
+      dateOfBirth: new Date("1990-01-15"),
+      gender: "FEMALE",
+      address: "123 Main St",
+      city: "Toronto",
+      province: "ON",
+      postalCode: "M1A 2B3",
+      occupation: "Teacher",
+      hearAboutUs: "GOOGLE",
+      isActive: true,
+      insurancePolicies: [
+        {
+          providerName: "Sun Life",
+          policyNumber: "SL-123",
+          groupNumber: "GRP-1",
+          memberId: "MEM-1",
+          coverageType: "VISION",
+        },
+      ],
+    });
+
+    const { lookupReturningPatient } = await import("@/lib/actions/forms");
+    const result = await lookupReturningPatient("6476485809", "phone", "1990-01-15");
+
+    expect(result).toHaveProperty("prefill");
+    const prefill = (result as { prefill: Record<string, unknown> }).prefill;
+    expect(prefill.firstName).toBe("Jane");
+    expect(prefill.lastName).toBe("Doe");
+    expect(prefill.customerId).toBe("cust-1");
+    expect(prefill.insurance).toMatchObject({ providerName: "Sun Life" });
+  });
+
+  it("returns prefill with null insurance when none exists", async () => {
+    const prisma = await getPrisma();
+    prisma.customer.findFirst.mockResolvedValue({
+      id: "cust-2",
+      firstName: "Bob",
+      lastName: "Smith",
+      email: "bob@test.com",
+      phone: null,
+      dateOfBirth: new Date("1985-03-20"),
+      gender: null,
+      address: null,
+      city: null,
+      province: null,
+      postalCode: null,
+      occupation: null,
+      hearAboutUs: null,
+      isActive: true,
+      insurancePolicies: [],
+    });
+
+    const { lookupReturningPatient } = await import("@/lib/actions/forms");
+    const result = await lookupReturningPatient("bob@test.com", "email", "1985-03-20");
+
+    expect(result).toHaveProperty("prefill");
+    const prefill = (result as { prefill: Record<string, unknown> }).prefill;
+    expect(prefill.firstName).toBe("Bob");
+    expect(prefill.insurance).toBeNull();
+  });
+
+  it("returns error when rate limited", async () => {
+    const { checkRateLimit } = await import("@/lib/rate-limit");
+    vi.mocked(checkRateLimit).mockReturnValueOnce(false);
+
+    const { lookupReturningPatient } = await import("@/lib/actions/forms");
+    const result = await lookupReturningPatient("6476485809", "phone", "1990-01-15");
+    expect(result).toHaveProperty("error");
+    expect((result as { error: string }).error).toMatch(/too many/i);
+
+    // Reset the mock back to default
+    vi.mocked(checkRateLimit).mockReturnValue(true);
+  });
+});
+
+// ── createSelfServiceIntakePackage ──────────────────────────────────────────
+
+describe("createSelfServiceIntakePackage", () => {
+  it("returns error when name is empty", async () => {
+    const { createSelfServiceIntakePackage } = await import("@/lib/actions/forms");
+    const result = await createSelfServiceIntakePackage("  ");
+    expect(result).toHaveProperty("error");
+  });
+
+  it("returns error when no templates found", async () => {
+    const prisma = await getPrisma();
+    prisma.formTemplate.findMany.mockResolvedValue([]);
+
+    const { createSelfServiceIntakePackage } = await import("@/lib/actions/forms");
+    const result = await createSelfServiceIntakePackage("John Doe");
+    expect(result).toHaveProperty("error");
+    expect((result as { error: string }).error).toMatch(/not found/i);
+  });
+
+  it("creates package with sentByUserId=null and returns token", async () => {
+    const prisma = await getPrisma();
+    prisma.formTemplate.findMany.mockResolvedValue([
+      { id: "t1", type: "NEW_PATIENT" },
+      { id: "t2", type: "HIPAA_CONSENT" },
+      { id: "t3", type: "INSURANCE_VERIFICATION" },
+    ]);
+
+    let capturedPkgData: Record<string, unknown> | null = null;
+    let submissionCount = 0;
+
+    (prisma as any).$transaction.mockImplementation(async (fn: (tx: unknown) => unknown) => {
+      const txMock = {
+        formPackage: {
+          create: vi.fn().mockImplementation((args: { data: Record<string, unknown> }) => {
+            capturedPkgData = args.data;
+            return Promise.resolve({ id: "pkg-self-1", token: "self-token-1" });
+          }),
+        },
+        formSubmission: {
+          create: vi.fn().mockImplementation(() => {
+            submissionCount++;
+            return Promise.resolve({ id: `sub-${submissionCount}` });
+          }),
+        },
+      };
+      return fn(txMock);
+    });
+
+    const { createSelfServiceIntakePackage } = await import("@/lib/actions/forms");
+    const result = await createSelfServiceIntakePackage("Jane Doe", "cust-returning");
+
+    expect(result).toHaveProperty("token", "self-token-1");
+    expect(capturedPkgData!["sentByUserId"]).toBeNull();
+    expect(capturedPkgData!["customerId"]).toBe("cust-returning");
+    expect(submissionCount).toBe(3);
+  });
+
+  it("works without customerId (new patient self-service)", async () => {
+    const prisma = await getPrisma();
+    prisma.formTemplate.findMany.mockResolvedValue([
+      { id: "t1", type: "NEW_PATIENT" },
+      { id: "t2", type: "HIPAA_CONSENT" },
+      { id: "t3", type: "INSURANCE_VERIFICATION" },
+    ]);
+
+    let capturedPkgData: Record<string, unknown> | null = null;
+
+    (prisma as any).$transaction.mockImplementation(async (fn: (tx: unknown) => unknown) => {
+      const txMock = {
+        formPackage: {
+          create: vi.fn().mockImplementation((args: { data: Record<string, unknown> }) => {
+            capturedPkgData = args.data;
+            return Promise.resolve({ id: "pkg-new-1", token: "new-token-1" });
+          }),
+        },
+        formSubmission: { create: vi.fn().mockResolvedValue({ id: "sub-x" }) },
+      };
+      return fn(txMock);
+    });
+
+    const { createSelfServiceIntakePackage } = await import("@/lib/actions/forms");
+    const result = await createSelfServiceIntakePackage("New Patient");
+
+    expect(result).toHaveProperty("token", "new-token-1");
+    expect(capturedPkgData!["sentByUserId"]).toBeNull();
+    expect(capturedPkgData!["customerId"]).toBeNull();
+  });
+});
+
+// ── completeIntakeStep returning patient update ─────────────────────────────
+
+describe("completeIntakeStep — returning patient update", () => {
+  it("updates existing customer when NEW_PATIENT form submitted with pkg.customerId set", async () => {
+    const prisma = await getPrisma();
+    prisma.formPackage.findUnique
+      .mockResolvedValueOnce({
+        id: "pkg-ret",
+        token: "pkg-ret-token",
+        customerId: "cust-returning-1",
+        customerName: "Jane Doe",
+        status: "PENDING",
+        submissions: [
+          { id: "sub-ret-1", token: "sub-ret-token", status: "PENDING", packageOrder: 0, template: { type: "NEW_PATIENT" } },
+          { id: "sub-ret-2", token: "sub-ret-token-2", status: "PENDING", packageOrder: 1, template: { type: "HIPAA_CONSENT" } },
+        ],
+      })
+      .mockResolvedValueOnce({ id: "pkg-ret", customerId: "cust-returning-1" });
+
+    prisma.formSubmission.update.mockResolvedValue({});
+    prisma.customer.update.mockResolvedValue({});
+    prisma.formPackage.update.mockResolvedValue({});
+    prisma.formSubmission.findMany.mockResolvedValue([
+      { token: "sub-ret-token", status: "COMPLETED" },
+      { token: "sub-ret-token-2", status: "PENDING" },
+    ]);
+
+    const { completeIntakeStep } = await import("@/lib/actions/forms");
+    const result = await completeIntakeStep("pkg-ret-token", "sub-ret-token", {
+      firstName: "Jane",
+      lastName: "Smith", // name changed
+      email: "jane.new@test.com",
+      phone: "4165551234",
+    });
+
+    expect(result.error).toBeUndefined();
+    // Should update existing customer, NOT create new one
+    expect(prisma.customer.create).not.toHaveBeenCalled();
+    expect(prisma.customer.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: "cust-returning-1" },
+        data: expect.objectContaining({
+          firstName: "Jane",
+          lastName: "Smith",
+        }),
+      })
+    );
+  });
+});
+
+// ── sendIntakeLinkEmail ──────────────────────────────────────────────────────
+
+describe("sendIntakeLinkEmail", () => {
+  it("returns error when customer not found", async () => {
+    const prisma = await getPrisma();
+    prisma.customer.findUnique.mockResolvedValue(null);
+
+    const { sendIntakeLinkEmail } = await import("@/lib/actions/forms");
+    const result = await sendIntakeLinkEmail("cust-missing");
+    expect(result).toHaveProperty("error");
+    expect((result as { error: string }).error).toMatch(/not found/i);
+  });
+
+  it("returns error when customer has no email", async () => {
+    const prisma = await getPrisma();
+    prisma.customer.findUnique.mockResolvedValue({
+      id: "cust-1",
+      firstName: "Jane",
+      lastName: "Doe",
+      email: null,
+    });
+
+    const { sendIntakeLinkEmail } = await import("@/lib/actions/forms");
+    const result = await sendIntakeLinkEmail("cust-1");
+    expect(result).toHaveProperty("error");
+    expect((result as { error: string }).error).toMatch(/no email/i);
+  });
+
+  it("returns error when no intake templates found", async () => {
+    const prisma = await getPrisma();
+    prisma.customer.findUnique.mockResolvedValue({
+      id: "cust-1",
+      firstName: "Jane",
+      lastName: "Doe",
+      email: "jane@test.com",
+    });
+    prisma.formTemplate.findMany.mockResolvedValue([]);
+
+    const { sendIntakeLinkEmail } = await import("@/lib/actions/forms");
+    const result = await sendIntakeLinkEmail("cust-1");
+    expect(result).toHaveProperty("error");
+    expect((result as { error: string }).error).toMatch(/not found/i);
+  });
+
+  it("creates package, sends email, returns token on success", async () => {
+    const prisma = await getPrisma();
+    prisma.customer.findUnique.mockResolvedValue({
+      id: "cust-1",
+      firstName: "Jane",
+      lastName: "Doe",
+      email: "jane@test.com",
+    });
+    prisma.formTemplate.findMany.mockResolvedValue([
+      { id: "t1", type: "NEW_PATIENT" },
+      { id: "t2", type: "HIPAA_CONSENT" },
+      { id: "t3", type: "INSURANCE_VERIFICATION" },
+    ]);
+
+    (prisma as any).$transaction.mockImplementation(async (fn: (tx: unknown) => unknown) => {
+      const txMock = {
+        formPackage: {
+          create: vi.fn().mockResolvedValue({ id: "pkg-email-1", token: "email-pkg-token" }),
+        },
+        formSubmission: {
+          create: vi.fn().mockResolvedValue({ id: "sub-x" }),
+        },
+      };
+      return fn(txMock);
+    });
+
+    const { sendIntakeEmail } = await import("@/lib/email");
+    vi.mocked(sendIntakeEmail).mockResolvedValue({ id: "email-ok" } as any);
+
+    const { sendIntakeLinkEmail } = await import("@/lib/actions/forms");
+    const result = await sendIntakeLinkEmail("cust-1");
+
+    expect(result).toHaveProperty("token", "email-pkg-token");
+    expect(sendIntakeEmail).toHaveBeenCalledWith(
+      expect.objectContaining({
+        to: "jane@test.com",
+        customerName: "Jane Doe",
+      })
+    );
+  });
+
+  it("returns error when email send fails", async () => {
+    const prisma = await getPrisma();
+    prisma.customer.findUnique.mockResolvedValue({
+      id: "cust-1",
+      firstName: "Jane",
+      lastName: "Doe",
+      email: "jane@test.com",
+    });
+    prisma.formTemplate.findMany.mockResolvedValue([
+      { id: "t1", type: "NEW_PATIENT" },
+      { id: "t2", type: "HIPAA_CONSENT" },
+      { id: "t3", type: "INSURANCE_VERIFICATION" },
+    ]);
+
+    (prisma as any).$transaction.mockImplementation(async (fn: (tx: unknown) => unknown) => {
+      const txMock = {
+        formPackage: {
+          create: vi.fn().mockResolvedValue({ id: "pkg-2", token: "tok-2" }),
+        },
+        formSubmission: {
+          create: vi.fn().mockResolvedValue({ id: "sub-x" }),
+        },
+      };
+      return fn(txMock);
+    });
+
+    const { sendIntakeEmail } = await import("@/lib/email");
+    vi.mocked(sendIntakeEmail).mockResolvedValue({ error: "API error" } as any);
+
+    const { sendIntakeLinkEmail } = await import("@/lib/actions/forms");
+    const result = await sendIntakeLinkEmail("cust-1");
+
+    expect(result).toHaveProperty("error");
+    expect((result as { error: string }).error).toMatch(/failed to send/i);
+  });
+});
+
+// ── createIntakeLinkForCustomer ──────────────────────────────────────────────
+
+describe("createIntakeLinkForCustomer", () => {
+  it("returns error when customer not found", async () => {
+    const prisma = await getPrisma();
+    prisma.customer.findUnique.mockResolvedValue(null);
+
+    const { createIntakeLinkForCustomer } = await import("@/lib/actions/forms");
+    const result = await createIntakeLinkForCustomer("cust-missing");
+    expect(result).toHaveProperty("error");
+    expect((result as { error: string }).error).toMatch(/not found/i);
+  });
+
+  it("returns error when no intake templates found", async () => {
+    const prisma = await getPrisma();
+    prisma.customer.findUnique.mockResolvedValue({
+      id: "cust-1",
+      firstName: "Jane",
+      lastName: "Doe",
+      email: null,
+    });
+    prisma.formTemplate.findMany.mockResolvedValue([]);
+
+    const { createIntakeLinkForCustomer } = await import("@/lib/actions/forms");
+    const result = await createIntakeLinkForCustomer("cust-1");
+    expect(result).toHaveProperty("error");
+    expect((result as { error: string }).error).toMatch(/not found/i);
+  });
+
+  it("creates package and returns token (no email required)", async () => {
+    const prisma = await getPrisma();
+    prisma.customer.findUnique.mockResolvedValue({
+      id: "cust-1",
+      firstName: "Bob",
+      lastName: "Smith",
+      email: null,
+    });
+    prisma.formTemplate.findMany.mockResolvedValue([
+      { id: "t1", type: "NEW_PATIENT" },
+      { id: "t2", type: "HIPAA_CONSENT" },
+      { id: "t3", type: "INSURANCE_VERIFICATION" },
+    ]);
+
+    let submissionCount = 0;
+    (prisma as any).$transaction.mockImplementation(async (fn: (tx: unknown) => unknown) => {
+      const txMock = {
+        formPackage: {
+          create: vi.fn().mockResolvedValue({ id: "pkg-link-1", token: "link-pkg-token" }),
+        },
+        formSubmission: {
+          create: vi.fn().mockImplementation(() => {
+            submissionCount++;
+            return Promise.resolve({ id: `sub-${submissionCount}` });
+          }),
+        },
+      };
+      return fn(txMock);
+    });
+
+    const { createIntakeLinkForCustomer } = await import("@/lib/actions/forms");
+    const result = await createIntakeLinkForCustomer("cust-1");
+
+    expect(result).toHaveProperty("token", "link-pkg-token");
+    expect(submissionCount).toBe(3);
   });
 });

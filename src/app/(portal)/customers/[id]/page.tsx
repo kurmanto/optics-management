@@ -3,7 +3,7 @@ import { verifySession } from "@/lib/dal";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { formatPhone, formatDate, formatCurrency, formatRxValue } from "@/lib/utils/formatters";
-import { ChevronLeft, Edit, Plus, FileText, PenLine, CheckCircle2, Clock, AlertTriangle, TrendingUp, Shield, Calendar, Glasses } from "lucide-react";
+import { ChevronLeft, Edit, Plus, FileText, PenLine, CheckCircle2, Clock, AlertTriangle, TrendingUp, Shield, Calendar, Glasses, Camera } from "lucide-react";
 import { OrderStatus, FormTemplateType } from "@prisma/client";
 import {
   computeCustomerType,
@@ -24,6 +24,8 @@ import { FamilyMembersCard } from "@/components/customers/FamilyMembersCard";
 import { ReferralCodeCard } from "@/components/customers/ReferralCodeCard";
 import { SavedFramesCard } from "@/components/customers/SavedFramesCard";
 import { QuickBookAppointment } from "@/components/customers/QuickBookAppointment";
+import { CurrentGlassesForm } from "@/components/customers/CurrentGlassesForm";
+import { SendIntakeLinkButton } from "@/components/customers/SendIntakeLinkButton";
 
 const FORM_TYPE_LABELS: Record<FormTemplateType, string> = {
   NEW_PATIENT: "New Patient Registration",
@@ -454,14 +456,62 @@ export default async function CustomerDetailPage({
           <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-5 space-y-5">
             <h2 className="font-semibold text-gray-900">Prescriptions</h2>
 
+            {/* Current Glasses Reading */}
+            {(() => {
+              const currentGlasses = customer.prescriptions.find(
+                (rx) => (rx as any).source === "CURRENT_GLASSES"
+              );
+              return (
+                <div>
+                  <div className="flex items-center gap-2 mb-3">
+                    <span className="text-xs font-semibold text-teal-700 bg-teal-100 px-2 py-0.5 rounded">Current Glasses Reading</span>
+                    <span className="text-xs text-gray-400">What they&apos;re wearing</span>
+                  </div>
+                  {currentGlasses ? (
+                    <div className="mb-3">
+                      <div className="flex items-center gap-3 mb-2">
+                        <p className="text-xs text-gray-400">{formatDate(currentGlasses.date)}</p>
+                        {(currentGlasses as any).externalImageUrl && (
+                          <a
+                            href={(currentGlasses as any).externalImageUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1 text-xs text-indigo-600 hover:text-indigo-700 hover:underline"
+                          >
+                            <Camera className="w-3 h-3" />
+                            View photo
+                          </a>
+                        )}
+                      </div>
+                      <RxTable rx={currentGlasses} />
+                      {currentGlasses.notes && (
+                        <p className="mt-1 text-xs text-gray-500 italic">{currentGlasses.notes}</p>
+                      )}
+                    </div>
+                  ) : (
+                    <p className="text-xs text-gray-400 mb-2">No current glasses reading on file.</p>
+                  )}
+                  <details className="group">
+                    <summary className="cursor-pointer text-sm text-teal-600 font-medium hover:underline list-none flex items-center gap-1.5">
+                      <Plus className="w-3.5 h-3.5" />
+                      {currentGlasses ? "Update Reading" : "Record Reading"}
+                    </summary>
+                    <div className="mt-3 border-t border-gray-100 pt-4">
+                      <CurrentGlassesForm customerId={customer.id} />
+                    </div>
+                  </details>
+                </div>
+              );
+            })()}
+
             {/* Internal (Our) Prescriptions */}
-            {customer.prescriptions.filter((rx) => (rx as any).source !== "EXTERNAL").length > 0 && (
+            {customer.prescriptions.filter((rx) => (rx as any).source === "INTERNAL").length > 0 && (
               <div>
                 <div className="flex items-center gap-2 mb-3">
                   <span className="text-xs font-semibold text-blue-700 bg-blue-100 px-2 py-0.5 rounded">Our Prescriptions</span>
                 </div>
                 {customer.prescriptions
-                  .filter((rx) => (rx as any).source !== "EXTERNAL")
+                  .filter((rx) => (rx as any).source === "INTERNAL")
                   .slice(0, 1)
                   .map((rx) => (
                     <div key={rx.id}>
@@ -642,12 +692,20 @@ export default async function CustomerDetailPage({
                 <FileText className="w-4 h-4 text-gray-400" />
                 Forms & Documents ({customer.formSubmissions.length})
               </h2>
-              <Link
-                href={`/forms?customerId=${customer.id}`}
-                className="text-xs text-primary hover:underline font-medium"
-              >
-                Send form
-              </Link>
+              <div className="flex items-center gap-3">
+                <SendIntakeLinkButton
+                  customerId={customer.id}
+                  customerName={`${customer.firstName} ${customer.lastName}`}
+                  customerEmail={customer.email}
+                  baseUrl={process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}
+                />
+                <Link
+                  href={`/forms?customerId=${customer.id}`}
+                  className="text-xs text-primary hover:underline font-medium"
+                >
+                  Send form
+                </Link>
+              </div>
             </div>
 
             {customer.formSubmissions.length === 0 ? (
