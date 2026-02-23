@@ -5,7 +5,23 @@
 
 ---
 
-## Current Version: V2.5.0 — PHIPA/PIPEDA Compliance (Security & Audit)
+## Current Version: V2.5.1 — Post-Purchase Campaign Enrollment
+
+---
+
+### V2.5.1 — Post-Purchase Campaign Enrollment (Complete)
+
+| Feature | Status | Notes |
+|---------|--------|-------|
+| Referral campaign enrollment at pickup | ✅ Complete | `handlePickupComplete` upserts `CampaignRecipient` for active `POST_PURCHASE_REFERRAL` campaign when toggle is checked |
+| Family promo enrollment at pickup | ✅ Complete | Upserts `CampaignRecipient` for active `FAMILY_ADDON` campaign for each linked family member (purchaser excluded) |
+| Graceful degradation (no active campaign) | ✅ Complete | Silently skips enrollment if no active campaign of the target type exists; pickup never fails |
+| Fire-and-forget pattern | ✅ Complete | Enrollment runs after transaction; campaign DB errors never block pickup confirmation |
+| Unit tests (445 total, 31 files) | ✅ Complete | +4 tests: referral happy path, no-active-campaign skip, family member enrollment, no-op both-off |
+
+---
+
+## Previous Version: V2.5.0 — PHIPA/PIPEDA Compliance (Security & Audit)
 
 ---
 

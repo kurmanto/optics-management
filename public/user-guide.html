@@ -637,6 +637,7 @@
   <a href="#campaign-recipients" class="sub-link">Recipients & Segments</a>
   <a href="#campaign-analytics" class="sub-link">Analytics</a>
   <a href="#campaign-scheduler" class="sub-link">Automatic Scheduler</a>
+  <a href="#campaign-pickup-enrollment" class="sub-link">Post-Purchase Enrollment</a>
 
   <a href="#section-phase12" class="section-link">11. Phase 1 &amp; 2 Features</a>
   <a href="#eye-exam-flow" class="sub-link">Eye Exam Sub-flow</a>
@@ -1324,8 +1325,8 @@
 
   <ul>
     <li><strong>Send review request</strong> — SMS the patient a link to leave a Google review. Auto-recommended for orders over $500.</li>
-    <li><strong>Add to referral campaign</strong> — enroll the patient in the referral campaign (starts in 3 days).</li>
-    <li><strong>Send family promo offer</strong> — appears only if the patient has linked family members; sends a special offer to their family (starts in 7 days).</li>
+    <li><strong>Add to referral campaign</strong> — immediately enrolls the patient in the active <em>Post Purchase Referral</em> campaign (first message sent in 3 days).</li>
+    <li><strong>Send family promo offer</strong> — appears only if the patient has linked family members; immediately enrolls each family member in the active <em>Family Add-on</em> campaign (starts in 7 days).</li>
     <li><strong>Mark as low-value</strong> — opts this patient out of all future marketing campaigns.</li>
     <li><strong>Print invoice</strong> <span class="badge badge-green">Recommended</span> — opens the invoice in a new browser tab and <strong>prints automatically</strong> after a brief delay. Checked by default.</li>
   </ul>
@@ -2089,6 +2090,26 @@
 
   <div class="box box-tip">
     <strong>Opt-Out Handling:</strong> Any patient with <em>Marketing Opt-Out</em> enabled is automatically skipped. Patients without a phone number are skipped for SMS steps; patients without an email are skipped for email steps.
+  </div>
+
+  <h2 id="campaign-pickup-enrollment">10.8 Post-Purchase Enrollment at Pickup</h2>
+  <p>When staff click <strong>"Confirm Pickup"</strong> in the Pickup Complete modal, the system automatically enrolls patients into campaigns based on the toggles selected — no manual campaign management needed.</p>
+
+  <h3>How It Works</h3>
+  <ul>
+    <li><strong>Referral toggle checked</strong> — the system finds your active <em>Post Purchase Referral</em> campaign and immediately creates a recipient record for the purchasing patient (step 0, status Active). The first referral message goes out 3 days later per the campaign schedule.</li>
+    <li><strong>Family promo toggle checked</strong> — the system finds your active <em>Family Add-on</em> campaign and enrolls each linked family member (the purchaser themselves is excluded). Useful for nudging a spouse or child to come in.</li>
+  </ul>
+
+  <h3>Prerequisites</h3>
+  <ul>
+    <li>The relevant campaign must exist and have status <strong>Active</strong>. If no active campaign of that type exists, the toggle is silently ignored — the pickup still completes normally.</li>
+    <li>For family promo, the patient must have family members linked on their profile (see Customer → Family Linking).</li>
+    <li>Patients with <strong>Marketing Opt-Out</strong> enabled are never enrolled, even if the toggle is checked.</li>
+  </ul>
+
+  <div class="box box-tip">
+    <strong>Tip:</strong> Create and activate your <em>Post Purchase Referral</em> and <em>Family Add-on</em> campaigns once — then the pickup flow handles enrollment for every order automatically. You can view and manage enrolled recipients from the campaign detail page.
   </div>
 </section>
 
