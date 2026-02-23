@@ -8,6 +8,9 @@ import { test, expect } from "@playwright/test";
 // These tests run WITHOUT pre-authenticated state
 test.use({ storageState: { cookies: [], origins: [] } });
 
+// Serial: login tests increment failedLoginAttempts; keep sequential to avoid
+// unexpected lockout if multiple wrong-password tests race.
+test.describe.configure({ mode: "serial" });
 test.describe("Login Page @smoke", () => {
   test.beforeEach(async ({ page }) => {
     await page.goto("/login");
