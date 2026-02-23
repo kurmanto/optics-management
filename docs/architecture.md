@@ -82,15 +82,16 @@ optics_boutique/
 │   │   ├── (forms)/                            # Public — no auth required
 │   │   │   ├── f/[token]/page.tsx              # Individual form fill
 │   │   │   ├── f/[token]/success/page.tsx
-│   │   │   └── intake/[token]/page.tsx         # Sequential intake flow
+│   │   │   ├── intake/[token]/page.tsx         # Sequential intake flow
+│   │   │   └── intake/start/page.tsx          # Self-service intake entry point
 │   │   ├── layout.tsx
 │   │   └── page.tsx           # Redirects to /dashboard
 │   ├── components/
 │   │   ├── auth/              # LoginForm, ChangePasswordForm
-│   │   ├── customers/         # CustomerForm, MedicalHistoryForm, ExternalPrescriptionUpload, StoreCreditManager
+│   │   ├── customers/         # CustomerForm, MedicalHistoryForm, ExternalPrescriptionUpload, StoreCreditManager, CurrentGlassesForm
 │   │   ├── appointments/      # AppointmentCalendar, AppointmentCard, AppointmentActions, BookAppointmentModal
 │   │   ├── forms/             # FormsHub, SendFormModal, IntakePackageModal, InPersonIntakeButton
-│   │   │   └── public/        # NewPatientForm, HipaaConsentForm, InsuranceVerificationForm, FrameRepairWaiverForm, SignaturePad
+│   │   │   └── public/        # NewPatientForm, HipaaConsentForm, InsuranceVerificationForm, FrameRepairWaiverForm, SignaturePad, IntakeStartClient
 │   │   ├── inventory/         # InventoryForm, VendorForm, PurchaseOrderForm, POStatusButtons, ReceivingWorkflow
 │   │   ├── layout/            # Sidebar, Header
 │   │   ├── orders/            # KanbanBoard, NewOrderWizard, OrderStatusActions, WorkOrderView, PickupCompleteModal
@@ -130,10 +131,12 @@ optics_boutique/
 │   │   ├── audit.ts           # logAudit() — fire-and-forget audit writer
 │   │   ├── auth.ts            # Session create/verify/destroy
 │   │   ├── dal.ts             # verifySession(), verifyRole(), verifyAdmin()
+│   │   ├── rate-limit.ts      # In-memory sliding window rate limiter (checkRateLimit, timingSafeDelay)
 │   │   └── prisma.ts          # Prisma singleton
 │   ├── middleware.ts           # Route guard
 │   ├── types/
-│   │   └── appointment.ts     # CalendarAppointment type, label/color maps, calendar constants
+│   │   ├── appointment.ts     # CalendarAppointment type, label/color maps, calendar constants
+│   │   └── forms.ts           # ReturningPatientPrefill type
 └── docs/
 ```
 

@@ -4,6 +4,7 @@ import { mockSession } from "../mocks/session";
 // Mock the Resend email service
 vi.mock("@/lib/email", () => ({
   sendInvoiceEmail: vi.fn(),
+  sendIntakeEmail: vi.fn(),
 }));
 
 async function getPrisma() {

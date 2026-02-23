@@ -6,6 +6,41 @@ Format: `[Version] — Date`
 
 ---
 
+## [2.6.0] — 2026-02-23
+
+### Added — Smart Intake Form + Current Glasses Reading
+
+#### Feature 1: Smart Intake Form (Self-Service Patient Onboarding)
+- New universal `/intake/start` public route — shareable link for SMS, website, QR code in-store
+- Patients choose "New Patient" or "Returning Patient" from a clean two-card choice screen
+- **Returning patient phone/email lookup** — `lookupReturningPatient` action with rate limiting (5 per identifier / 10 per IP per 15 min) and 500ms timing-safe delay to prevent enumeration
+- Email fallback: if phone lookup fails, option to "Try with email" before falling back to new patient flow
+- **Pre-fill existing data** — returning patient's name, contact, address, and insurance fields auto-populate into the intake forms
+- `createSelfServiceIntakePackage` action creates FormPackage + 3 submissions with `sentByUserId: null`
+- **Returning patient update** — `completeIntakeStep` now updates existing customer record (instead of creating duplicate) when `pkg.customerId` is already set
+- `sentByUserId` made nullable on both `FormPackage` and `FormSubmission` models — self-service packages have no staff sender
+- View pages (`/forms/[id]`, `/forms/review/[packageId]`) show "Self-service" when `sentBy` is null
+- New files: `src/lib/rate-limit.ts`, `src/lib/types/forms.ts`, `src/app/(forms)/intake/start/page.tsx`, `src/components/forms/public/IntakeStartClient.tsx`
+
+#### Feature 2: Current Glasses Reading (Lensometer Rx)
+- New `CURRENT_GLASSES` value added to `PrescriptionSource` enum — records the Rx of lenses a patient is currently wearing
+- `recordCurrentGlassesReading` server action — STAFF role, uses `$transaction` to deactivate previous CURRENT_GLASSES records then create new one
+- New `CurrentGlassesForm` component — date, OD/OS table (SPH/CYL/AXIS/ADD), PD binocular, optional camera photo upload (lensometer), notes
+- New teal "Current Glasses Reading" section on customer detail page, displayed above "Our Prescriptions"
+- Fixed prescription filter: "Our Prescriptions" section now uses `source === "INTERNAL"` (was `source !== "EXTERNAL"`) to correctly exclude CURRENT_GLASSES
+- Photo upload reuses existing `uploadPrescriptionScanAction` (Supabase)
+
+#### Tests
+- 29 new tests added: `lookupReturningPatient` (5), `createSelfServiceIntakePackage` (4), `completeIntakeStep` returning patient (1), rate limiting (1), `recordCurrentGlassesReading` (5), rate-limit utility (4), plus coverage for prefill flows
+- **470 tests, 32 files** — all passing
+
+#### Schema Changes
+- `PrescriptionSource` enum: added `CURRENT_GLASSES`
+- `FormPackage.sentByUserId`: `String` → `String?` (nullable)
+- `FormSubmission.sentByUserId`: `String` → `String?` (nullable)
+
+---
+
 ## [2.5.1] — 2026-02-23
 
 ### Fixed — Post-Purchase Campaign Enrollment (Pickup Flow)

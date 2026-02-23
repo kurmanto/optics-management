@@ -4,25 +4,26 @@ import { useState } from "react";
 import { completeFormSubmission } from "@/lib/actions/forms";
 import { useRouter } from "next/navigation";
 import { SignaturePad } from "./SignaturePad";
+import type { ReturningPatientPrefill } from "@/lib/types/forms";
 
 type Props = {
   token: string;
   prefillName?: string | null;
+  prefillData?: ReturningPatientPrefill | null;
   packageToken?: string;
   redirectUrl?: string;
 };
 
-export function NewPatientForm({ token, prefillName, packageToken, redirectUrl }: Props) {
+export function NewPatientForm({ token, prefillName, prefillData, packageToken, redirectUrl }: Props) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [signature, setSignature] = useState<string | null>(null);
   const [sigError, setSigError] = useState(false);
-  const [hearAboutUs, setHearAboutUs] = useState("");
+  const [hearAboutUs, setHearAboutUs] = useState(prefillData?.hearAboutUs ?? "");
 
-  const nameParts = prefillName?.split(" ") ?? [];
-  const prefillFirst = nameParts[0] ?? "";
-  const prefillLast = nameParts.slice(1).join(" ") ?? "";
+  const prefillFirst = prefillData?.firstName ?? (prefillName?.split(" ")[0] ?? "");
+  const prefillLast = prefillData?.lastName ?? (prefillName?.split(" ").slice(1).join(" ") ?? "");
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -58,6 +59,12 @@ export function NewPatientForm({ token, prefillName, packageToken, redirectUrl }
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
+      {prefillData && (
+        <div className="bg-teal-50 border border-teal-200 rounded-xl px-4 py-3 text-sm text-teal-700">
+          Welcome back, {prefillData.firstName}! We&apos;ve filled in your info — please review and update anything that&apos;s changed.
+        </div>
+      )}
+
       <div className="bg-white rounded-xl border border-gray-200 p-6 space-y-4">
         <h2 className="font-semibold text-gray-900">Personal Information</h2>
 
@@ -92,6 +99,7 @@ export function NewPatientForm({ token, prefillName, packageToken, redirectUrl }
             <input
               name="email"
               type="email"
+              defaultValue={prefillData?.email ?? ""}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
             />
           </div>
@@ -100,6 +108,7 @@ export function NewPatientForm({ token, prefillName, packageToken, redirectUrl }
             <input
               name="phone"
               type="tel"
+              defaultValue={prefillData?.phone ?? ""}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
             />
           </div>
@@ -111,6 +120,7 @@ export function NewPatientForm({ token, prefillName, packageToken, redirectUrl }
             <input
               name="dateOfBirth"
               type="date"
+              defaultValue={prefillData?.dateOfBirth ?? ""}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
             />
           </div>
@@ -118,6 +128,7 @@ export function NewPatientForm({ token, prefillName, packageToken, redirectUrl }
             <label className="block text-sm font-medium text-gray-700 mb-1">Gender</label>
             <select
               name="gender"
+              defaultValue={prefillData?.gender ?? ""}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
             >
               <option value="">Prefer not to say</option>
@@ -137,6 +148,7 @@ export function NewPatientForm({ token, prefillName, packageToken, redirectUrl }
           <label className="block text-sm font-medium text-gray-700 mb-1">Street Address</label>
           <input
             name="address"
+            defaultValue={prefillData?.address ?? ""}
             className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
           />
         </div>
@@ -146,6 +158,7 @@ export function NewPatientForm({ token, prefillName, packageToken, redirectUrl }
             <label className="block text-sm font-medium text-gray-700 mb-1">City</label>
             <input
               name="city"
+              defaultValue={prefillData?.city ?? ""}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
             />
           </div>
@@ -153,6 +166,7 @@ export function NewPatientForm({ token, prefillName, packageToken, redirectUrl }
             <label className="block text-sm font-medium text-gray-700 mb-1">Province</label>
             <select
               name="province"
+              defaultValue={prefillData?.province ?? ""}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
             >
               <option value="">—</option>
@@ -165,6 +179,7 @@ export function NewPatientForm({ token, prefillName, packageToken, redirectUrl }
             <label className="block text-sm font-medium text-gray-700 mb-1">Postal Code</label>
             <input
               name="postalCode"
+              defaultValue={prefillData?.postalCode ?? ""}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
             />
           </div>

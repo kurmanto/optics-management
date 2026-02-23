@@ -405,6 +405,80 @@ export async function uploadPrescriptionScanAction(
   }
 }
 
+// ─── Current Glasses Reading ─────────────────────────────────────────────────
+
+type CurrentGlassesInput = {
+  customerId: string;
+  date?: string;
+  odSphere?: number;
+  odCylinder?: number;
+  odAxis?: number;
+  odAdd?: number;
+  osSphere?: number;
+  osCylinder?: number;
+  osAxis?: number;
+  osAdd?: number;
+  pdBinocular?: number;
+  notes?: string;
+  imageUrl?: string;
+};
+
+export async function recordCurrentGlassesReading(
+  input: CurrentGlassesInput
+): Promise<{ id: string } | { error: string }> {
+  const session = await verifyRole("STAFF");
+
+  if (!input.customerId) return { error: "Customer ID is required" };
+
+  try {
+    const prescription = await prisma.$transaction(async (tx) => {
+      // Deactivate any previous CURRENT_GLASSES readings for this customer
+      await tx.prescription.updateMany({
+        where: {
+          customerId: input.customerId,
+          source: PrescriptionSource.CURRENT_GLASSES,
+          isActive: true,
+        },
+        data: { isActive: false },
+      });
+
+      // Create new current glasses reading
+      return tx.prescription.create({
+        data: {
+          customerId: input.customerId,
+          source: PrescriptionSource.CURRENT_GLASSES,
+          type: "GLASSES",
+          date: input.date ? new Date(input.date) : new Date(),
+          odSphere: input.odSphere ?? null,
+          odCylinder: input.odCylinder ?? null,
+          odAxis: input.odAxis ?? null,
+          odAdd: input.odAdd ?? null,
+          osSphere: input.osSphere ?? null,
+          osCylinder: input.osCylinder ?? null,
+          osAxis: input.osAxis ?? null,
+          osAdd: input.osAdd ?? null,
+          pdBinocular: input.pdBinocular ?? null,
+          notes: input.notes || null,
+          externalImageUrl: input.imageUrl || null,
+        },
+      });
+    });
+
+    void logAudit({
+      userId: session.id,
+      action: "CREATE",
+      model: "Prescription",
+      recordId: prescription.id,
+      changes: { after: { source: "CURRENT_GLASSES", customerId: input.customerId } },
+    });
+    revalidatePath(`/customers/${input.customerId}`);
+    return { id: prescription.id };
+  } catch (e) {
+    console.error(e);
+    return { error: "Failed to save current glasses reading" };
+  }
+}
+
 type ExternalPrescriptionInput = {
   customerId: string;
   doctorName?: string;

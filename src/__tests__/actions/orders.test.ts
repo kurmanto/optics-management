@@ -746,3 +746,117 @@ describe("handlePickupComplete — campaign enrollment", () => {
     expect(prisma.campaignRecipient.upsert).not.toHaveBeenCalled();
   });
 });
+
+// ── recordCurrentGlassesReading ─────────────────────────────────────────────
+
+describe("recordCurrentGlassesReading", () => {
+  it("returns error when customerId is missing", async () => {
+    const { recordCurrentGlassesReading } = await import("@/lib/actions/orders");
+    const result = await recordCurrentGlassesReading({ customerId: "" });
+    expect("error" in result).toBe(true);
+    if ("error" in result) expect(result.error).toMatch(/customer/i);
+  });
+
+  it("deactivates previous CURRENT_GLASSES readings and creates new one", async () => {
+    const prisma = await getPrisma();
+
+    let deactivatedSource: string | null = null;
+    let createdSource: string | null = null;
+
+    (prisma as any).$transaction.mockImplementation(async (fn: (tx: unknown) => unknown) => {
+      const txMock = {
+        prescription: {
+          updateMany: vi.fn().mockImplementation((args: { where: { source: string } }) => {
+            deactivatedSource = args.where.source;
+            return Promise.resolve({ count: 1 });
+          }),
+          create: vi.fn().mockImplementation((args: { data: { source: string } }) => {
+            createdSource = args.data.source;
+            return Promise.resolve({ id: "rx-current-1" });
+          }),
+        },
+      };
+      return fn(txMock);
+    });
+
+    const { recordCurrentGlassesReading } = await import("@/lib/actions/orders");
+    const result = await recordCurrentGlassesReading({
+      customerId: "cust-1",
+      odSphere: -2.5,
+      osCylinder: -1.25,
+      osAxis: 90,
+      pdBinocular: 63,
+    });
+
+    expect("id" in result).toBe(true);
+    if ("id" in result) expect(result.id).toBe("rx-current-1");
+    expect(deactivatedSource).toBe("CURRENT_GLASSES");
+    expect(createdSource).toBe("CURRENT_GLASSES");
+  });
+
+  it("uses today's date when date not provided", async () => {
+    const prisma = await getPrisma();
+
+    let capturedDate: Date | null = null;
+
+    (prisma as any).$transaction.mockImplementation(async (fn: (tx: unknown) => unknown) => {
+      const txMock = {
+        prescription: {
+          updateMany: vi.fn().mockResolvedValue({ count: 0 }),
+          create: vi.fn().mockImplementation((args: { data: { date: Date } }) => {
+            capturedDate = args.data.date;
+            return Promise.resolve({ id: "rx-current-2" });
+          }),
+        },
+      };
+      return fn(txMock);
+    });
+
+    const before = new Date();
+    const { recordCurrentGlassesReading } = await import("@/lib/actions/orders");
+    await recordCurrentGlassesReading({ customerId: "cust-1" });
+    const after = new Date();
+
+    expect(capturedDate).toBeInstanceOf(Date);
+    expect(capturedDate!.getTime()).toBeGreaterThanOrEqual(before.getTime());
+    expect(capturedDate!.getTime()).toBeLessThanOrEqual(after.getTime());
+  });
+
+  it("returns error when transaction fails", async () => {
+    const prisma = await getPrisma();
+    (prisma as any).$transaction.mockRejectedValue(new Error("DB error"));
+
+    const { recordCurrentGlassesReading } = await import("@/lib/actions/orders");
+    const result = await recordCurrentGlassesReading({ customerId: "cust-1" });
+
+    expect("error" in result).toBe(true);
+    if ("error" in result) expect(result.error).toMatch(/failed/i);
+  });
+
+  it("stores imageUrl in externalImageUrl field", async () => {
+    const prisma = await getPrisma();
+
+    let capturedImageUrl: string | null = null;
+
+    (prisma as any).$transaction.mockImplementation(async (fn: (tx: unknown) => unknown) => {
+      const txMock = {
+        prescription: {
+          updateMany: vi.fn().mockResolvedValue({ count: 0 }),
+          create: vi.fn().mockImplementation((args: { data: { externalImageUrl: string | null } }) => {
+            capturedImageUrl = args.data.externalImageUrl;
+            return Promise.resolve({ id: "rx-current-3" });
+          }),
+        },
+      };
+      return fn(txMock);
+    });
+
+    const { recordCurrentGlassesReading } = await import("@/lib/actions/orders");
+    await recordCurrentGlassesReading({
+      customerId: "cust-1",
+      imageUrl: "https://cdn.example.com/lensometer.jpg",
+    });
+
+    expect(capturedImageUrl).toBe("https://cdn.example.com/lensometer.jpg");
+  });
+});

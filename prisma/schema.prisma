@@ -204,6 +204,7 @@ enum PrescriptionType {
 enum PrescriptionSource {
   INTERNAL
   EXTERNAL
+  CURRENT_GLASSES
 }
 
 // ─────────────────────────────────────────
@@ -1035,7 +1036,7 @@ model FormSubmission {
   templateId    String
   customerId    String?
   customerName  String?
-  sentByUserId  String
+  sentByUserId  String?
   status        FormStatus @default(PENDING)
   data          Json?
   signatureText String?
@@ -1049,7 +1050,7 @@ model FormSubmission {
 
   template FormTemplate @relation(fields: [templateId], references: [id])
   customer Customer?    @relation(fields: [customerId], references: [id])
-  sentBy   User         @relation(fields: [sentByUserId], references: [id])
+  sentBy   User?        @relation(fields: [sentByUserId], references: [id])
   package  FormPackage? @relation(fields: [packageId], references: [id])
 
   @@index([status])
@@ -1070,7 +1071,7 @@ model FormPackage {
   customerId    String?
   customerName  String?
   customerEmail String?
-  sentByUserId  String
+  sentByUserId  String?
   status        PackageStatus @default(PENDING)
   completedAt   DateTime?
   appliedAt     DateTime?
@@ -1079,7 +1080,7 @@ model FormPackage {
   updatedAt     DateTime      @updatedAt
 
   customer    Customer?       @relation(fields: [customerId], references: [id])
-  sentBy      User            @relation(fields: [sentByUserId], references: [id])
+  sentBy      User?           @relation(fields: [sentByUserId], references: [id])
   submissions FormSubmission[]
 
   @@index([customerId])

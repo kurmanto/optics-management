@@ -5,6 +5,7 @@ import { HipaaConsentForm } from "@/components/forms/public/HipaaConsentForm";
 import { InsuranceVerificationForm } from "@/components/forms/public/InsuranceVerificationForm";
 import { FormTemplateType } from "@prisma/client";
 import Link from "next/link";
+import type { ReturningPatientPrefill } from "@/lib/types/forms";
 
 const STEP_LABELS: Record<FormTemplateType, string> = {
   NEW_PATIENT: "New Patient Registration",
@@ -143,6 +144,52 @@ export default async function IntakePage({ params, searchParams }: Props) {
 
   const redirectUrl = `/intake/${token}`;
 
+  // Fetch prefill data for returning patients (customerId already linked)
+  let prefillData: ReturningPatientPrefill | null = null;
+  let prefillInsurance: { providerName: string; policyNumber: string | null; groupNumber: string | null; memberId: string | null; coverageType: string } | null = null;
+
+  if (pkg.customerId) {
+    const customer = await prisma.customer.findUnique({
+      where: { id: pkg.customerId },
+      include: {
+        insurancePolicies: {
+          where: { isActive: true },
+          take: 1,
+          orderBy: { createdAt: "desc" },
+        },
+      },
+    });
+
+    if (customer) {
+      const ins = customer.insurancePolicies[0] ?? null;
+      prefillData = {
+        customerId: customer.id,
+        firstName: customer.firstName,
+        lastName: customer.lastName,
+        email: customer.email,
+        phone: customer.phone,
+        dateOfBirth: customer.dateOfBirth?.toISOString().split("T")[0] ?? null,
+        gender: customer.gender,
+        address: customer.address,
+        city: customer.city,
+        province: customer.province,
+        postalCode: customer.postalCode,
+        occupation: customer.occupation,
+        hearAboutUs: customer.hearAboutUs,
+        insurance: ins
+          ? {
+              providerName: ins.providerName,
+              policyNumber: ins.policyNumber,
+              groupNumber: ins.groupNumber,
+              memberId: ins.memberId,
+              coverageType: ins.coverageType,
+            }
+          : null,
+      };
+      prefillInsurance = prefillData.insurance;
+    }
+  }
+
   return (
     <div className="space-y-6">
       {/* Progress header */}
@@ -185,6 +232,7 @@ export default async function IntakePage({ params, searchParams }: Props) {
         <NewPatientForm
           token={currentSubmission.token}
           prefillName={pkg.customerName}
+          prefillData={prefillData}
           packageToken={token}
           redirectUrl={redirectUrl}
         />
@@ -201,6 +249,7 @@ export default async function IntakePage({ params, searchParams }: Props) {
         <InsuranceVerificationForm
           token={currentSubmission.token}
           prefillName={prefillName}
+          prefillInsurance={prefillInsurance}
           packageToken={token}
           redirectUrl={redirectUrl}
         />

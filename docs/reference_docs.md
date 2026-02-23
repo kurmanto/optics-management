@@ -17,8 +17,8 @@
 | `src/lib/utils/cn.ts` | `cn()` — Tailwind class merging |
 | `src/lib/actions/auth.ts` | Login, logout, change password actions |
 | `src/lib/actions/customers.ts` | `createCustomer`, `updateCustomer`, `deleteCustomer` |
-| `src/lib/actions/orders.ts` | `createOrder`, `advanceOrderStatus`, `updateOrderNotes`, `addPayment`, `verifyOrder` |
-| `src/lib/actions/forms.ts` | `createFormSubmission`, `createIntakePackage`, `completeFormSubmission`, `completeIntakeStep`, `autoPopulateFromSubmission`, `applyIntakePackage` |
+| `src/lib/actions/orders.ts` | `createOrder`, `advanceOrderStatus`, `updateOrderNotes`, `addPayment`, `verifyOrder`, `recordCurrentGlassesReading` |
+| `src/lib/actions/forms.ts` | `createFormSubmission`, `createIntakePackage`, `completeFormSubmission`, `completeIntakeStep`, `autoPopulateFromSubmission`, `applyIntakePackage`, `lookupReturningPatient`, `createSelfServiceIntakePackage` |
 | `src/lib/actions/inventory.ts` | `createInventoryItem`, `updateInventoryItem`, `deleteInventoryItem` |
 | `src/lib/actions/vendors.ts` | `createVendor`, `updateVendor`, `deleteVendor` |
 | `src/lib/actions/purchase-orders.ts` | `createPurchaseOrder`, `updatePOStatus`, `receivePOLineItems` |
@@ -30,6 +30,8 @@
 | `src/lib/campaigns/template-engine.ts` | `resolveVariables(customerId)`, `interpolateTemplate(body, vars)` |
 | `src/lib/campaigns/opt-out.ts` | `canContact(customer, channel)`, `processOptOut(customerId, source)` |
 | `src/lib/campaigns/drip-presets.ts` | `getDripConfig(campaignType)` — returns steps, cooldownDays, enrollmentMode |
+| `src/lib/rate-limit.ts` | `checkRateLimit(key, max, windowMs)`, `timingSafeDelay(ms)` — in-memory sliding window rate limiter |
+| `src/lib/types/forms.ts` | `ReturningPatientPrefill` — prefill data type for returning patient intake |
 | `src/lib/validations/customer.ts` | `CustomerSchema` (Zod) |
 | `src/lib/validations/order.ts` | Order validation schemas (Zod) |
 | `src/lib/validations/forms.ts` | Form submission schemas (Zod) |

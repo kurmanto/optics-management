@@ -111,7 +111,7 @@ export default async function IntakeReviewPage({ params }: Props) {
             Intake Review — {pkg.customerName ?? "New Patient"}
           </h1>
           <p className="text-sm text-gray-500 mt-0.5">
-            Sent by {pkg.sentBy.name} · {formatDate(pkg.createdAt)}
+            Sent by {pkg.sentBy?.name ?? "Self-service"} · {formatDate(pkg.createdAt)}
             {" · "}
             {completedCount}/{totalCount} forms completed
           </p>

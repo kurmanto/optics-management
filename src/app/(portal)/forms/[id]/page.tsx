@@ -78,7 +78,7 @@ export default async function FormSubmissionDetailPage({ params }: Props) {
             {TYPE_LABELS[submission.template.type]}
           </h1>
           <p className="text-sm text-gray-500 mt-0.5">
-            Sent by {submission.sentBy.name} · {formatDate(submission.createdAt)}
+            Sent by {submission.sentBy?.name ?? "Self-service"} · {formatDate(submission.createdAt)}
           </p>
         </div>
         <span
