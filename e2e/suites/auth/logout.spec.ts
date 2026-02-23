@@ -5,7 +5,7 @@
 
 import { test, expect } from "@playwright/test";
 
-test.describe("Logout", () => {
+test.describe("Logout @smoke", () => {
   test("logs out and redirects to /login", async ({ page }) => {
     // Start authenticated (uses storageState from playwright.config.ts project)
     await page.goto("/dashboard");

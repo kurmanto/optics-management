@@ -5,7 +5,7 @@
 
 import { test, expect } from "@playwright/test";
 
-test.describe("Orders List", () => {
+test.describe("Orders List @smoke", () => {
   test.beforeEach(async ({ page }) => {
     await page.goto("/orders");
     await page.waitForLoadState("networkidle");

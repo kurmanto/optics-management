@@ -9,7 +9,7 @@ import { test, expect } from "@playwright/test";
 // Run WITHOUT auth state
 test.use({ storageState: { cookies: [], origins: [] } });
 
-test.describe("Protected Route Guards", () => {
+test.describe("Protected Route Guards @smoke", () => {
   const protectedRoutes = [
     "/dashboard",
     "/customers",
@@ -40,7 +40,7 @@ test.describe("Protected Route Guards", () => {
   });
 });
 
-test.describe("Public Routes — No Auth Required", () => {
+test.describe("Public Routes — No Auth Required @smoke", () => {
   // These need a real token — we'll just verify they don't redirect to login
   // The token itself might show a "not found" or "expired" page, but NOT a login redirect
   test("/f/[fake-token] is accessible without auth (no login redirect)", async ({ page }) => {

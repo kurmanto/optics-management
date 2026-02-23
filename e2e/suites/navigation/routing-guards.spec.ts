@@ -5,7 +5,7 @@
 
 import { test, expect } from "@playwright/test";
 
-test.describe("Route Behavior", () => {
+test.describe("Route Behavior @smoke", () => {
   test("root / redirects to /dashboard when authenticated", async ({ page }) => {
     await page.goto("/");
     await expect(page).toHaveURL("/dashboard");
