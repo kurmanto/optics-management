@@ -47,6 +47,17 @@ type WorkOrderProps = {
   } | null;
 };
 
+const ADDON_WORK_ORDER_LABELS: Record<string, string> = {
+  crizal_blue_light:       "Crizal Prevencia",
+  max_clarity:             "Crizal Sapphire",
+  lens_thinning_basic:     "Lens Thinning Basic 1.6",
+  lens_thinning_signature: "Lens Thinning Signature 1.67",
+  lens_thinning_elite:     "Lens Thinning Elite 1.74",
+  blue_select:             "BlueSelect",
+  crizal_sun_protect:      "Crizal SunProtect",
+  transitions:             "Transitions",
+};
+
 function rx(val: number | null): string {
   if (val === null || val === undefined) return "—";
   return val > 0 ? `+${val.toFixed(2)}` : val.toFixed(2);
@@ -217,7 +228,7 @@ export function WorkOrderView(props: WorkOrderProps) {
                 <div className="flex flex-wrap gap-1.5">
                   {props.lensAddOns.map((addon) => (
                     <span key={addon} className="text-xs bg-gray-100 text-gray-700 px-2 py-0.5 rounded font-medium border border-gray-200">
-                      {addon.replace(/_/g, " ")}
+                      {ADDON_WORK_ORDER_LABELS[addon] ?? addon.replace(/_/g, " ")}
                     </span>
                   ))}
                 </div>

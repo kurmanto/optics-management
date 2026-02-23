@@ -24,7 +24,8 @@ export default async function OrderBoardPage() {
       dueDate: true,
       frameBrand: true,
       frameModel: true,
-      customer: { select: { firstName: true, lastName: true } },
+      createdAt: true,
+      customer: { select: { firstName: true, lastName: true, marketingOptOut: true } },
     },
   });
 

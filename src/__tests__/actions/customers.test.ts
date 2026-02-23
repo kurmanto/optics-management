@@ -83,6 +83,93 @@ describe("updateCustomer", () => {
   });
 });
 
+describe("createCustomer — primary contact", () => {
+  it("passes primaryContact fields to prisma when provided", async () => {
+    const prisma = await getPrisma();
+    prisma.customer.create.mockResolvedValue({ id: "cust-pc" });
+
+    const { createCustomer } = await import("@/lib/actions/customers");
+    const fd = makeFormData({
+      firstName: "Jane",
+      lastName: "Doe",
+      smsOptIn: "true",
+      emailOptIn: "true",
+      primaryContactName: "Bob Doe",
+      primaryContactPhone: "6471234567",
+      primaryContactEmail: "bob@example.com",
+      primaryContactRelation: "Spouse",
+    });
+
+    try {
+      await createCustomer({}, fd);
+    } catch {
+      // redirect throws after success
+    }
+
+    const callArgs = prisma.customer.create.mock.calls[0][0];
+    expect(callArgs.data.primaryContactName).toBe("Bob Doe");
+    expect(callArgs.data.primaryContactPhone).toBe("6471234567");
+    expect(callArgs.data.primaryContactEmail).toBe("bob@example.com");
+    expect(callArgs.data.primaryContactRelation).toBe("Spouse");
+  });
+
+  it("sets primaryContact fields to null when omitted", async () => {
+    const prisma = await getPrisma();
+    prisma.customer.create.mockResolvedValue({ id: "cust-no-pc" });
+
+    const { createCustomer } = await import("@/lib/actions/customers");
+    const fd = makeFormData({
+      firstName: "Jane",
+      lastName: "Doe",
+      smsOptIn: "true",
+      emailOptIn: "true",
+    });
+
+    try {
+      await createCustomer({}, fd);
+    } catch {
+      // redirect throws after success
+    }
+
+    const callArgs = prisma.customer.create.mock.calls[0][0];
+    expect(callArgs.data.primaryContactName).toBeNull();
+    expect(callArgs.data.primaryContactPhone).toBeNull();
+    expect(callArgs.data.primaryContactEmail).toBeNull();
+    expect(callArgs.data.primaryContactRelation).toBeNull();
+  });
+});
+
+describe("updateCustomer — primary contact", () => {
+  it("passes primaryContact fields to prisma.update when provided", async () => {
+    const prisma = await getPrisma();
+    prisma.customer.update.mockResolvedValue({ id: "cust-1" });
+
+    const { updateCustomer } = await import("@/lib/actions/customers");
+    const fd = makeFormData({
+      firstName: "Jane",
+      lastName: "Doe",
+      smsOptIn: "true",
+      emailOptIn: "true",
+      primaryContactName: "Alice Smith",
+      primaryContactPhone: "4161234567",
+      primaryContactEmail: "alice@example.com",
+      primaryContactRelation: "Parent",
+    });
+
+    try {
+      await updateCustomer("cust-1", {}, fd);
+    } catch {
+      // redirect throws
+    }
+
+    const callArgs = prisma.customer.update.mock.calls[0][0];
+    expect(callArgs.data.primaryContactName).toBe("Alice Smith");
+    expect(callArgs.data.primaryContactPhone).toBe("4161234567");
+    expect(callArgs.data.primaryContactEmail).toBe("alice@example.com");
+    expect(callArgs.data.primaryContactRelation).toBe("Parent");
+  });
+});
+
 describe("deleteCustomer", () => {
   it("soft-deletes by setting isActive: false", async () => {
     const prisma = await getPrisma();

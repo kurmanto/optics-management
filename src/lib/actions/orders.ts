@@ -59,6 +59,7 @@ type CreateOrderInput = {
   // Eye exam fields
   examType?: string;
   examPaymentMethod?: string;
+  examBillingCode?: string;
   insuranceCoveredAmount?: number;
 };
 
@@ -119,6 +120,7 @@ export async function createOrder(input: CreateOrderInput): Promise<{ id: string
         referralId: input.referralId || null,
         examType: input.examType || null,
         examPaymentMethod: input.examPaymentMethod || null,
+        examBillingCode: input.examBillingCode || null,
         insuranceCoveredAmount: input.insuranceCoveredAmount ?? null,
         notes: input.notes || null,
         labNotes: input.labNotes || null,

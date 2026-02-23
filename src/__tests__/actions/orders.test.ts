@@ -541,6 +541,31 @@ describe("createOrder — exam fields", () => {
     expect(callArgs.data.examPaymentMethod).toBeNull();
     expect(callArgs.data.insuranceCoveredAmount).toBeNull();
   });
+
+  it("passes examBillingCode to prisma when provided", async () => {
+    const prisma = await getPrisma();
+    prisma.order.create.mockResolvedValue({ id: "order-billing-1" });
+
+    const { createOrder } = await import("@/lib/actions/orders");
+    await createOrder({
+      ...validOrderInput,
+      examBillingCode: "404 (19 and under)",
+    });
+
+    const callArgs = prisma.order.create.mock.calls[0][0];
+    expect(callArgs.data.examBillingCode).toBe("404 (19 and under)");
+  });
+
+  it("passes examBillingCode as null when omitted", async () => {
+    const prisma = await getPrisma();
+    prisma.order.create.mockResolvedValue({ id: "order-no-billing" });
+
+    const { createOrder } = await import("@/lib/actions/orders");
+    await createOrder(validOrderInput);
+
+    const callArgs = prisma.order.create.mock.calls[0][0];
+    expect(callArgs.data.examBillingCode).toBeNull();
+  });
 });
 
 describe("handlePickupComplete — family promo", () => {

@@ -21,6 +21,10 @@ export const CustomerSchema = z.object({
     .or(z.literal("")),
   referredByName: z.string().optional().or(z.literal("")),
   occupation: z.string().optional().or(z.literal("")),
+  primaryContactName: z.string().optional().or(z.literal("")),
+  primaryContactPhone: z.string().optional().or(z.literal("")),
+  primaryContactEmail: z.string().optional().or(z.literal("")),
+  primaryContactRelation: z.string().optional().or(z.literal("")),
 });
 
 export type CustomerFormValues = z.infer<typeof CustomerSchema>;

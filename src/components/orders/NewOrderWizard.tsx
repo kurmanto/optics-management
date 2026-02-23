@@ -94,15 +94,27 @@ const LENS_DESIGNS = [
 ] as const;
 
 const LENS_ADDONS = [
-  { value: "crizal_blue_light", label: "Crizal Blue Light (Screen Protect)" },
-  { value: "max_clarity", label: "Max Clarity (AR)" },
-  { value: "lens_thinning_basic", label: "Lens Thinning Basic" },
-  { value: "lens_thinning_signature", label: "Lens Thinning Signature" },
-  { value: "lens_thinning_elite", label: "Lens Thinning Elite" },
-  { value: "blue_select", label: "BlueSelect" },
-  { value: "crizal_sun_protect", label: "Crizal SunProtect" },
-  { value: "transitions", label: "Transitions" },
+  { value: "crizal_blue_light", label: "Crizal Blue Light (Screen Protect)", configLabel: "Crizal Blue Light (Screen Protect)" },
+  { value: "max_clarity", label: "Max Clarity (AR)", configLabel: "Max Clarity (AR)" },
+  { value: "lens_thinning_basic", label: "Lens Thinning Basic", configLabel: "Lens Thinning Basic 1.6" },
+  { value: "lens_thinning_signature", label: "Lens Thinning Signature", configLabel: "Lens Thinning Signature 1.67" },
+  { value: "lens_thinning_elite", label: "Lens Thinning Elite", configLabel: "Lens Thinning Elite 1.74" },
+  { value: "blue_select", label: "BlueSelect", configLabel: "BlueSelect" },
+  { value: "crizal_sun_protect", label: "Crizal SunProtect", configLabel: "Crizal SunProtect" },
+  { value: "transitions", label: "Transitions", configLabel: "Transitions" },
 ] as const;
+
+const OHIP_BILLING_CODES = [
+  "404 (19 and under)",
+  "406 (65 and older)",
+  "409",
+  "450",
+  "REE",
+  "402",
+  "408",
+  "410",
+  "Partial",
+];
 
 const NEEDS_LENS_CONFIG = ["complete", "rx_sunglasses", "lens_update"];
 const NEEDS_FRAME = ["complete", "rx_sunglasses", "non_rx_sunglasses", "lens_update"];
@@ -200,6 +212,7 @@ export function NewOrderWizard({
   // Eye exam fields
   const [examType, setExamType] = useState("");
   const [examPaymentMethod, setExamPaymentMethod] = useState("");
+  const [examBillingCode, setExamBillingCode] = useState("");
   const [insuranceCoveredAmount, setInsuranceCoveredAmount] = useState(0);
 
   // Add-another-order state
@@ -244,11 +257,14 @@ export function NewOrderWizard({
   // We just track step as a flat number 1-N
   const maxStep = steps[steps.length - 1].n;
 
+  // Normalize search: strip commas, collapse spaces, lowercase
+  const normalizedSearch = customerSearch.replace(/,/g, "").replace(/\s+/g, " ").trim().toLowerCase();
   const filteredCustomers = allCustomers
     .filter(
       (c) =>
-        customerSearch.length === 0 ||
-        `${c.lastName} ${c.firstName}`.toLowerCase().includes(customerSearch.toLowerCase()) ||
+        normalizedSearch.length === 0 ||
+        `${c.lastName} ${c.firstName}`.toLowerCase().includes(normalizedSearch) ||
+        `${c.firstName} ${c.lastName}`.toLowerCase().includes(normalizedSearch) ||
         (c.phone && c.phone.includes(customerSearch.replace(/\D/g, "")))
     )
     .slice(0, 10);
@@ -305,6 +321,7 @@ export function NewOrderWizard({
     setOrderCategory("");
     setExamType("");
     setExamPaymentMethod("");
+    setExamBillingCode("");
     setInsuranceCoveredAmount(0);
     setLensType("");
     setLensDesign("");
@@ -357,6 +374,80 @@ export function NewOrderWizard({
     }
   }
 
+  function populateLensLineItems() {
+    const LENS_PRICES: Record<string, Record<string, number>> = {
+      single_vision: { entry: 229, signature: 349, elite: 499 },
+      progressive: { entry: 499, signature: 649, elite: 749, office: 449 },
+    };
+    const ADDON_PRICES: Record<string, number> = {
+      lens_thinning_basic: 80,
+      lens_thinning_signature: 160,
+      lens_thinning_elite: 240,
+      crizal_blue_light: 149,
+      max_clarity: 149,
+    };
+
+    const lensPrice = LENS_PRICES[lensType]?.[lensDesign] ?? 0;
+    const lensTypeName = LENS_TYPES.find((l) => l.value === lensType)?.label ?? lensType;
+    const lensDesignName =
+      lensDesign === "office"
+        ? "Office Lenses"
+        : LENS_DESIGNS.find((d) => d.value === lensDesign)?.label ?? lensDesign;
+    const lensLabel = lensType && lensDesign ? `${lensTypeName} — ${lensDesignName}` : "";
+
+    const items: LineItem[] = [];
+
+    // Preserve existing frame description/price if already filled
+    if (needsFrame) {
+      const existingFrame = lineItems.find((i) => i.type === "FRAME");
+      items.push({
+        type: "FRAME",
+        description: existingFrame?.description || "",
+        quantity: 1,
+        unitPriceCustomer: existingFrame?.unitPriceCustomer || 0,
+        unitPriceReal: existingFrame?.unitPriceReal || 0,
+      });
+    }
+
+    // Lens item
+    if (lensLabel) {
+      items.push({
+        type: "LENS",
+        description: lensLabel,
+        quantity: 1,
+        unitPriceCustomer: lensPrice,
+        unitPriceReal: lensPrice,
+      });
+    }
+
+    // Add-on items (use label without index for customer invoice)
+    for (const addonValue of lensAddOns) {
+      const addon = LENS_ADDONS.find((a) => a.value === addonValue);
+      if (!addon) continue;
+      const price = ADDON_PRICES[addonValue] ?? 0;
+      items.push({
+        type: "COATING",
+        description: addon.label,
+        quantity: 1,
+        unitPriceCustomer: price,
+        unitPriceReal: price,
+      });
+    }
+
+    // Bonus warranty for premium coatings
+    if (lensAddOns.includes("crizal_blue_light") || lensAddOns.includes("max_clarity")) {
+      items.push({
+        type: "OTHER",
+        description: "Bonus: 1 Year Complete Lens Warranty (Covers scratch, coating, or damage)",
+        quantity: 1,
+        unitPriceCustomer: 0,
+        unitPriceReal: 0,
+      });
+    }
+
+    setLineItems(items);
+  }
+
   function handleNext() {
     if (step === 1 && !selectedCustomerId) {
       setError("Please select a customer first");
@@ -365,6 +456,10 @@ export function NewOrderWizard({
     if (step === 2 && !orderCategory) {
       setError("Please select an order type");
       return;
+    }
+    // Auto-populate line items when advancing from Lens Config step
+    if (step === stepN("Lens Config") && needsLensConfig) {
+      populateLensLineItems();
     }
     setError("");
     setStep((s) => s + 1);
@@ -411,6 +506,7 @@ export function NewOrderWizard({
       dueDate: dueDate || undefined,
       examType: examType || undefined,
       examPaymentMethod: examPaymentMethod || undefined,
+      examBillingCode: examBillingCode || undefined,
       insuranceCoveredAmount: insuranceCoveredAmount || undefined,
       lineItems: lineItems.filter((i) => i.description),
     });
@@ -446,6 +542,14 @@ export function NewOrderWizard({
     // Show success overlay
     setCreatedOrder({ id: result.id, orderNumber: result.orderNumber });
   }
+
+  // Lens design options (conditionally include Office Lenses for progressive + complete/lens_update)
+  const lensDesignOptions = [
+    ...LENS_DESIGNS,
+    ...(lensType === "progressive" && (orderCategory === "complete" || orderCategory === "lens_update")
+      ? [{ value: "office", label: "Office Lenses", desc: "Near/intermediate vision" }]
+      : []),
+  ];
 
   return (
     <div className="space-y-5">
@@ -592,24 +696,37 @@ export function NewOrderWizard({
             )}
           </div>
 
-          {/* Dual invoice toggle */}
-          <div className="border border-gray-200 rounded-xl p-4">
-            <label className="flex items-start gap-3 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={isDualInvoice}
-                onChange={(e) => setIsDualInvoice(e.target.checked)}
-                className="mt-0.5 rounded border-gray-300 text-primary focus:ring-primary"
-              />
-              <div>
-                <span className="text-sm font-semibold text-gray-900">Dual Invoice</span>
+          {/* Dual invoice toggle — large card */}
+          <button
+            type="button"
+            onClick={() => setIsDualInvoice(!isDualInvoice)}
+            className={`w-full text-left rounded-xl border-2 p-4 transition-all ${
+              isDualInvoice
+                ? "border-green-500 bg-green-50"
+                : "border-gray-200 hover:border-gray-300 bg-white"
+            }`}
+          >
+            <div className="flex items-center gap-3">
+              <div
+                className={`w-6 h-6 rounded flex items-center justify-center flex-shrink-0 border-2 transition-all ${
+                  isDualInvoice ? "bg-green-500 border-green-500" : "border-gray-300"
+                }`}
+              >
+                {isDualInvoice && <span className="text-white text-xs font-bold">✓</span>}
+              </div>
+              <div className="flex-1">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-bold text-gray-900 uppercase tracking-wide">Dual Invoice</span>
+                  {isDualInvoice && (
+                    <span className="text-xs font-bold text-green-700 bg-green-100 px-2 py-0.5 rounded-full">ON</span>
+                  )}
+                </div>
                 <p className="text-xs text-gray-500 mt-0.5">
-                  Generate separate customer-facing and internal invoices with different prices.
-                  Use for insurance billing where customer price differs from actual cost.
+                  Generate separate customer-facing &amp; internal invoices with different prices
                 </p>
               </div>
-            </label>
-          </div>
+            </div>
+          </button>
 
           {/* Prescription + Insurance (if customer selected) */}
           {selectedCustomerId && prescriptions.length > 0 && (
@@ -649,15 +766,6 @@ export function NewOrderWizard({
             </div>
           )}
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Due Date (optional)</label>
-            <input
-              type="date"
-              value={dueDate}
-              onChange={(e) => setDueDate(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-            />
-          </div>
         </div>
       )}
 
@@ -673,7 +781,12 @@ export function NewOrderWizard({
                 <button
                   key={cat.value}
                   type="button"
-                  onClick={() => setOrderCategory(cat.value)}
+                  onClick={() => {
+                    setOrderCategory(cat.value);
+                    if (cat.value === "eye_exam") {
+                      setLineItems([{ type: "EXAM", description: "Complete Eye Exam", quantity: 1, unitPriceCustomer: 90, unitPriceReal: 90 }]);
+                    }
+                  }}
                   className={`flex flex-col items-start gap-2 p-4 rounded-xl border-2 text-left transition-all ${
                     selected
                       ? "border-primary bg-primary/5 shadow-sm"
@@ -712,10 +825,7 @@ export function NewOrderWizard({
                 <button
                   key={et.value}
                   type="button"
-                  onClick={() => {
-                    setExamType(et.value);
-                    setLineItems([{ type: "EXAM", description: et.label, quantity: 1, unitPriceCustomer: 0, unitPriceReal: 0 }]);
-                  }}
+                  onClick={() => setExamType(et.value)}
                   className={`w-full flex items-start gap-3 p-4 rounded-xl border-2 text-left transition-all ${
                     examType === et.value
                       ? "border-primary bg-primary/5"
@@ -732,45 +842,49 @@ export function NewOrderWizard({
             </div>
           </div>
 
-          {/* Payment Method */}
+          {/* Payment Type */}
           <div>
-            <h3 className="text-sm font-semibold text-gray-700 mb-3">Payment Method</h3>
-            <div className="space-y-2">
-              {EXAM_PAYMENT_METHODS.map((pm) => (
-                <button
-                  key={pm.value}
-                  type="button"
-                  onClick={() => setExamPaymentMethod(pm.value)}
-                  className={`w-full flex items-start gap-3 p-4 rounded-xl border-2 text-left transition-all ${
-                    examPaymentMethod === pm.value
-                      ? "border-primary bg-primary/5"
-                      : "border-gray-200 hover:border-gray-300"
-                  }`}
-                >
-                  <div className={`w-4 h-4 mt-0.5 rounded-full border-2 flex-shrink-0 ${examPaymentMethod === pm.value ? "border-primary bg-primary" : "border-gray-300"}`} />
-                  <div>
-                    <p className={`text-sm font-semibold ${examPaymentMethod === pm.value ? "text-primary" : "text-gray-900"}`}>{pm.label}</p>
-                    <p className="text-xs text-gray-500 mt-0.5">{pm.desc}</p>
-                  </div>
-                </button>
-              ))}
+            <h3 className="text-sm font-semibold text-gray-700 mb-3">Payment Type</h3>
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                type="button"
+                onClick={() => { setExamPaymentMethod("ohip"); setExamBillingCode(""); }}
+                className={`p-4 rounded-xl border-2 text-sm font-semibold transition-all text-left ${
+                  examPaymentMethod === "ohip"
+                    ? "border-primary bg-primary/5 text-primary"
+                    : "border-gray-200 text-gray-700 hover:border-gray-300"
+                }`}
+              >
+                OHIP
+              </button>
+              <button
+                type="button"
+                onClick={() => { setExamPaymentMethod("self_pay"); setExamBillingCode(""); }}
+                className={`p-4 rounded-xl border-2 text-sm font-semibold transition-all text-left ${
+                  examPaymentMethod === "self_pay"
+                    ? "border-primary bg-primary/5 text-primary"
+                    : "border-gray-200 text-gray-700 hover:border-gray-300"
+                }`}
+              >
+                Self-Bill / Self-Pay
+              </button>
             </div>
           </div>
 
-          {/* Insurance amount input for partial */}
-          {examPaymentMethod === "insurance_partial" && (
+          {/* Billing Code — only when OHIP */}
+          {examPaymentMethod === "ohip" && (
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Amount Covered by Insurance ($)</label>
-              <input
-                type="number" min="0" step="0.01"
-                value={insuranceCoveredAmount || ""}
-                onChange={(e) => setInsuranceCoveredAmount(parseFloat(e.target.value) || 0)}
-                placeholder="0.00"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-              />
-              {insuranceCoveredAmount > 0 && (
-                <p className="text-xs text-gray-500 mt-1">Patient pays the balance.</p>
-              )}
+              <label className="block text-sm font-medium text-gray-700 mb-1">Billing Code</label>
+              <select
+                value={examBillingCode}
+                onChange={(e) => setExamBillingCode(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary bg-white"
+              >
+                <option value="">Select billing code...</option>
+                {OHIP_BILLING_CODES.map((code) => (
+                  <option key={code} value={code}>{code}</option>
+                ))}
+              </select>
             </div>
           )}
         </div>
@@ -789,7 +903,7 @@ export function NewOrderWizard({
                 <button
                   key={lt.value}
                   type="button"
-                  onClick={() => setLensType(lt.value)}
+                  onClick={() => { setLensType(lt.value); setLensDesign(""); }}
                   className={`py-4 rounded-xl border-2 text-sm font-semibold transition-all ${
                     lensType === lt.value
                       ? "border-primary bg-primary/5 text-primary"
@@ -806,7 +920,7 @@ export function NewOrderWizard({
           <div>
             <h3 className="text-sm font-semibold text-gray-700 mb-3">Lens Design</h3>
             <div className="grid grid-cols-3 gap-3">
-              {LENS_DESIGNS.map((ld) => (
+              {lensDesignOptions.map((ld) => (
                 <button
                   key={ld.value}
                   type="button"
@@ -826,21 +940,61 @@ export function NewOrderWizard({
             </div>
           </div>
 
-          {/* 3c: Add-ons */}
+          {/* 3c: Add-ons — grouped by category */}
           <div>
             <h3 className="text-sm font-semibold text-gray-700 mb-3">Add-Ons (optional)</h3>
-            <div className="space-y-2">
-              {LENS_ADDONS.map((addon) => (
-                <label key={addon.value} className="flex items-center gap-3 p-3 rounded-lg border border-gray-200 cursor-pointer hover:bg-gray-50 transition-colors">
-                  <input
-                    type="checkbox"
-                    checked={lensAddOns.includes(addon.value)}
-                    onChange={() => toggleAddon(addon.value)}
-                    className="rounded border-gray-300 text-primary focus:ring-primary"
-                  />
-                  <span className="text-sm text-gray-700">{addon.label}</span>
-                </label>
-              ))}
+            <div className="space-y-4">
+              {/* Lens Thinning */}
+              <div>
+                <p className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-2">Lens Thinning</p>
+                <div className="space-y-2">
+                  {LENS_ADDONS.filter((a) => a.value.startsWith("lens_thinning")).map((addon) => (
+                    <label key={addon.value} className="flex items-center gap-3 p-3 rounded-lg border border-gray-200 cursor-pointer hover:bg-gray-50 transition-colors">
+                      <input
+                        type="checkbox"
+                        checked={lensAddOns.includes(addon.value)}
+                        onChange={() => toggleAddon(addon.value)}
+                        className="rounded border-gray-300 text-primary focus:ring-primary"
+                      />
+                      <span className="text-sm text-gray-700">{addon.configLabel}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+              {/* Premium Coatings */}
+              <div>
+                <p className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-2">Premium Coatings</p>
+                <div className="space-y-2">
+                  {LENS_ADDONS.filter((a) => a.value === "crizal_blue_light" || a.value === "max_clarity").map((addon) => (
+                    <label key={addon.value} className="flex items-center gap-3 p-3 rounded-lg border border-gray-200 cursor-pointer hover:bg-gray-50 transition-colors">
+                      <input
+                        type="checkbox"
+                        checked={lensAddOns.includes(addon.value)}
+                        onChange={() => toggleAddon(addon.value)}
+                        className="rounded border-gray-300 text-primary focus:ring-primary"
+                      />
+                      <span className="text-sm text-gray-700">{addon.configLabel}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+              {/* Other Add-Ons */}
+              <div>
+                <p className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-2">Other Add-Ons</p>
+                <div className="space-y-2">
+                  {LENS_ADDONS.filter((a) => ["blue_select", "crizal_sun_protect", "transitions"].includes(a.value)).map((addon) => (
+                    <label key={addon.value} className="flex items-center gap-3 p-3 rounded-lg border border-gray-200 cursor-pointer hover:bg-gray-50 transition-colors">
+                      <input
+                        type="checkbox"
+                        checked={lensAddOns.includes(addon.value)}
+                        onChange={() => toggleAddon(addon.value)}
+                        className="rounded border-gray-300 text-primary focus:ring-primary"
+                      />
+                      <span className="text-sm text-gray-700">{addon.configLabel}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -945,8 +1099,35 @@ export function NewOrderWizard({
         <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6 space-y-4">
           <h2 className="font-semibold text-gray-900">Line Items</h2>
 
+          {/* Locked eye exam item */}
+          {orderCategory === "eye_exam" && (
+            <div className="border border-gray-200 rounded-xl overflow-hidden">
+              <div className="flex items-center justify-between px-4 py-3 bg-gray-50 border-b border-gray-100">
+                <span className="text-xs font-medium text-gray-500">EXAM</span>
+                <span className="text-xs text-gray-400 bg-gray-200 px-2 py-0.5 rounded">Locked</span>
+              </div>
+              <div className="p-4 space-y-3">
+                <input
+                  value="Complete Eye Exam"
+                  disabled
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-gray-50 text-gray-600 cursor-not-allowed"
+                />
+                <div className="grid grid-cols-3 gap-3">
+                  <div>
+                    <label className="block text-xs text-gray-500 mb-1">Qty</label>
+                    <input value="1" disabled className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-gray-50 cursor-not-allowed" />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-gray-500 mb-1">Price</label>
+                    <input value="$90.00" disabled className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-gray-50 cursor-not-allowed" />
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
           <div className="space-y-4">
-            {lineItems.map((item, i) => {
+            {orderCategory !== "eye_exam" && lineItems.map((item, i) => {
               const search = inventorySearches[i] || "";
               const filtered = inventoryItems
                 .filter((inv) =>
@@ -1085,10 +1266,12 @@ export function NewOrderWizard({
             })}
           </div>
 
-          <button type="button" onClick={addLineItem} className="inline-flex items-center gap-2 h-8 px-3 rounded-lg text-sm text-primary border border-dashed border-primary/40 hover:bg-primary/5 font-medium transition-colors">
-            <Plus className="w-4 h-4" />
-            Add item
-          </button>
+          {orderCategory !== "eye_exam" && (
+            <button type="button" onClick={addLineItem} className="inline-flex items-center gap-2 h-8 px-3 rounded-lg text-sm text-primary border border-dashed border-primary/40 hover:bg-primary/5 font-medium transition-colors">
+              <Plus className="w-4 h-4" />
+              Add item
+            </button>
+          )}
 
           <div className="border-t border-gray-100 pt-3 flex justify-between text-sm font-semibold">
             <span className="text-gray-700">Subtotal</span>

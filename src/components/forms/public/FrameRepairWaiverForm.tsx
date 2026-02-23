@@ -55,7 +55,7 @@ export function FrameRepairWaiverForm({ token, prefillName }: Props) {
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
-        <p className="text-sm text-amber-800">
+        <p className="text-base text-amber-800">
           <strong>Important Notice:</strong> Frame repair and adjustment involves some risk of
           damage. Please read this waiver carefully before proceeding.
         </p>
@@ -63,7 +63,7 @@ export function FrameRepairWaiverForm({ token, prefillName }: Props) {
 
       <div className="bg-white rounded-xl border border-gray-200 p-6 space-y-4">
         <h2 className="font-semibold text-gray-900">Frame Repair Waiver</h2>
-        <p className="text-sm text-gray-600">
+        <p className="text-base text-gray-600">
           I understand that eyeglass frames, particularly those that are aged, previously repaired,
           or made of certain materials, may break or be damaged during repair or adjustment attempts.
           Mint Vision Optique will take all reasonable precautions, but cannot be held responsible
@@ -71,31 +71,31 @@ export function FrameRepairWaiverForm({ token, prefillName }: Props) {
         </p>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-base font-medium text-gray-700 mb-1">
             Patient Name <span className="text-red-500">*</span>
           </label>
           <input
             name="patientName"
             required
             defaultValue={prefillName ?? ""}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-base focus:outline-none focus:ring-2 focus:ring-primary/50"
           />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-base font-medium text-gray-700 mb-1">
             Frame Description <span className="text-red-500">*</span>
           </label>
           <input
             name="frameDescription"
             required
             placeholder="e.g. Ray-Ban black acetate, gold temples"
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-base focus:outline-none focus:ring-2 focus:ring-primary/50"
           />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-base font-medium text-gray-700 mb-1">
             Repair Requested <span className="text-red-500">*</span>
           </label>
           <textarea
@@ -103,7 +103,7 @@ export function FrameRepairWaiverForm({ token, prefillName }: Props) {
             required
             rows={3}
             placeholder="Describe what repair or adjustment is needed"
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 resize-none"
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-base focus:outline-none focus:ring-2 focus:ring-primary/50 resize-none"
           />
         </div>
 
@@ -115,7 +115,7 @@ export function FrameRepairWaiverForm({ token, prefillName }: Props) {
               required
               className="mt-0.5 accent-primary"
             />
-            <span className="text-sm text-gray-700">
+            <span className="text-base text-gray-700">
               <span className="text-red-500">*</span> I understand and acknowledge the risk of
               damage described above, and authorize Mint Vision Optique to proceed with the repair.
             </span>
@@ -125,7 +125,7 @@ export function FrameRepairWaiverForm({ token, prefillName }: Props) {
 
       <div className="bg-white rounded-xl border border-gray-200 p-6 space-y-4">
         <h2 className="font-semibold text-gray-900">Signature</h2>
-        <p className="text-sm text-gray-600">
+        <p className="text-base text-gray-600">
           By signing below, you authorize the repair and acknowledge the risks described above.
         </p>
         <SignaturePad onChange={setSignature} error={sigError} />
