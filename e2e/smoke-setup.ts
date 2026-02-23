@@ -28,17 +28,35 @@ function createSessionToken(userId: string): string {
 
 function makeStorageState(token: string, baseURL: string): string {
   const url = new URL(baseURL);
-  const cookieObj = {
-    name: "mvo_session",
-    value: token,
-    domain: url.hostname,
-    path: "/",
-    expires: -1,
-    httpOnly: true,
-    secure: false,
-    sameSite: "Lax" as const,
-  };
-  return JSON.stringify({ cookies: [cookieObj], origins: [] }, null, 2);
+  const domain = url.hostname;
+  const now = Date.now().toString();
+  // Include mvo_last_active so the idle-timeout middleware doesn't immediately
+  // redirect every test to /login?reason=idle_timeout.
+  return JSON.stringify({
+    cookies: [
+      {
+        name: "mvo_session",
+        value: token,
+        domain,
+        path: "/",
+        expires: -1,
+        httpOnly: true,
+        secure: false,
+        sameSite: "Lax" as const,
+      },
+      {
+        name: "mvo_last_active",
+        value: now,
+        domain,
+        path: "/",
+        expires: -1,
+        httpOnly: true,
+        secure: false,
+        sameSite: "Lax" as const,
+      },
+    ],
+    origins: [],
+  }, null, 2);
 }
 
 export default async function smokeSetup() {
