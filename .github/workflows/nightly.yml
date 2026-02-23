@@ -1,48 +1,14 @@
-name: CI
+name: Nightly E2E
 
 on:
-  push:
-    branches: [master]
-  pull_request:
-    branches: [master]
+  schedule:
+    - cron: "0 2 * * *"
+  workflow_dispatch:
 
 jobs:
-  test:
-    name: Type check & unit tests
+  e2e-full:
+    name: Full E2E suite (Chromium)
     runs-on: ubuntu-latest
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: "22"
-          cache: "npm"
-
-      - name: Pin npm version
-        run: npm install -g npm@10.9.4
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Generate Prisma client
-        run: npx prisma generate
-        env:
-          DATABASE_URL: "postgresql://placeholder:placeholder@localhost:5432/placeholder"
-          DIRECT_URL: "postgresql://placeholder:placeholder@localhost:5432/placeholder"
-
-      - name: Type check
-        run: npx tsc --noEmit
-
-      - name: Unit tests
-        run: npm run test:run
-
-  e2e-smoke:
-    name: E2E smoke tests
-    runs-on: ubuntu-latest
-    # Only run on PRs to save CI minutes
-    if: github.event_name == 'pull_request'
-    needs: test
 
     steps:
       - name: Check E2E secrets
@@ -55,9 +21,6 @@ jobs:
           else
             echo "configured=false" >> $GITHUB_OUTPUT
             echo "⚠️  E2E_DATABASE_URL not set — skipping E2E tests."
-            echo "    Add E2E_DATABASE_URL, E2E_DIRECT_URL, SESSION_SECRET,"
-            echo "    NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY,"
-            echo "    and SUPABASE_SERVICE_ROLE_KEY as GitHub repo secrets to enable."
           fi
 
       - uses: actions/checkout@v4
@@ -108,9 +71,9 @@ jobs:
           DIRECT_URL: ${{ secrets.E2E_DIRECT_URL }}
           NODE_TLS_REJECT_UNAUTHORIZED: "0"
 
-      - name: Run E2E smoke tests
+      - name: Run full E2E suite (Chromium)
         if: steps.secrets.outputs.configured == 'true'
-        run: npm run test:e2e:smoke
+        run: npm run test:e2e:chromium
         env:
           DATABASE_URL: ${{ secrets.E2E_DATABASE_URL }}
           DIRECT_URL: ${{ secrets.E2E_DIRECT_URL }}
@@ -118,7 +81,6 @@ jobs:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-          # AI OCR route needs this; tests don't exercise it so can be absent
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           NODE_TLS_REJECT_UNAUTHORIZED: "0"
 
@@ -126,6 +88,6 @@ jobs:
         uses: actions/upload-artifact@v4
         if: failure() && steps.secrets.outputs.configured == 'true'
         with:
-          name: smoke-playwright-report
+          name: nightly-playwright-report
           path: playwright-report/
           retention-days: 7

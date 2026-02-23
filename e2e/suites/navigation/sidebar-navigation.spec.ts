@@ -6,7 +6,7 @@
 
 import { test, expect } from "@playwright/test";
 
-test.describe("Sidebar Navigation", () => {
+test.describe("Sidebar Navigation @smoke", () => {
   test.beforeEach(async ({ page }) => {
     await page.goto("/dashboard");
   });

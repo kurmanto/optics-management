@@ -8,7 +8,7 @@ import { test, expect } from "@playwright/test";
 // These tests run WITHOUT pre-authenticated state
 test.use({ storageState: { cookies: [], origins: [] } });
 
-test.describe("Login Page", () => {
+test.describe("Login Page @smoke", () => {
   test.beforeEach(async ({ page }) => {
     await page.goto("/login");
   });

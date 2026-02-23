@@ -6,7 +6,7 @@
 import { test, expect } from "../../fixtures";
 import { CUSTOMERS } from "../../helpers/test-data";
 
-test.describe("Customers List", () => {
+test.describe("Customers List @smoke", () => {
   test.beforeEach(async ({ adminPage }) => {
     await adminPage.goto("/customers");
     await adminPage.waitForLoadState("networkidle");
