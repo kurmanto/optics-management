@@ -51,7 +51,7 @@ describe("logAudit", () => {
     });
   });
 
-  it("sets changes to null when not provided", async () => {
+  it("omits changes field when not provided", async () => {
     const prisma = await getPrisma();
     prisma.auditLog.create.mockResolvedValue({} as any);
 
@@ -59,7 +59,7 @@ describe("logAudit", () => {
     await logAudit({ action: "DELETE", model: "Order", recordId: "ord-1" });
 
     expect(prisma.auditLog.create).toHaveBeenCalledWith({
-      data: expect.objectContaining({ changes: null }),
+      data: expect.objectContaining({ changes: undefined }),
     });
   });
 

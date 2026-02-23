@@ -50,7 +50,7 @@ export async function issueInvoice(
 export async function issueBothInvoices(
   orderId: string
 ): Promise<{ success: true } | { error: string }> {
-  await verifySession();
+  await verifyRole("STAFF");
 
   try {
     await Promise.all([

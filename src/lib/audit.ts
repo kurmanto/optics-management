@@ -1,4 +1,5 @@
 import { headers } from "next/headers";
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 
 export type AuditAction =
@@ -34,7 +35,7 @@ export async function logAudit(params: {
         action: params.action,
         model: params.model,
         recordId: params.recordId,
-        changes: params.changes ?? null,
+        changes: params.changes as Prisma.InputJsonValue | undefined,
         ipAddress: ipAddress ?? null,
       },
     });

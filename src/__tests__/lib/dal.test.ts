@@ -24,6 +24,7 @@ describe("verifyRole", () => {
       name: "Staff User",
       role: "STAFF",
       mustChangePassword: false,
+      fontSizePreference: "MEDIUM" as const,
     });
 
     const { verifyRole } = await import("@/lib/dal");
@@ -41,6 +42,7 @@ describe("verifyRole", () => {
       name: "Admin User",
       role: "ADMIN",
       mustChangePassword: false,
+      fontSizePreference: "MEDIUM" as const,
     });
 
     const { verifyRole } = await import("@/lib/dal");
@@ -58,6 +60,7 @@ describe("verifyRole", () => {
       name: "Admin User",
       role: "ADMIN",
       mustChangePassword: false,
+      fontSizePreference: "MEDIUM" as const,
     });
 
     const { verifyRole } = await import("@/lib/dal");
@@ -75,6 +78,7 @@ describe("verifyRole", () => {
       name: "Viewer User",
       role: "VIEWER",
       mustChangePassword: false,
+      fontSizePreference: "MEDIUM" as const,
     });
 
     const { verifyRole } = await import("@/lib/dal");
@@ -94,6 +98,7 @@ describe("verifyRole", () => {
       name: "Viewer User",
       role: "VIEWER",
       mustChangePassword: false,
+      fontSizePreference: "MEDIUM" as const,
     });
 
     const { verifyRole } = await import("@/lib/dal");
@@ -113,6 +118,7 @@ describe("verifyRole", () => {
       name: "Staff User",
       role: "STAFF",
       mustChangePassword: false,
+      fontSizePreference: "MEDIUM" as const,
     });
 
     const { verifyRole } = await import("@/lib/dal");
@@ -132,6 +138,7 @@ describe("verifyRole", () => {
       name: "Staff User",
       role: "STAFF",
       mustChangePassword: false,
+      fontSizePreference: "MEDIUM" as const,
     };
     vi.mocked(getSession).mockResolvedValue(session);
 
