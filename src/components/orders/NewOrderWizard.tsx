@@ -193,6 +193,7 @@ export function NewOrderWizard({
 
   // Step 7: Completion
   const [printInvoice, setPrintInvoice] = useState(false);
+  const [addAnotherAfterSave, setAddAnotherAfterSave] = useState(false);
   const [emailInvoice, setEmailInvoice] = useState(false);
   const [printWorkOrder, setPrintWorkOrder] = useState(true);
 
@@ -426,6 +427,15 @@ export function NewOrderWizard({
     }
 
     setSaving(false);
+
+    // If addAnotherAfterSave: open work order in new tab (non-blocking), then reset wizard
+    if (addAnotherAfterSave) {
+      if (printWorkOrder && !needsExamDetails) {
+        window.open(`/orders/${result.id}/work-order?autoprint=true`, "_blank");
+      }
+      resetForAnotherOrder();
+      return;
+    }
 
     // Auto-navigate to work order page with auto-print if requested (non-exam orders only)
     if (printWorkOrder && !needsExamDetails) {
@@ -1297,6 +1307,18 @@ export function NewOrderWizard({
                 <span className="text-sm text-gray-700">Print Work Order</span>
                 <span className="text-xs text-primary font-medium ml-auto">Recommended</span>
               </label>
+              {selectedCustomer && (
+                <label className="flex items-center gap-3 p-3 rounded-lg border border-gray-200 cursor-pointer hover:bg-gray-50">
+                  <input
+                    type="checkbox"
+                    checked={addAnotherAfterSave}
+                    onChange={(e) => setAddAnotherAfterSave(e.target.checked)}
+                    className="rounded border-gray-300 text-primary focus:ring-primary"
+                  />
+                  <RefreshCw className="w-4 h-4 text-gray-400" />
+                  <span className="text-sm text-gray-700">Add another order for {selectedCustomer.firstName} after saving</span>
+                </label>
+              )}
             </div>
           </div>
         </div>

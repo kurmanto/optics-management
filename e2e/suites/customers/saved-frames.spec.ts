@@ -194,3 +194,73 @@ test.describe("Saved Frames — Inline Return Date Edit", () => {
     await expect(returnLabel).toBeVisible();
   });
 });
+
+test.describe("Saved Frames — Image Auto-lookup (V2.4.0)", () => {
+  /**
+   * Tests the "Find image online" Google Images link that appears when both
+   * brand and model are filled in the Save a Frame form.
+   */
+  let patelId: string;
+
+  test.beforeAll(() => {
+    patelId = getTestFixtures().customerIds["Patel"];
+  });
+
+  test.beforeEach(async ({ page }) => {
+    await page.goto(`/customers/${patelId}`);
+    await page.waitForLoadState("networkidle");
+    // Open the add-frame form
+    await page.getByRole("button", { name: "Save a Frame" }).click();
+    await expect(page.getByRole("heading", { name: "Save a Frame", level: 3 })).toBeVisible();
+  });
+
+  test("Find image online link is hidden when form is empty", async ({ page }) => {
+    await expect(page.getByRole("link", { name: /find image online/i })).not.toBeVisible();
+  });
+
+  test("Find image online link is hidden when only brand is filled", async ({ page }) => {
+    await page.getByPlaceholder("Ray-Ban").fill("Ray-Ban");
+    await expect(page.getByRole("link", { name: /find image online/i })).not.toBeVisible();
+  });
+
+  test("Find image online link appears when brand AND model are both filled", async ({ page }) => {
+    await page.getByPlaceholder("Ray-Ban").fill("Ray-Ban");
+    await page.getByPlaceholder("RB5154").fill("RB5154");
+    await expect(page.getByRole("link", { name: /find image online/i })).toBeVisible();
+  });
+
+  test("Find image online link href encodes brand + model + eyeglasses", async ({ page }) => {
+    await page.getByPlaceholder("Ray-Ban").fill("Ray-Ban");
+    await page.getByPlaceholder("RB5154").fill("RB5154");
+
+    const link = page.getByRole("link", { name: /find image online/i });
+    await expect(link).toBeVisible();
+
+    const href = await link.getAttribute("href");
+    expect(href).toContain("google.com/search");
+    expect(href).toContain("tbm=isch");
+    expect(href).toContain(encodeURIComponent("Ray-Ban RB5154 eyeglasses"));
+  });
+
+  test("Find image online link opens in a new tab", async ({ page }) => {
+    await page.getByPlaceholder("Ray-Ban").fill("Tom Ford");
+    await page.getByPlaceholder("RB5154").fill("TF5634");
+
+    const link = page.getByRole("link", { name: /find image online/i });
+    await expect(link).toBeVisible();
+
+    // rel="noopener noreferrer" and target="_blank" — verify target attribute
+    const target = await link.getAttribute("target");
+    expect(target).toBe("_blank");
+  });
+
+  test("Find image online link disappears after model is cleared", async ({ page }) => {
+    await page.getByPlaceholder("Ray-Ban").fill("Oakley");
+    await page.getByPlaceholder("RB5154").fill("OX8046");
+    await expect(page.getByRole("link", { name: /find image online/i })).toBeVisible();
+
+    // Clear the model field
+    await page.getByPlaceholder("RB5154").fill("");
+    await expect(page.getByRole("link", { name: /find image online/i })).not.toBeVisible();
+  });
+});

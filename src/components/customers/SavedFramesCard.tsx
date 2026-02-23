@@ -64,6 +64,11 @@ export function SavedFramesCard({ customerId, initialFrames, inventoryItems = []
     setModel(inv.model);
     setColor(inv.color || "");
     setInvSearch("");
+    // Auto-populate photo if a SavedFrame for this inventory item already has one
+    const existing = initialFrames.find(
+      (f) => f.inventoryItem?.id === inv.id && f.photoUrl
+    );
+    if (existing?.photoUrl) setPhotoUrl(existing.photoUrl);
   }
 
   async function handlePhotoChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -298,6 +303,16 @@ export function SavedFramesCard({ customerId, initialFrames, inventoryItems = []
               {photoUrl && <span className="text-xs text-green-600">✓ Photo uploaded</span>}
             </div>
             <input ref={fileRef} type="file" accept="image/*" capture="environment" onChange={handlePhotoChange} className="hidden" />
+            {brand && model && (
+              <a
+                href={`https://www.google.com/search?tbm=isch&q=${encodeURIComponent(`${brand} ${model} eyeglasses`)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-xs text-primary hover:underline inline-flex items-center gap-1 mt-1"
+              >
+                <Search className="w-3 h-3" /> Find image online
+              </a>
+            )}
           </div>
 
           <div className="flex gap-2 justify-end">

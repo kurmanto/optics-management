@@ -6,6 +6,35 @@ Format: `[Version] — Date`
 
 ---
 
+## [2.4.1] — 2026-02-22
+
+### Added — Missing Features Trio (Frame Lookup · Pickup Auto-Print · Queue Another Order)
+
+#### Feature 1 — Frame Image Auto-Lookup (`SavedFramesCard`)
+- **"Find image online" link** — when staff fills in both brand and model in the Add Frame form, a "Find image online" link appears below the camera button. Clicking it opens a Google Images search for `"{brand} {model} eyeglasses"` in a new tab — instant visual reference without any manual upload.
+- **Photo auto-populate from inventory** — when staff selects an existing inventory item from the frame autocomplete dropdown, if that customer already has a SavedFrame for the same inventory item with a saved photo, the photo URL is automatically pre-filled. Zero extra clicks.
+
+#### Feature 2 — Invoice Auto-Print at Pickup
+- **`printInvoice` checkbox in PickupCompleteModal** — a new "Print invoice" option (checked by default, Recommended badge) appears in the pickup modal alongside the existing review request, referral, and family promo toggles.
+- **Auto-print on confirm** — when staff click "Confirm Pickup" with Print invoice checked, the invoice opens in a new browser tab and `window.print()` fires automatically after 600 ms — same pattern as the existing work order auto-print.
+- **`?autoprint=true` query param** — `InvoiceView` now accepts an `autoprint` prop; the `/orders/[id]/invoice` page reads `?autoprint=true` from the URL and passes it through. Unchecking the checkbox skips the tab entirely.
+
+#### Feature 3 — Queue Another Order Before Saving (Step 7)
+- **"Add another order for {firstName}" checkbox in wizard step 7** — in the Invoice Actions card on the Review step, staff can now check this option *before* clicking "Create Order". When checked, creating the order resets the wizard back to step 1 with the same customer pre-selected instead of showing the success overlay.
+- **Work-order tab still opens** — if "Print Work Order" is also checked, the work order auto-print tab still opens in the background and the wizard resets, so there is no interruption to the multi-order flow.
+
+#### Tests
+- **E2E** — 22 new Playwright specs across 3 spec files:
+  - `e2e/suites/customers/saved-frames.spec.ts` — 6 new tests: "Find image online" link hidden when empty/brand-only, appears with brand+model, correct Google Images URL encoding, `target="_blank"`, disappears when model cleared
+  - `e2e/suites/orders/pickup-autoprint.spec.ts` — new file (10 tests): modal has Print invoice checkbox, checked by default, Recommended badge, can uncheck, cancel keeps order READY, no new tab when cancelled; invoice `?autoprint=true` calls `window.print` after 600 ms; without param does NOT call print; combined with `?view=internal` renders correctly
+  - `e2e/suites/orders/add-another-order.spec.ts` — 6 new tests: `navigateToReviewStep()` helper using Contact Lenses path; Invoice Actions card visible; "Add another order" checkbox present, unchecked by default, can be checked; Create Order button visible; Print Work Order + Email Invoice checkboxes visible
+- **Unit tests** — no new unit tests required (all three features are pure client-side UI with no new server actions). 410 total unit tests continue to pass.
+
+#### PR
+- PR #27 — branch `feature/missing-features-trio`
+
+---
+
 ## [2.4.0] — 2026-02-22
 
 ### Added — Appointment Manager (Weekly Calendar)
