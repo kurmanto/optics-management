@@ -6,6 +6,47 @@ Format: `[Version] — Date`
 
 ---
 
+## [2.7.0] — 2026-02-24
+
+### Added — Dashboard Cycling, Exam Tracking, Google Review Tracking
+
+#### Feature 1: Dashboard Scoreboard Click-to-Cycle
+- Scoreboard section now cycles through **This Month → Year to Date → All Time** on click
+- Extracted `ScoreboardCard` client component (`src/components/dashboard/ScoreboardCard.tsx`)
+- Added `getYearScoreboard()` and `getHistoricScoreboard()` server-side data functions
+- All three datasets fetched in parallel — no client-side fetching
+- Goal progress bar: shown for Monthly (monthly goal) and Yearly (monthly goal × 12), hidden for All Time
+- Dot indicators show current view; can click individual dots to jump to specific view
+
+#### Feature 2: Weekly Exam Tracking with Payment Method
+- New `paymentMethod` field on `Exam` model (reuses existing `PaymentMethod` enum)
+- New `/exams` page with weekly calendar view (week navigation, current week indicator)
+- Summary cards: total exams, total billed, total paid, payment method breakdown
+- Detailed table: patient name (linked), date, exam type, doctor, payment method, billed, paid
+- **Log Exam** modal: debounced customer search, date/type/doctor/payment/amounts/OHIP/notes
+- New "Exams" sidebar entry with Eye icon (between Dashboard and Appointments)
+- Server actions: `createExam`, `getWeeklyExams` in `src/lib/actions/exams.ts`
+- Zod validation schema: `src/lib/validations/exam.ts`
+
+#### Feature 3: Google Review Tracking
+- 3 new fields on Customer model: `googleReviewGiven`, `googleReviewDate`, `googleReviewNote`
+- `GoogleReviewCard` component on customer detail page (left column) — mark as given with optional note, remove status
+- `toggleGoogleReview` server action with audit logging
+- Customer list: filled star icon next to name for reviewed customers
+- Customer list: "Reviewed" / "Not Reviewed" filter pills alongside lifecycle filters
+- Star indicator uses yellow fill when review is given
+
+#### Schema Changes
+- `Customer`: added `googleReviewGiven Boolean`, `googleReviewDate DateTime?`, `googleReviewNote String?`
+- `Exam`: added `paymentMethod PaymentMethod?`
+- SQL migration: `prisma/migrations/20260224_google_reviews_and_exam_payment.sql`
+
+#### Tests
+- 10 new tests: `toggleGoogleReview` (3), `createExam` (5), `getWeeklyExams` (2)
+- **491 tests, 33 files** — all passing
+
+---
+
 ## [2.6.0] — 2026-02-23
 
 ### Added — Smart Intake Form + Current Glasses Reading

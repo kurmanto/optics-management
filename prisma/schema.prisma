@@ -95,6 +95,10 @@ model Customer {
   referredByName String? @map("referred_by_name")
   occupation     String?
 
+  googleReviewGiven Boolean   @default(false) @map("google_review_given")
+  googleReviewDate  DateTime? @map("google_review_date")
+  googleReviewNote  String?   @map("google_review_note")
+
   marketingOptOut Boolean   @default(false) @map("marketing_opt_out")
   optOutReason    String?   @map("opt_out_reason")
   optOutDate      DateTime? @map("opt_out_date")
@@ -678,6 +682,7 @@ model Exam {
   doctorName        String?
   examDate          DateTime
   examType          ExamType @default(COMPREHENSIVE)
+  paymentMethod     PaymentMethod? @map("payment_method")
 
   // Billing
   billingCode  String?
