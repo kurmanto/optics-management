@@ -90,7 +90,7 @@ VERIFIED = Rx check by optician after lab receives order. PICKED_UP triggers Pic
 - `legacyCustomerId` is nullable — not all migrated records have it
 
 ## Version Status
-Current version: **V2.6.0 — Smart Intake Form + Current Glasses Reading** (2026-02-23)
+Current version: **V2.7.0 — Staff Task Queue** (2026-02-23)
 
 | Feature | Status |
 |---------|--------|
@@ -108,9 +108,10 @@ Current version: **V2.6.0 — Smart Intake Form + Current Glasses Reading** (202
 | Digital Forms (V1.2: 4 templates, intake packages, kiosk, AI review) | ✅ Complete |
 | Invoices (print, email, issue tracking, central list) | ✅ Complete |
 | Work order redesign (centered layout, email/phone boxes, spec grids) | ✅ Complete |
-| Notification system (bell, polling, 7 types, per-user prefs) | ✅ Complete |
+| Notification system (bell, polling, 9 types, per-user prefs) | ✅ Complete |
 | Smart Intake Form (self-service /intake/start, returning patient lookup, prefill) | ✅ Complete |
 | Current Glasses Reading (CURRENT_GLASSES Rx, lensometer photo, customer detail section) | ✅ Complete |
+| Staff Task Queue (CRUD, filters, comments, patient link, sidebar badge) | ✅ Complete |
 | Staff management | 🔲 V1.1 |
 | Reporting | 🔲 V1.1 |
 | Walk-ins / Exams | 🔲 V2 |

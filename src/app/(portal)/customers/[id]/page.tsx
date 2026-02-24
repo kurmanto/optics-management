@@ -26,6 +26,7 @@ import { SavedFramesCard } from "@/components/customers/SavedFramesCard";
 import { QuickBookAppointment } from "@/components/customers/QuickBookAppointment";
 import { CurrentGlassesForm } from "@/components/customers/CurrentGlassesForm";
 import { SendIntakeLinkButton } from "@/components/customers/SendIntakeLinkButton";
+import { CustomerTasksCard } from "@/components/customers/CustomerTasksCard";
 
 const FORM_TYPE_LABELS: Record<FormTemplateType, string> = {
   NEW_PATIENT: "New Patient Registration",
@@ -64,7 +65,7 @@ export default async function CustomerDetailPage({
   await verifySession();
   const { id } = await params;
 
-  const [customer, inventoryItems] = await Promise.all([
+  const [customer, inventoryItems, customerTasks, activeStaff] = await Promise.all([
   prisma.customer.findUnique({
     where: { id, isActive: true },
     include: {
@@ -115,6 +116,21 @@ export default async function CustomerDetailPage({
     where: { isActive: true },
     select: { id: true, brand: true, model: true, color: true, sku: true },
     orderBy: [{ brand: "asc" }, { model: "asc" }],
+  }),
+  prisma.staffTask.findMany({
+    where: {
+      customerId: id,
+      isActive: true,
+      status: { in: ["OPEN", "IN_PROGRESS"] },
+    },
+    include: { assignee: { select: { name: true } } },
+    orderBy: [{ priority: "desc" }, { dueDate: "asc" }, { createdAt: "desc" }],
+    take: 10,
+  }),
+  prisma.user.findMany({
+    where: { isActive: true },
+    select: { id: true, name: true, role: true },
+    orderBy: { name: "asc" },
   }),
   ]);
 
@@ -629,6 +645,22 @@ export default async function CustomerDetailPage({
               notes: a.notes,
               status: a.status as string,
             }))}
+          />
+
+          {/* Tasks */}
+          <CustomerTasksCard
+            customerId={customer.id}
+            customerName={`${customer.firstName} ${customer.lastName}`}
+            tasks={customerTasks.map((t) => ({
+              id: t.id,
+              title: t.title,
+              status: t.status as string,
+              priority: t.priority as string,
+              category: t.category as string,
+              dueDate: t.dueDate?.toISOString() || null,
+              assigneeName: t.assignee?.name || null,
+            }))}
+            staff={activeStaff}
           />
 
           {/* Referral Code */}
