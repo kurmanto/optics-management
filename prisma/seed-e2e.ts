@@ -102,6 +102,11 @@ async function truncateAll() {
   await prisma.family.deleteMany();
   await prisma.systemSetting.deleteMany();
   await prisma.formTemplate.deleteMany();
+
+  // StaffTask/TaskComment reference User — must delete before users
+  try { await (prisma as any).taskComment.deleteMany(); } catch (_) {}
+  try { await (prisma as any).staffTask.deleteMany(); } catch (_) {}
+
   await prisma.user.deleteMany();
 
   console.log("✅ All tables cleared\n");
