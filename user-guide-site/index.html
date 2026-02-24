@@ -661,14 +661,20 @@
   <a href="#appt-actions" class="sub-link">Managing Appointments</a>
   <a href="#appt-types" class="sub-link">Appointment Types</a>
 
-  <a href="#section-security" class="section-link">13. Security &amp; Compliance</a>
+  <a href="#section-tasks" class="section-link">13. Staff Tasks</a>
+  <a href="#tasks-list" class="sub-link">Task List &amp; Filters</a>
+  <a href="#tasks-create" class="sub-link">Creating a Task</a>
+  <a href="#tasks-detail" class="sub-link">Task Details &amp; Comments</a>
+  <a href="#tasks-customer" class="sub-link">Patient-Linked Tasks</a>
+
+  <a href="#section-security" class="section-link">14. Security &amp; Compliance</a>
   <a href="#idle-timeout" class="sub-link">Session Idle Timeout</a>
   <a href="#account-lockout" class="sub-link">Password &amp; Lockout</a>
   <a href="#audit-log" class="sub-link">Audit Log (Admin)</a>
   <a href="#breach-reports" class="sub-link">Breach Reports (Admin)</a>
   <a href="#viewer-role" class="sub-link">Viewer Role</a>
 
-  <a href="#section-quick-ref" class="section-link">14. Quick Reference</a>
+  <a href="#section-quick-ref" class="section-link">15. Quick Reference</a>
   <a href="#cheat-sheet" class="sub-link">Status Cheat Sheet</a>
   <a href="#common-tasks" class="sub-link">Common Tasks</a>
 </nav>
@@ -2510,14 +2516,79 @@
 </section>
 
 
-<!-- ==================== SECTION 13: SECURITY & COMPLIANCE ==================== -->
-<section class="section" id="section-security">
+<!-- ==================== SECTION 13: STAFF TASKS ==================== -->
+<section class="section" id="section-tasks">
   <div class="section-eyebrow">Section 13</div>
   <div class="section-number">13</div>
+  <h1 class="section-title">Staff Tasks</h1>
+  <p class="section-intro">The Task Queue gives your team a shared to-do list for follow-up calls, lab work, admin tasks, and marketing actions. Tasks can be assigned to specific staff or roles, linked to patients, and tracked with comments.</p>
+
+  <h2 id="tasks-list">13.1 Task List &amp; Filters</h2>
+  <p>Navigate to <strong>Sidebar → Tasks</strong> (clipboard icon). The sidebar also shows a <strong>red badge</strong> with your open task count.</p>
+  <ul>
+    <li><strong>My Tasks</strong> (default ON) — shows only tasks assigned to you or your role</li>
+    <li><strong>Status chips</strong> — All, Open, In Progress, Done</li>
+    <li><strong>Category chips</strong> — Clinical, Admin, Lab, Marketing</li>
+    <li><strong>Urgent toggle</strong> — filter to show only urgent tasks</li>
+    <li><strong>Search box</strong> — search by title or description text</li>
+    <li><strong>Overdue tasks</strong> appear with a red background and red due date</li>
+    <li>Tasks sort by: Urgent first, then by due date, then newest first</li>
+  </ul>
+
+  <h2 id="tasks-create">13.2 Creating a Task</h2>
+  <p>Click <strong>"+ New Task"</strong> in the top-right of the Tasks page. The modal includes:</p>
+  <ul>
+    <li><strong>Title</strong> (required) — a short description of what needs to be done</li>
+    <li><strong>Category</strong> — Clinical, Admin, Lab, or Marketing</li>
+    <li><strong>Priority</strong> — Normal or Urgent (toggle buttons)</li>
+    <li><strong>Assign to</strong> — pick a specific staff member, or "Any Staff" / "Any Admin" for role-based assignment</li>
+    <li><strong>Link to patient</strong> — type to search by name or phone; the task will appear on that patient's profile</li>
+    <li><strong>Due date</strong> — optional deadline (tasks past this date show as overdue)</li>
+    <li><strong>Description</strong> — optional notes with more detail</li>
+  </ul>
+
+  <div class="box box-tip">
+    <div class="box-label">Tip</div>
+    When a task is assigned to someone other than you, they receive a <strong>notification</strong> automatically. No need to message them separately.
+  </div>
+
+  <h2 id="tasks-detail">13.3 Task Details &amp; Comments</h2>
+  <p>Click any task row to open the <strong>detail panel</strong> (slide-over from the right):</p>
+  <ul>
+    <li><strong>Status buttons</strong> — move the task through Open → In Progress → Done, or Cancel it</li>
+    <li><strong>Edit any field</strong> — title, category, priority, assignee, due date, and description are all editable inline</li>
+    <li><strong>Comments</strong> — add notes for handoff or progress updates; each comment shows author and date</li>
+    <li><strong>Delete</strong> — soft-deletes the task (it won't appear in lists anymore)</li>
+  </ul>
+
+  <h2 id="tasks-customer">13.4 Patient-Linked Tasks</h2>
+  <p>When a task is linked to a patient, it also appears on the <strong>customer detail page</strong> in a Tasks card (right column, between Appointments and Referrals).</p>
+  <ul>
+    <li>The card shows all open/in-progress tasks for that patient</li>
+    <li>Click <strong>"+ Add Task"</strong> to create a task pre-linked to that patient — no need to search</li>
+    <li>Click any task to jump to the full task detail panel on the Tasks page</li>
+  </ul>
+
+  <div class="box box-info">
+    <div class="box-label">Use cases</div>
+    <ul>
+      <li>"Call Mrs. Johnson about her new bifocal options" (Clinical)</li>
+      <li>"Follow up on lab delay for order ORD-2026-042" (Lab)</li>
+      <li>"Send birthday promo to VIP customers" (Marketing)</li>
+      <li>"Restock lens cleaning kits before Saturday" (Admin)</li>
+    </ul>
+  </div>
+</section>
+
+
+<!-- ==================== SECTION 14: SECURITY & COMPLIANCE ==================== -->
+<section class="section" id="section-security">
+  <div class="section-eyebrow">Section 14</div>
+  <div class="section-number">14</div>
   <h1 class="section-title">Security &amp; Compliance</h1>
   <p class="section-intro">The portal is designed to meet PHIPA and PIPEDA requirements for handling protected health information. This section explains the automatic security controls all staff will encounter, and documents the Admin-only compliance tools.</p>
 
-  <h2 id="idle-timeout">13.1 Session Idle Timeout</h2>
+  <h2 id="idle-timeout">14.1 Session Idle Timeout</h2>
   <p>For patient privacy, the portal automatically signs you out after <strong>30 minutes of inactivity</strong> (no page navigations during that time).</p>
   <ul>
     <li>When this happens, you land on the login page with a yellow banner: <em>"You were signed out due to inactivity."</em></li>
@@ -2530,7 +2601,7 @@
     If you're stepping away from the reception desk, log out manually (Settings → Log Out) rather than waiting for the auto-timeout. This ensures patient data is not visible to anyone passing by.
   </div>
 
-  <h2 id="account-lockout">13.2 Password Policy &amp; Account Lockout</h2>
+  <h2 id="account-lockout">14.2 Password Policy &amp; Account Lockout</h2>
   <p>To protect patient records, all passwords must meet these requirements:</p>
   <ul>
     <li>Minimum <strong>12 characters</strong></li>
@@ -2554,7 +2625,7 @@
     If your account is locked and you did not enter five wrong passwords yourself, contact your manager immediately — it may indicate an unauthorized access attempt on a patient record system.
   </div>
 
-  <h2 id="audit-log">13.3 Audit Log <span style="font-size:13px;font-weight:400;color:#64748b;">(Admin Only)</span></h2>
+  <h2 id="audit-log">14.3 Audit Log <span style="font-size:13px;font-weight:400;color:#64748b;">(Admin Only)</span></h2>
   <p>Every create, update, delete, login, and logout event in the portal is automatically recorded in a tamper-evident audit log. This log is required by <strong>PHIPA</strong> for any healthcare application that stores protected health information.</p>
   <p><strong>To access:</strong> Sidebar → <strong>Admin</strong> → <strong>Audit Log</strong><br>
   <em>(The Admin section is only visible to accounts with the Admin role.)</em></p>
@@ -2587,7 +2658,7 @@
     Under PHIPA, you must be able to demonstrate who accessed or modified patient records and when. The Audit Log fulfills this obligation automatically — no manual entry is needed.
   </div>
 
-  <h2 id="breach-reports">13.4 Breach Reports <span style="font-size:13px;font-weight:400;color:#64748b;">(Admin Only)</span></h2>
+  <h2 id="breach-reports">14.4 Breach Reports <span style="font-size:13px;font-weight:400;color:#64748b;">(Admin Only)</span></h2>
   <p>If a privacy breach occurs — such as unauthorized disclosure of patient health information — <strong>PHIPA requires notifying the IPC (Information and Privacy Commissioner of Ontario) within 30 days</strong> and affected individuals as soon as feasible.</p>
   <p><strong>To access:</strong> Sidebar → <strong>Admin</strong> → <strong>Breach Reports</strong></p>
 
@@ -2638,7 +2709,7 @@
     Failing to report a privacy breach to the IPC within 30 days may result in regulatory action under PHIPA. Contact your privacy officer immediately upon discovering any unauthorized access to patient records.
   </div>
 
-  <h2 id="viewer-role">13.5 Staff Roles Overview</h2>
+  <h2 id="viewer-role">14.5 Staff Roles Overview</h2>
   <p>Each staff account is assigned one of three roles:</p>
   <table>
     <thead><tr><th>Role</th><th>Can Do</th><th>Cannot Do</th></tr></thead>
@@ -2657,10 +2728,10 @@
 </section>
 
 
-<!-- ==================== SECTION 14: QUICK REFERENCE ==================== -->
+<!-- ==================== SECTION 15: QUICK REFERENCE ==================== -->
 <section class="section" id="section-quick-ref">
-  <div class="section-eyebrow">Section 14</div>
-  <div class="section-number">14</div>
+  <div class="section-eyebrow">Section 15</div>
+  <div class="section-number">15</div>
   <h1 class="section-title">Quick Reference</h1>
   <p class="section-intro">Tear out this section and keep it at your workstation. Everything you need at a glance.</p>
 

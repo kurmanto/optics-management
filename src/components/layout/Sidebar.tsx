@@ -53,6 +53,11 @@ const navItems = [
     icon: FileText,
   },
   {
+    title: "Tasks",
+    href: "/tasks",
+    icon: ClipboardList,
+  },
+  {
     title: "Orders",
     href: "/orders/board",
     icon: ShoppingBag,
@@ -101,9 +106,10 @@ type NavItem = {
 type Props = {
   userName: string;
   userRole: string;
+  taskCount?: number;
 };
 
-export function Sidebar({ userName, userRole }: Props) {
+export function Sidebar({ userName, userRole, taskCount }: Props) {
   const pathname = usePathname();
 
   function isGroupActive(item: NavItem) {
@@ -232,7 +238,12 @@ export function Sidebar({ userName, userRole }: Props) {
               )}
             >
               <Icon className="w-5 h-5 flex-shrink-0" />
-              {item.title}
+              <span className="flex-1">{item.title}</span>
+              {item.title === "Tasks" && taskCount !== undefined && taskCount > 0 && (
+                <span className="ml-auto text-[10px] font-bold bg-red-500 text-white px-1.5 py-0.5 rounded-full min-w-[18px] text-center">
+                  {taskCount > 99 ? "99+" : taskCount}
+                </span>
+              )}
             </Link>
           );
         })}

@@ -12,7 +12,11 @@ type NotificationType =
   | "ORDER_CANCELLED"
   | "ORDER_LAB_RECEIVED"
   | "PO_RECEIVED"
-  | "LOW_STOCK";
+  | "LOW_STOCK"
+  | "CAMPAIGN_COMPLETED"
+  | "CAMPAIGN_ERROR"
+  | "TASK_ASSIGNED"
+  | "TASK_DUE_SOON";
 
 type PreferenceMap = Partial<Record<NotificationType, boolean>>;
 
@@ -57,6 +61,16 @@ const NOTIFICATION_TYPES: NotificationTypeConfig[] = [
     type: "LOW_STOCK",
     label: "Low Stock Alert",
     description: "A product falls to or below its reorder point.",
+  },
+  {
+    type: "TASK_ASSIGNED",
+    label: "Task Assigned",
+    description: "A task is assigned to you by another staff member.",
+  },
+  {
+    type: "TASK_DUE_SOON",
+    label: "Task Due Soon",
+    description: "A task assigned to you is due within 24 hours.",
   },
 ];
 

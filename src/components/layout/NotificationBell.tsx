@@ -10,6 +10,7 @@ import {
   Package,
   AlertTriangle,
   Check,
+  ClipboardList,
 } from "lucide-react";
 import {
   getMyNotifications,
@@ -28,7 +29,9 @@ type NotificationType =
   | "PO_RECEIVED"
   | "LOW_STOCK"
   | "CAMPAIGN_COMPLETED"
-  | "CAMPAIGN_ERROR";
+  | "CAMPAIGN_ERROR"
+  | "TASK_ASSIGNED"
+  | "TASK_DUE_SOON";
 
 function timeAgo(date: Date): string {
   const seconds = Math.floor((Date.now() - new Date(date).getTime()) / 1000);
@@ -54,6 +57,9 @@ function typeIcon(type: NotificationType) {
       return <Package className="w-4 h-4 text-purple-500 flex-shrink-0" />;
     case "LOW_STOCK":
       return <AlertTriangle className="w-4 h-4 text-amber-500 flex-shrink-0" />;
+    case "TASK_ASSIGNED":
+    case "TASK_DUE_SOON":
+      return <ClipboardList className="w-4 h-4 text-indigo-500 flex-shrink-0" />;
   }
 }
 

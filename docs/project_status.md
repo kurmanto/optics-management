@@ -5,7 +5,28 @@
 
 ---
 
-## Current Version: V2.6.0 — Smart Intake Form + Current Glasses Reading
+## Current Version: V2.7.0 — Staff Task Queue
+
+---
+
+### V2.7.0 — Staff Task Queue (Complete)
+
+| Feature | Status | Notes |
+|---------|--------|-------|
+| StaffTask + TaskComment models | ✅ Complete | 3 new enums (TaskStatus, TaskPriority, TaskCategory), 2 new tables, 7 indexes |
+| TASK_ASSIGNED / TASK_DUE_SOON notification types | ✅ Complete | Added to NotificationType enum; TASK_ASSIGNED fires on create/reassign |
+| Task CRUD server actions | ✅ Complete | createTask, updateTask, updateTaskStatus, deleteTask (soft), addTaskComment, getActiveStaff, getTaskComments, getMyOpenTaskCount |
+| Tasks list page (`/tasks`) | ✅ Complete | Filter chips (status, category, priority), "My Tasks" toggle, search, overdue highlighting, pagination (25/page) |
+| CreateTaskModal | ✅ Complete | Category, priority toggle, staff/role assignee dropdown, debounced patient search, due date, description |
+| TaskDetailPanel (slide-over) | ✅ Complete | Inline editing, status transitions, comment thread, delete |
+| Sidebar Tasks link + badge | ✅ Complete | ClipboardList icon, red badge with open task count |
+| CustomerTasksCard | ✅ Complete | Shows patient-linked tasks on customer detail; inline quick-add form |
+| Zod validation schemas | ✅ Complete | CreateTaskSchema, UpdateTaskSchema, UpdateTaskStatusSchema, AddTaskCommentSchema |
+| Unit tests (524 total, 34 files) | ✅ Complete | +43 tests: 22 action tests, 21 validation schema tests |
+
+---
+
+### Previous Version: V2.6.0 — Smart Intake Form + Current Glasses Reading (Complete)
 
 ---
 

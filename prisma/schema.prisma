@@ -39,6 +39,10 @@ model User {
   notificationPreferences NotificationPreference[] @relation("NotificationPreferences")
   campaignsCreated        Campaign[]               @relation("CampaignCreatedBy")
 
+  tasksAssigned  StaffTask[]    @relation("TaskAssignee")
+  tasksCreated   StaffTask[]    @relation("TaskCreator")
+  taskComments   TaskComment[]
+
   @@map("users")
 }
 
@@ -123,6 +127,7 @@ model Customer {
   medicalHistory      MedicalHistory?
   storeCredits        StoreCredit[]
   savedFrames         SavedFrame[]
+  staffTasks          StaffTask[]
 
   @@index([lastName, firstName])
   @@index([phone])
@@ -1185,6 +1190,8 @@ enum NotificationType {
   LOW_STOCK
   CAMPAIGN_COMPLETED
   CAMPAIGN_ERROR
+  TASK_ASSIGNED
+  TASK_DUE_SOON
 }
 
 model Notification {
@@ -1229,6 +1236,73 @@ model NotificationPreference {
 
   @@unique([userId, type])
   @@map("notification_preferences")
+}
+
+// ─────────────────────────────────────────
+// STAFF TASKS
+// ─────────────────────────────────────────
+
+enum TaskStatus {
+  OPEN
+  IN_PROGRESS
+  DONE
+  CANCELLED
+}
+
+enum TaskPriority {
+  NORMAL
+  URGENT
+}
+
+enum TaskCategory {
+  CLINICAL
+  ADMIN
+  LAB
+  MARKETING
+}
+
+model StaffTask {
+  id            String        @id @default(cuid())
+  title         String
+  description   String?
+  status        TaskStatus    @default(OPEN)
+  priority      TaskPriority  @default(NORMAL)
+  category      TaskCategory
+  assigneeId    String?       @map("assignee_id")
+  assigneeRole  String?       @map("assignee_role")
+  customerId    String?       @map("customer_id")
+  dueDate       DateTime?     @map("due_date")
+  completedAt   DateTime?     @map("completed_at")
+  createdById   String        @map("created_by_id")
+  isActive      Boolean       @default(true) @map("is_active")
+  createdAt     DateTime      @default(now()) @map("created_at")
+  updatedAt     DateTime      @updatedAt @map("updated_at")
+
+  assignee  User?     @relation("TaskAssignee", fields: [assigneeId], references: [id])
+  createdBy User      @relation("TaskCreator", fields: [createdById], references: [id])
+  customer  Customer? @relation(fields: [customerId], references: [id])
+  comments  TaskComment[]
+
+  @@index([status])
+  @@index([assigneeId])
+  @@index([customerId])
+  @@index([dueDate])
+  @@index([category])
+  @@map("staff_tasks")
+}
+
+model TaskComment {
+  id        String   @id @default(cuid())
+  taskId    String   @map("task_id")
+  authorId  String   @map("author_id")
+  body      String
+  createdAt DateTime @default(now()) @map("created_at")
+
+  task   StaffTask @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  author User      @relation(fields: [authorId], references: [id])
+
+  @@index([taskId])
+  @@map("task_comments")
 }
 
 // ─────────────────────────────────────────

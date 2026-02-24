@@ -24,6 +24,8 @@
 | `src/lib/actions/purchase-orders.ts` | `createPurchaseOrder`, `updatePOStatus`, `receivePOLineItems` |
 | `src/lib/actions/campaigns.ts` | `createCampaign`, `updateCampaign`, `deleteCampaign`, `activateCampaign`, `pauseCampaign`, `archiveCampaign`, `enrollCustomer`, `removeRecipient`, `triggerCampaignRun` (Admin), `getCampaignAnalytics`, `previewSegment`, `createMessageTemplate`, `updateMessageTemplate`, `deleteMessageTemplate` |
 | `src/lib/actions/breach.ts` | `createBreachReport`, `updateBreachStatus`, `generateIPCNotificationText` (all Admin-only) |
+| `src/lib/actions/tasks.ts` | `createTask`, `updateTask`, `updateTaskStatus`, `deleteTask`, `addTaskComment`, `getActiveStaff`, `getTaskComments`, `getMyOpenTaskCount` |
+| `src/lib/actions/tasks-client.ts` | `searchCustomersForTask` — debounced patient search for task creation |
 | `src/lib/campaigns/campaign-engine.ts` | `processCampaign(id)`, `processAllCampaigns()` |
 | `src/lib/campaigns/segment-engine.ts` | `executeSegment(config)`, `previewSegmentCount(config)`, `previewSegmentSample(config)` |
 | `src/lib/campaigns/dispatch.ts` | `dispatchMessage(opts)` — creates Message record + sends (SMS/email stubs) |

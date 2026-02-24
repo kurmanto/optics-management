@@ -6,6 +6,26 @@ Format: `[Version] — Date`
 
 ---
 
+## [2.7.0] — 2026-02-23
+
+### Added — Staff Task Queue
+
+- **StaffTask model** — title, description, status (OPEN/IN_PROGRESS/DONE/CANCELLED), priority (NORMAL/URGENT), category (CLINICAL/ADMIN/LAB/MARKETING), assignee (user or role), optional patient link, due date, soft delete
+- **TaskComment model** — threaded activity/handoff notes per task (author, body, timestamps), cascade delete with parent task
+- **NotificationType additions** — `TASK_ASSIGNED`, `TASK_DUE_SOON` enum values
+- **Server actions** — `createTask`, `updateTask`, `updateTaskStatus`, `deleteTask` (soft), `addTaskComment`, `getActiveStaff`, `getTaskComments`, `getMyOpenTaskCount`, `searchCustomersForTask`
+- **Tasks list page** (`/tasks`) — filterable by status, category, priority, "My Tasks" toggle; search by title/description; URGENT-first + due-date sort; overdue row highlighting (red background); pagination (25 per page)
+- **CreateTaskModal** — full creation form with category, priority toggle, staff/role assignee dropdown, debounced patient search, due date, description
+- **TaskDetailPanel** — slide-over detail view with inline editing, status transition buttons, comment thread, delete
+- **Sidebar "Tasks" link** — ClipboardList icon between Forms and Orders, with red badge showing open task count
+- **CustomerTasksCard** — on customer detail page: shows open/in-progress tasks linked to patient, inline quick-add form pre-filled with customerId
+- **Notification integration** — TASK_ASSIGNED notification fired on create/reassign when assignee differs from creator
+- **SQL migration** — `staff_tasks_migration.sql` creates 3 enums, 2 tables, 7 indexes, 2 notification type values
+- **Zod schemas** — `CreateTaskSchema`, `UpdateTaskSchema`, `UpdateTaskStatusSchema`, `AddTaskCommentSchema`
+- **Unit tests** — 43 new tests (22 action tests + 21 validation tests); total suite now 524 tests across 34 files
+
+---
+
 ## [2.6.0] — 2026-02-23
 
 ### Added — Smart Intake Form + Current Glasses Reading
