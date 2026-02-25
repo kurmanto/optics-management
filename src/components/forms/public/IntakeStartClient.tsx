@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { lookupReturningPatient, createSelfServiceIntakePackage } from "@/lib/actions/forms";
+import { lookupReturningPatient, createUnifiedIntakeSubmission } from "@/lib/actions/forms";
 import type { ReturningPatientPrefill } from "@/lib/types/forms";
 
 type Screen = "choice" | "phone-lookup" | "email-fallback" | "creating";
@@ -35,7 +35,7 @@ export function IntakeStartClient() {
     setScreen("creating");
     setError(null);
 
-    const result = await createSelfServiceIntakePackage("New Patient");
+    const result = await createUnifiedIntakeSubmission("New Patient");
     if ("error" in result) {
       setError(result.error);
       setScreen("choice");
@@ -89,7 +89,7 @@ export function IntakeStartClient() {
       setError(null);
       setScreen("creating");
 
-      const pkgResult = await createSelfServiceIntakePackage("New Patient");
+      const pkgResult = await createUnifiedIntakeSubmission("New Patient");
       if ("error" in pkgResult) {
         setError(pkgResult.error);
         setScreen("email-fallback");
@@ -109,7 +109,7 @@ export function IntakeStartClient() {
     setScreen("creating");
 
     const fullName = `${data.firstName} ${data.lastName}`.trim();
-    const result = await createSelfServiceIntakePackage(fullName, data.customerId);
+    const result = await createUnifiedIntakeSubmission(fullName, data.customerId);
 
     if ("error" in result) {
       setError(result.error);

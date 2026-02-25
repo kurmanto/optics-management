@@ -28,6 +28,12 @@ const TYPE_META: Record<FormTemplateType, { label: string; description: string; 
     icon: CreditCard,
     color: "bg-purple-50 text-purple-600",
   },
+  UNIFIED_INTAKE: {
+    label: "Unified Intake",
+    description: "Single-page intake with check-in, contact, and multi-patient blocks.",
+    icon: FileText,
+    color: "bg-teal-50 text-teal-600",
+  },
 };
 
 type Template = {

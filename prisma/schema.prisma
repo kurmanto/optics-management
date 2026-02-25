@@ -1038,6 +1038,7 @@ enum FormTemplateType {
   HIPAA_CONSENT
   FRAME_REPAIR_WAIVER
   INSURANCE_VERIFICATION
+  UNIFIED_INTAKE
 }
 
 model FormSubmission {

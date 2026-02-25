@@ -10,6 +10,7 @@ const TYPE_LABELS: Record<FormTemplateType, string> = {
   HIPAA_CONSENT: "Privacy Consent",
   FRAME_REPAIR_WAIVER: "Repair Waiver",
   INSURANCE_VERIFICATION: "Insurance",
+  UNIFIED_INTAKE: "Intake",
 };
 
 type Props = {

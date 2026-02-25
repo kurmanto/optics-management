@@ -84,6 +84,7 @@ const TEMPLATE_SHORT: Record<FormTemplateType, string> = {
   HIPAA_CONSENT: "Privacy",
   INSURANCE_VERIFICATION: "Insurance",
   FRAME_REPAIR_WAIVER: "Waiver",
+  UNIFIED_INTAKE: "Intake",
 };
 
 const FORM_TYPE_LABELS: Record<FormTemplateType, string> = {
@@ -91,6 +92,7 @@ const FORM_TYPE_LABELS: Record<FormTemplateType, string> = {
   HIPAA_CONSENT: "Privacy & Consent",
   FRAME_REPAIR_WAIVER: "Frame Repair Waiver",
   INSURANCE_VERIFICATION: "Insurance Verification",
+  UNIFIED_INTAKE: "Unified Intake",
 };
 
 export function FormsHub({

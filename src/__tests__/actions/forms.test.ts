@@ -82,9 +82,9 @@ describe("createIntakePackage", () => {
     expect(result.error).toBeDefined();
   });
 
-  it("returns error when no intake templates found", async () => {
+  it("returns error when unified intake template not found", async () => {
     const prisma = await getPrisma();
-    prisma.formTemplate.findMany.mockResolvedValue([]);
+    prisma.formTemplate.findFirst.mockResolvedValue(null);
 
     const { createIntakePackage } = await import("@/lib/actions/forms");
     const fd = makeFormData({ customerName: "John Doe" });
@@ -92,30 +92,24 @@ describe("createIntakePackage", () => {
     expect(result.error).toMatch(/not found/i);
   });
 
-  it("creates package and 3 form submissions", async () => {
+  it("creates a unified intake submission and returns token", async () => {
     const prisma = await getPrisma();
-    prisma.formTemplate.findMany.mockResolvedValue([
-      { id: "t1", type: "NEW_PATIENT" },
-      { id: "t2", type: "HIPAA_CONSENT" },
-      { id: "t3", type: "INSURANCE_VERIFICATION" },
-    ]);
-    (prisma as any).$transaction.mockImplementation(async (fn: (tx: unknown) => unknown) => {
-      const txMock = {
-        formPackage: {
-          create: vi.fn().mockResolvedValue({ id: "pkg-1", token: "pkg-token-1" }),
-        },
-        formSubmission: {
-          create: vi.fn().mockResolvedValue({ id: "sub-x", token: "sub-token" }),
-        },
-      };
-      return fn(txMock);
-    });
+    prisma.formTemplate.findFirst.mockResolvedValue({ id: "tmpl-unified", type: "UNIFIED_INTAKE" });
+    prisma.formSubmission.create.mockResolvedValue({ id: "sub-uni-1", token: "unified-token-1" });
 
     const { createIntakePackage } = await import("@/lib/actions/forms");
     const fd = makeFormData({ customerName: "John Doe" });
     const result = await createIntakePackage({}, fd);
 
-    expect(result.token).toBe("pkg-token-1");
+    expect(result.token).toBe("unified-token-1");
+    expect(prisma.formSubmission.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          templateId: "tmpl-unified",
+          customerName: "John Doe",
+        }),
+      })
+    );
   });
 });
 
@@ -746,9 +740,9 @@ describe("createSelfServiceIntakePackage", () => {
     expect(result).toHaveProperty("error");
   });
 
-  it("returns error when no templates found", async () => {
+  it("returns error when unified intake template not found", async () => {
     const prisma = await getPrisma();
-    prisma.formTemplate.findMany.mockResolvedValue([]);
+    prisma.formTemplate.findFirst.mockResolvedValue(null);
 
     const { createSelfServiceIntakePackage } = await import("@/lib/actions/forms");
     const result = await createSelfServiceIntakePackage("John Doe");
@@ -756,73 +750,43 @@ describe("createSelfServiceIntakePackage", () => {
     expect((result as { error: string }).error).toMatch(/not found/i);
   });
 
-  it("creates package with sentByUserId=null and returns token", async () => {
+  it("creates unified submission with sentByUserId=null and returns token", async () => {
     const prisma = await getPrisma();
-    prisma.formTemplate.findMany.mockResolvedValue([
-      { id: "t1", type: "NEW_PATIENT" },
-      { id: "t2", type: "HIPAA_CONSENT" },
-      { id: "t3", type: "INSURANCE_VERIFICATION" },
-    ]);
-
-    let capturedPkgData: Record<string, unknown> | null = null;
-    let submissionCount = 0;
-
-    (prisma as any).$transaction.mockImplementation(async (fn: (tx: unknown) => unknown) => {
-      const txMock = {
-        formPackage: {
-          create: vi.fn().mockImplementation((args: { data: Record<string, unknown> }) => {
-            capturedPkgData = args.data;
-            return Promise.resolve({ id: "pkg-self-1", token: "self-token-1" });
-          }),
-        },
-        formSubmission: {
-          create: vi.fn().mockImplementation(() => {
-            submissionCount++;
-            return Promise.resolve({ id: `sub-${submissionCount}` });
-          }),
-        },
-      };
-      return fn(txMock);
-    });
+    prisma.formTemplate.findFirst.mockResolvedValue({ id: "tmpl-unified", type: "UNIFIED_INTAKE" });
+    prisma.formSubmission.create.mockResolvedValue({ id: "sub-self-1", token: "self-token-1" });
 
     const { createSelfServiceIntakePackage } = await import("@/lib/actions/forms");
     const result = await createSelfServiceIntakePackage("Jane Doe", "cust-returning");
 
     expect(result).toHaveProperty("token", "self-token-1");
-    expect(capturedPkgData!["sentByUserId"]).toBeNull();
-    expect(capturedPkgData!["customerId"]).toBe("cust-returning");
-    expect(submissionCount).toBe(3);
+    expect(prisma.formSubmission.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          sentByUserId: null,
+          customerId: "cust-returning",
+          customerName: "Jane Doe",
+        }),
+      })
+    );
   });
 
   it("works without customerId (new patient self-service)", async () => {
     const prisma = await getPrisma();
-    prisma.formTemplate.findMany.mockResolvedValue([
-      { id: "t1", type: "NEW_PATIENT" },
-      { id: "t2", type: "HIPAA_CONSENT" },
-      { id: "t3", type: "INSURANCE_VERIFICATION" },
-    ]);
-
-    let capturedPkgData: Record<string, unknown> | null = null;
-
-    (prisma as any).$transaction.mockImplementation(async (fn: (tx: unknown) => unknown) => {
-      const txMock = {
-        formPackage: {
-          create: vi.fn().mockImplementation((args: { data: Record<string, unknown> }) => {
-            capturedPkgData = args.data;
-            return Promise.resolve({ id: "pkg-new-1", token: "new-token-1" });
-          }),
-        },
-        formSubmission: { create: vi.fn().mockResolvedValue({ id: "sub-x" }) },
-      };
-      return fn(txMock);
-    });
+    prisma.formTemplate.findFirst.mockResolvedValue({ id: "tmpl-unified", type: "UNIFIED_INTAKE" });
+    prisma.formSubmission.create.mockResolvedValue({ id: "sub-new-1", token: "new-token-1" });
 
     const { createSelfServiceIntakePackage } = await import("@/lib/actions/forms");
     const result = await createSelfServiceIntakePackage("New Patient");
 
     expect(result).toHaveProperty("token", "new-token-1");
-    expect(capturedPkgData!["sentByUserId"]).toBeNull();
-    expect(capturedPkgData!["customerId"]).toBeNull();
+    expect(prisma.formSubmission.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          sentByUserId: null,
+          customerId: null,
+        }),
+      })
+    );
   });
 });
 
@@ -904,7 +868,7 @@ describe("sendIntakeLinkEmail", () => {
     expect((result as { error: string }).error).toMatch(/no email/i);
   });
 
-  it("returns error when no intake templates found", async () => {
+  it("returns error when unified intake template not found", async () => {
     const prisma = await getPrisma();
     prisma.customer.findUnique.mockResolvedValue({
       id: "cust-1",
@@ -912,7 +876,7 @@ describe("sendIntakeLinkEmail", () => {
       lastName: "Doe",
       email: "jane@test.com",
     });
-    prisma.formTemplate.findMany.mockResolvedValue([]);
+    prisma.formTemplate.findFirst.mockResolvedValue(null);
 
     const { sendIntakeLinkEmail } = await import("@/lib/actions/forms");
     const result = await sendIntakeLinkEmail("cust-1");
@@ -920,7 +884,7 @@ describe("sendIntakeLinkEmail", () => {
     expect((result as { error: string }).error).toMatch(/not found/i);
   });
 
-  it("creates package, sends email, returns token on success", async () => {
+  it("creates unified submission, sends email, returns token on success", async () => {
     const prisma = await getPrisma();
     prisma.customer.findUnique.mockResolvedValue({
       id: "cust-1",
@@ -928,23 +892,8 @@ describe("sendIntakeLinkEmail", () => {
       lastName: "Doe",
       email: "jane@test.com",
     });
-    prisma.formTemplate.findMany.mockResolvedValue([
-      { id: "t1", type: "NEW_PATIENT" },
-      { id: "t2", type: "HIPAA_CONSENT" },
-      { id: "t3", type: "INSURANCE_VERIFICATION" },
-    ]);
-
-    (prisma as any).$transaction.mockImplementation(async (fn: (tx: unknown) => unknown) => {
-      const txMock = {
-        formPackage: {
-          create: vi.fn().mockResolvedValue({ id: "pkg-email-1", token: "email-pkg-token" }),
-        },
-        formSubmission: {
-          create: vi.fn().mockResolvedValue({ id: "sub-x" }),
-        },
-      };
-      return fn(txMock);
-    });
+    prisma.formTemplate.findFirst.mockResolvedValue({ id: "tmpl-unified", type: "UNIFIED_INTAKE" });
+    prisma.formSubmission.create.mockResolvedValue({ id: "sub-email-1", token: "email-unified-token" });
 
     const { sendIntakeEmail } = await import("@/lib/email");
     vi.mocked(sendIntakeEmail).mockResolvedValue({ id: "email-ok" } as any);
@@ -952,7 +901,7 @@ describe("sendIntakeLinkEmail", () => {
     const { sendIntakeLinkEmail } = await import("@/lib/actions/forms");
     const result = await sendIntakeLinkEmail("cust-1");
 
-    expect(result).toHaveProperty("token", "email-pkg-token");
+    expect(result).toHaveProperty("token", "email-unified-token");
     expect(sendIntakeEmail).toHaveBeenCalledWith(
       expect.objectContaining({
         to: "jane@test.com",
@@ -969,23 +918,8 @@ describe("sendIntakeLinkEmail", () => {
       lastName: "Doe",
       email: "jane@test.com",
     });
-    prisma.formTemplate.findMany.mockResolvedValue([
-      { id: "t1", type: "NEW_PATIENT" },
-      { id: "t2", type: "HIPAA_CONSENT" },
-      { id: "t3", type: "INSURANCE_VERIFICATION" },
-    ]);
-
-    (prisma as any).$transaction.mockImplementation(async (fn: (tx: unknown) => unknown) => {
-      const txMock = {
-        formPackage: {
-          create: vi.fn().mockResolvedValue({ id: "pkg-2", token: "tok-2" }),
-        },
-        formSubmission: {
-          create: vi.fn().mockResolvedValue({ id: "sub-x" }),
-        },
-      };
-      return fn(txMock);
-    });
+    prisma.formTemplate.findFirst.mockResolvedValue({ id: "tmpl-unified", type: "UNIFIED_INTAKE" });
+    prisma.formSubmission.create.mockResolvedValue({ id: "sub-fail", token: "tok-fail" });
 
     const { sendIntakeEmail } = await import("@/lib/email");
     vi.mocked(sendIntakeEmail).mockResolvedValue({ error: "API error" } as any);
@@ -1011,7 +945,7 @@ describe("createIntakeLinkForCustomer", () => {
     expect((result as { error: string }).error).toMatch(/not found/i);
   });
 
-  it("returns error when no intake templates found", async () => {
+  it("returns error when unified intake template not found", async () => {
     const prisma = await getPrisma();
     prisma.customer.findUnique.mockResolvedValue({
       id: "cust-1",
@@ -1019,7 +953,7 @@ describe("createIntakeLinkForCustomer", () => {
       lastName: "Doe",
       email: null,
     });
-    prisma.formTemplate.findMany.mockResolvedValue([]);
+    prisma.formTemplate.findFirst.mockResolvedValue(null);
 
     const { createIntakeLinkForCustomer } = await import("@/lib/actions/forms");
     const result = await createIntakeLinkForCustomer("cust-1");
@@ -1027,7 +961,7 @@ describe("createIntakeLinkForCustomer", () => {
     expect((result as { error: string }).error).toMatch(/not found/i);
   });
 
-  it("creates package and returns token (no email required)", async () => {
+  it("creates unified submission and returns token (no email required)", async () => {
     const prisma = await getPrisma();
     prisma.customer.findUnique.mockResolvedValue({
       id: "cust-1",
@@ -1035,32 +969,401 @@ describe("createIntakeLinkForCustomer", () => {
       lastName: "Smith",
       email: null,
     });
-    prisma.formTemplate.findMany.mockResolvedValue([
-      { id: "t1", type: "NEW_PATIENT" },
-      { id: "t2", type: "HIPAA_CONSENT" },
-      { id: "t3", type: "INSURANCE_VERIFICATION" },
-    ]);
+    prisma.formTemplate.findFirst.mockResolvedValue({ id: "tmpl-unified", type: "UNIFIED_INTAKE" });
+    prisma.formSubmission.create.mockResolvedValue({ id: "sub-link-1", token: "link-unified-token" });
 
-    let submissionCount = 0;
+    const { createIntakeLinkForCustomer } = await import("@/lib/actions/forms");
+    const result = await createIntakeLinkForCustomer("cust-1");
+
+    expect(result).toHaveProperty("token", "link-unified-token");
+    expect(prisma.formSubmission.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          templateId: "tmpl-unified",
+          customerId: "cust-1",
+          customerName: "Bob Smith",
+        }),
+      })
+    );
+  });
+});
+
+// ── createUnifiedIntakeSubmission ─────────────────────────────────────────────
+
+describe("createUnifiedIntakeSubmission", () => {
+  it("returns error when name is empty", async () => {
+    const { createUnifiedIntakeSubmission } = await import("@/lib/actions/forms");
+    const result = await createUnifiedIntakeSubmission("  ");
+    expect(result).toHaveProperty("error");
+  });
+
+  it("returns error when unified intake template not found", async () => {
+    const prisma = await getPrisma();
+    prisma.formTemplate.findFirst.mockResolvedValue(null);
+
+    const { createUnifiedIntakeSubmission } = await import("@/lib/actions/forms");
+    const result = await createUnifiedIntakeSubmission("John Doe");
+    expect(result).toHaveProperty("error");
+    expect((result as { error: string }).error).toMatch(/not found/i);
+  });
+
+  it("creates submission with sentByUserId=null and returns token", async () => {
+    const prisma = await getPrisma();
+    prisma.formTemplate.findFirst.mockResolvedValue({ id: "tmpl-unified", type: "UNIFIED_INTAKE" });
+    prisma.formSubmission.create.mockResolvedValue({ id: "sub-uni-1", token: "unified-self-token" });
+
+    const { createUnifiedIntakeSubmission } = await import("@/lib/actions/forms");
+    const result = await createUnifiedIntakeSubmission("Jane Doe");
+
+    expect(result).toHaveProperty("token", "unified-self-token");
+    expect(prisma.formSubmission.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          templateId: "tmpl-unified",
+          sentByUserId: null,
+          customerName: "Jane Doe",
+          customerId: null,
+        }),
+      })
+    );
+  });
+
+  it("passes customerId for returning patients", async () => {
+    const prisma = await getPrisma();
+    prisma.formTemplate.findFirst.mockResolvedValue({ id: "tmpl-unified", type: "UNIFIED_INTAKE" });
+    prisma.formSubmission.create.mockResolvedValue({ id: "sub-ret-1", token: "ret-token" });
+
+    const { createUnifiedIntakeSubmission } = await import("@/lib/actions/forms");
+    const result = await createUnifiedIntakeSubmission("Jane Doe", "cust-ret-1");
+
+    expect(result).toHaveProperty("token", "ret-token");
+    expect(prisma.formSubmission.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          customerId: "cust-ret-1",
+        }),
+      })
+    );
+  });
+});
+
+// ── completeUnifiedIntake ─────────────────────────────────────────────────────
+
+function makeValidIntakeData(overrides?: Partial<import("@/lib/types/unified-intake").IntakeFormState>) {
+  return {
+    visitType: "COMPLETE_EYE_EXAM" as const,
+    newOrReturning: "NEW" as const,
+    whoIsThisFor: ["Myself"],
+    patientCount: 1,
+    visionInsurance: "Yes, I have vision insurance",
+    insuranceProviderName: "Sun Life",
+    insurancePolicyNumber: "SL-123",
+    insuranceMemberId: "MEM-1",
+    hearAboutUs: "Google",
+    contactFullName: "Jane Doe",
+    contactTelephone: "(416) 555-1234",
+    contactAddress: "123 Main St",
+    contactCity: "Toronto",
+    contactEmail: "jane@test.com",
+    patients: [
+      {
+        fullName: "Jane Doe",
+        gender: "Female",
+        sameContactAsPrimary: false,
+        telephone: "(416) 555-1234",
+        address: "123 Main St",
+        dateOfBirth: "1990-01-15",
+        medications: "None",
+        allergies: "None",
+        healthConditions: [],
+        familyEyeConditions: [],
+        screenHoursPerDay: "4-6 hours",
+        currentlyWearGlasses: ["Distance glasses"],
+        dilationPreference: "Yes, dilate my eyes",
+        mainReasonForExam: "Annual checkup",
+        biggestVisionAnnoyance: "None",
+        examConcerns: "",
+      },
+    ],
+    ...overrides,
+  };
+}
+
+describe("completeUnifiedIntake", () => {
+  it("returns error when token not found", async () => {
+    const prisma = await getPrisma();
+    prisma.formSubmission.findUnique.mockResolvedValue(null);
+
+    const { completeUnifiedIntake } = await import("@/lib/actions/forms");
+    const result = await completeUnifiedIntake("bad-token", makeValidIntakeData());
+    expect(result.error).toMatch(/not found/i);
+  });
+
+  it("returns error when form already completed", async () => {
+    const prisma = await getPrisma();
+    prisma.formSubmission.findUnique.mockResolvedValue({
+      id: "sub-1",
+      status: "COMPLETED",
+      customerId: null,
+      customerName: "Jane",
+      template: { type: "UNIFIED_INTAKE" },
+    });
+
+    const { completeUnifiedIntake } = await import("@/lib/actions/forms");
+    const result = await completeUnifiedIntake("token-1", makeValidIntakeData());
+    expect(result.error).toMatch(/already completed/i);
+  });
+
+  it("returns error when form type is wrong", async () => {
+    const prisma = await getPrisma();
+    prisma.formSubmission.findUnique.mockResolvedValue({
+      id: "sub-1",
+      status: "PENDING",
+      customerId: null,
+      customerName: "Jane",
+      template: { type: "NEW_PATIENT" },
+    });
+
+    const { completeUnifiedIntake } = await import("@/lib/actions/forms");
+    const result = await completeUnifiedIntake("token-1", makeValidIntakeData());
+    expect(result.error).toMatch(/invalid form type/i);
+  });
+
+  it("returns validation error for missing required fields", async () => {
+    const prisma = await getPrisma();
+    prisma.formSubmission.findUnique.mockResolvedValue({
+      id: "sub-1",
+      status: "PENDING",
+      customerId: null,
+      customerName: "Jane",
+      template: { type: "UNIFIED_INTAKE" },
+    });
+
+    const { completeUnifiedIntake } = await import("@/lib/actions/forms");
+    const badData = makeValidIntakeData({ visitType: "" as any });
+    const result = await completeUnifiedIntake("token-1", badData);
+    expect(result.error).toBeDefined();
+  });
+
+  it("single patient: marks completed, creates customer, fires notification", async () => {
+    const prisma = await getPrisma();
+    prisma.formSubmission.findUnique.mockResolvedValue({
+      id: "sub-1",
+      status: "PENDING",
+      customerId: null,
+      customerName: "Jane Doe",
+      template: { type: "UNIFIED_INTAKE" },
+    });
+
+    let createdCustomerData: Record<string, unknown> | null = null;
+    let submissionUpdatedCount = 0;
+
     (prisma as any).$transaction.mockImplementation(async (fn: (tx: unknown) => unknown) => {
       const txMock = {
-        formPackage: {
-          create: vi.fn().mockResolvedValue({ id: "pkg-link-1", token: "link-pkg-token" }),
-        },
         formSubmission: {
-          create: vi.fn().mockImplementation(() => {
-            submissionCount++;
-            return Promise.resolve({ id: `sub-${submissionCount}` });
+          update: vi.fn().mockImplementation(() => {
+            submissionUpdatedCount++;
+            return Promise.resolve({});
           }),
+        },
+        customer: {
+          create: vi.fn().mockImplementation((args: { data: Record<string, unknown> }) => {
+            createdCustomerData = args.data;
+            return Promise.resolve({ id: "new-cust-1" });
+          }),
+          update: vi.fn(),
+        },
+        insurancePolicy: { create: vi.fn().mockResolvedValue({ id: "pol-1" }) },
+      };
+      return fn(txMock);
+    });
+
+    const { createNotification } = await import("@/lib/notifications");
+    const { completeUnifiedIntake } = await import("@/lib/actions/forms");
+    const result = await completeUnifiedIntake("token-1", makeValidIntakeData());
+
+    expect(result.error).toBeUndefined();
+    // Submission was updated (mark completed + link customer)
+    expect(submissionUpdatedCount).toBeGreaterThanOrEqual(1);
+    // Customer created with correct data
+    expect(createdCustomerData).not.toBeNull();
+    expect(createdCustomerData!["firstName"]).toBe("Jane");
+    expect(createdCustomerData!["lastName"]).toBe("Doe");
+    expect(createdCustomerData!["isOnboarded"]).toBe(true);
+    // Notification fired
+    expect(createNotification).toHaveBeenCalledWith(
+      expect.objectContaining({ type: "INTAKE_COMPLETED" })
+    );
+  });
+
+  it("multi-patient: creates one customer per patient", async () => {
+    const prisma = await getPrisma();
+    prisma.formSubmission.findUnique.mockResolvedValue({
+      id: "sub-multi",
+      status: "PENDING",
+      customerId: null,
+      customerName: "The Smiths",
+      template: { type: "UNIFIED_INTAKE" },
+    });
+
+    let customerCreateCount = 0;
+    const createdNames: string[] = [];
+
+    (prisma as any).$transaction.mockImplementation(async (fn: (tx: unknown) => unknown) => {
+      const txMock = {
+        formSubmission: { update: vi.fn().mockResolvedValue({}) },
+        customer: {
+          create: vi.fn().mockImplementation((args: { data: Record<string, unknown> }) => {
+            customerCreateCount++;
+            createdNames.push(`${args.data["firstName"]} ${args.data["lastName"]}`);
+            return Promise.resolve({ id: `new-cust-${customerCreateCount}` });
+          }),
+          update: vi.fn(),
+        },
+        insurancePolicy: { create: vi.fn().mockResolvedValue({ id: "pol-1" }) },
+      };
+      return fn(txMock);
+    });
+
+    const multiData = makeValidIntakeData({
+      patientCount: 2,
+      patients: [
+        {
+          fullName: "Bob Smith",
+          gender: "Male",
+          sameContactAsPrimary: false,
+          telephone: "(416) 555-1234",
+          address: "123 Main St",
+          dateOfBirth: "1985-03-20",
+          medications: "",
+          allergies: "",
+          healthConditions: [],
+          familyEyeConditions: [],
+          screenHoursPerDay: "4-6 hours",
+          currentlyWearGlasses: [],
+          dilationPreference: "Yes, dilate my eyes",
+          mainReasonForExam: "Annual checkup",
+          biggestVisionAnnoyance: "Headaches",
+          examConcerns: "",
+        },
+        {
+          fullName: "Alice Smith",
+          gender: "Female",
+          sameContactAsPrimary: true,
+          telephone: "",
+          address: "",
+          dateOfBirth: "1990-06-15",
+          medications: "",
+          allergies: "",
+          healthConditions: [],
+          familyEyeConditions: [],
+          screenHoursPerDay: "2-4 hours",
+          currentlyWearGlasses: [],
+          dilationPreference: "No, skip dilation",
+          mainReasonForExam: "New glasses",
+          biggestVisionAnnoyance: "Blurry at night",
+          examConcerns: "",
+        },
+      ],
+    });
+
+    const { completeUnifiedIntake } = await import("@/lib/actions/forms");
+    const result = await completeUnifiedIntake("multi-token", multiData);
+
+    expect(result.error).toBeUndefined();
+    expect(customerCreateCount).toBe(2);
+    expect(createdNames).toEqual(["Bob Smith", "Alice Smith"]);
+  });
+
+  it("returning patient: updates existing customer for patient 1", async () => {
+    const prisma = await getPrisma();
+    prisma.formSubmission.findUnique.mockResolvedValue({
+      id: "sub-ret",
+      status: "PENDING",
+      customerId: "cust-existing",
+      customerName: "Jane Doe",
+      template: { type: "UNIFIED_INTAKE" },
+    });
+
+    let updatedCustomerId: string | null = null;
+    let customerCreated = false;
+
+    (prisma as any).$transaction.mockImplementation(async (fn: (tx: unknown) => unknown) => {
+      const txMock = {
+        formSubmission: { update: vi.fn().mockResolvedValue({}) },
+        customer: {
+          create: vi.fn().mockImplementation(() => {
+            customerCreated = true;
+            return Promise.resolve({ id: "new-cust-x" });
+          }),
+          update: vi.fn().mockImplementation((args: { where: { id: string } }) => {
+            updatedCustomerId = args.where.id;
+            return Promise.resolve({});
+          }),
+        },
+        insurancePolicy: { create: vi.fn().mockResolvedValue({ id: "pol-1" }) },
+      };
+      return fn(txMock);
+    });
+
+    const { completeUnifiedIntake } = await import("@/lib/actions/forms");
+    const result = await completeUnifiedIntake("ret-token", makeValidIntakeData());
+
+    expect(result.error).toBeUndefined();
+    // Should update existing customer, not create
+    expect(updatedCustomerId).toBe("cust-existing");
+    expect(customerCreated).toBe(false);
+  });
+
+  it("eyewear-only: succeeds without dilation/exam fields", async () => {
+    const prisma = await getPrisma();
+    prisma.formSubmission.findUnique.mockResolvedValue({
+      id: "sub-ew",
+      status: "PENDING",
+      customerId: null,
+      customerName: "John",
+      template: { type: "UNIFIED_INTAKE" },
+    });
+
+    (prisma as any).$transaction.mockImplementation(async (fn: (tx: unknown) => unknown) => {
+      const txMock = {
+        formSubmission: { update: vi.fn().mockResolvedValue({}) },
+        customer: {
+          create: vi.fn().mockResolvedValue({ id: "new-cust-ew" }),
+          update: vi.fn(),
         },
       };
       return fn(txMock);
     });
 
-    const { createIntakeLinkForCustomer } = await import("@/lib/actions/forms");
-    const result = await createIntakeLinkForCustomer("cust-1");
+    const ewData = makeValidIntakeData({
+      visitType: "EYEWEAR_ONLY",
+      visionInsurance: "",
+      patients: [
+        {
+          fullName: "John Doe",
+          gender: "Male",
+          sameContactAsPrimary: false,
+          telephone: "(416) 555-1234",
+          address: "123 Main St",
+          dateOfBirth: "1990-01-15",
+          medications: "",
+          allergies: "",
+          healthConditions: [],
+          familyEyeConditions: [],
+          screenHoursPerDay: "",
+          currentlyWearGlasses: [],
+          dilationPreference: "",
+          mainReasonForExam: "",
+          biggestVisionAnnoyance: "",
+          examConcerns: "",
+        },
+      ],
+    });
 
-    expect(result).toHaveProperty("token", "link-pkg-token");
-    expect(submissionCount).toBe(3);
+    const { completeUnifiedIntake } = await import("@/lib/actions/forms");
+    const result = await completeUnifiedIntake("ew-token", ewData);
+
+    expect(result.error).toBeUndefined();
   });
 });
