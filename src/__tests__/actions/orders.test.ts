@@ -5,6 +5,10 @@ vi.mock("@/lib/email", () => ({
   sendInvoiceEmail: vi.fn().mockResolvedValue({ id: "email-auto" }),
 }));
 
+vi.mock("@/lib/actions/email", () => ({
+  emailInvoice: vi.fn().mockResolvedValue({ success: true }),
+}));
+
 vi.mock("@/lib/actions/referrals", () => ({
   redeemReferral: vi.fn().mockResolvedValue({ success: true }),
   validateReferralCode: vi.fn(),
@@ -325,22 +329,13 @@ describe("handlePickupComplete", () => {
     (prisma as any).$transaction.mockImplementation(async (fn: (tx: unknown) => unknown) => fn(prisma));
     prisma.order.update.mockResolvedValue({});
 
-    const { sendInvoiceEmail } = await import("@/lib/email");
+    const { emailInvoice } = await import("@/lib/actions/email");
     const { handlePickupComplete } = await import("@/lib/actions/orders");
     await handlePickupComplete("order-1", { sendReviewRequest: false, enrollInReferralCampaign: false, markAsLowValue: false });
 
     // Give the fire-and-forget promise a tick to resolve
     await new Promise((r) => setTimeout(r, 0));
-    expect(sendInvoiceEmail).toHaveBeenCalledWith(
-      expect.objectContaining({
-        to: "alice@example.com",
-        customerName: "Alice Brown",
-        orderNumber: "MVO-001",
-        totalAmount: 300,
-        depositAmount: 100,
-        balanceAmount: 200,
-      })
-    );
+    expect(emailInvoice).toHaveBeenCalledWith("order-1");
   });
 
   it("skips invoice email when customer has no email", async () => {
@@ -359,12 +354,12 @@ describe("handlePickupComplete", () => {
     (prisma as any).$transaction.mockImplementation(async (fn: (tx: unknown) => unknown) => fn(prisma));
     prisma.order.update.mockResolvedValue({});
 
-    const { sendInvoiceEmail } = await import("@/lib/email");
+    const { emailInvoice } = await import("@/lib/actions/email");
     const { handlePickupComplete } = await import("@/lib/actions/orders");
     await handlePickupComplete("order-1", { sendReviewRequest: false, enrollInReferralCampaign: false, markAsLowValue: false });
 
     await new Promise((r) => setTimeout(r, 0));
-    expect(sendInvoiceEmail).not.toHaveBeenCalled();
+    expect(emailInvoice).not.toHaveBeenCalled();
   });
 });
 

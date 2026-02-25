@@ -6,69 +6,18 @@ function getResend() {
   return new Resend(process.env.RESEND_API_KEY);
 }
 
+// ─── Invoice Email (simplified — PDF attachment) ──────────────────────────
+
 interface InvoiceEmailInput {
   to: string;
   customerName: string;
   orderNumber: string;
-  totalAmount: number;
-  lineItems: Array<{
-    description: string;
-    quantity: number;
-    unitPriceCustomer: number;
-    totalCustomer: number;
-  }>;
-  depositAmount?: number;
-  balanceAmount?: number;
-  insuranceCoverage?: number;
-  referralCredit?: number;
-  businessInfo?: {
-    name: string;
-    address: string;
-    phone: string;
-    email: string;
-  };
-}
-
-function formatCurrency(amount: number): string {
-  return new Intl.NumberFormat("en-CA", { style: "currency", currency: "CAD" }).format(amount);
+  pdfBuffer: Buffer;
 }
 
 export async function sendInvoiceEmail(input: InvoiceEmailInput) {
-  const business = input.businessInfo ?? {
-    name: "Mint Vision Optique",
-    address: "1 Example Street, Toronto, ON M5V 3A8",
-    phone: "(416) 555-0100",
-    email: "info@mintvisionsoptique.com",
-  };
-
-  const lineItemRows = input.lineItems
-    .map(
-      (item) =>
-        `<tr>
-          <td style="padding:8px 12px;border-bottom:1px solid #f0f0f0;">${item.description}</td>
-          <td style="padding:8px 12px;border-bottom:1px solid #f0f0f0;text-align:center;">${item.quantity}</td>
-          <td style="padding:8px 12px;border-bottom:1px solid #f0f0f0;text-align:right;">${formatCurrency(item.unitPriceCustomer)}</td>
-          <td style="padding:8px 12px;border-bottom:1px solid #f0f0f0;text-align:right;">${formatCurrency(item.totalCustomer)}</td>
-        </tr>`
-    )
-    .join("");
-
-  const deductionRows = [
-    input.insuranceCoverage && input.insuranceCoverage > 0
-      ? `<tr>
-          <td colspan="3" style="padding:6px 12px;color:#059669;">Insurance Coverage</td>
-          <td style="padding:6px 12px;color:#059669;text-align:right;">−${formatCurrency(input.insuranceCoverage)}</td>
-        </tr>`
-      : "",
-    input.referralCredit && input.referralCredit > 0
-      ? `<tr>
-          <td colspan="3" style="padding:6px 12px;color:#059669;">Referral / Promo Credit</td>
-          <td style="padding:6px 12px;color:#059669;text-align:right;">−${formatCurrency(input.referralCredit)}</td>
-        </tr>`
-      : "",
-  ]
-    .filter(Boolean)
-    .join("");
+  const firstName = input.customerName.split(" ")[0] || "there";
+  const invNum = input.orderNumber.split("-").pop()?.padStart(4, "0") ?? "0000";
 
   const html = `
 <!DOCTYPE html>
@@ -79,65 +28,31 @@ export async function sendInvoiceEmail(input: InvoiceEmailInput) {
     <!-- Header -->
     <div style="background:#1a1a2e;padding:32px 40px;text-align:center;">
       <h1 style="color:#ffffff;margin:0;font-size:22px;letter-spacing:2px;">MINT VISION OPTIQUE</h1>
-      <p style="color:#aaa;margin:4px 0 0;font-size:12px;">${business.address}</p>
     </div>
 
-    <!-- Invoice title -->
-    <div style="padding:24px 40px 0;">
-      <h2 style="margin:0 0 4px;font-size:18px;color:#111;">Invoice</h2>
-      <p style="color:#666;font-size:13px;margin:0;">Order ${input.orderNumber}</p>
-      <p style="color:#666;font-size:13px;margin:4px 0 0;">Date: ${new Date().toLocaleDateString("en-CA")}</p>
-    </div>
-
-    <!-- Customer info -->
-    <div style="padding:16px 40px;">
-      <p style="margin:0;font-size:13px;color:#555;">Bill To:</p>
-      <p style="margin:4px 0 0;font-size:15px;font-weight:bold;color:#111;">${input.customerName}</p>
-    </div>
-
-    <!-- Line items -->
-    <div style="padding:0 40px;">
-      <table style="width:100%;border-collapse:collapse;font-size:13px;">
-        <thead>
-          <tr style="background:#f5f5f5;">
-            <th style="padding:10px 12px;text-align:left;font-weight:600;color:#333;">Description</th>
-            <th style="padding:10px 12px;text-align:center;font-weight:600;color:#333;">Qty</th>
-            <th style="padding:10px 12px;text-align:right;font-weight:600;color:#333;">Unit Price</th>
-            <th style="padding:10px 12px;text-align:right;font-weight:600;color:#333;">Total</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${lineItemRows}
-          ${deductionRows}
-          <tr style="background:#f9f9f9;">
-            <td colspan="3" style="padding:10px 12px;font-weight:bold;font-size:15px;">Total</td>
-            <td style="padding:10px 12px;font-weight:bold;font-size:15px;text-align:right;">${formatCurrency(input.totalAmount)}</td>
-          </tr>
-          ${
-            input.depositAmount && input.depositAmount > 0
-              ? `<tr>
-                  <td colspan="3" style="padding:8px 12px;color:#555;">Deposit Paid</td>
-                  <td style="padding:8px 12px;text-align:right;color:#555;">−${formatCurrency(input.depositAmount)}</td>
-                </tr>
-                <tr style="background:#fffbeb;">
-                  <td colspan="3" style="padding:10px 12px;font-weight:bold;color:#d97706;">Balance Due</td>
-                  <td style="padding:10px 12px;font-weight:bold;color:#d97706;text-align:right;">${formatCurrency(input.balanceAmount ?? 0)}</td>
-                </tr>`
-              : ""
-          }
-        </tbody>
-      </table>
+    <!-- Body -->
+    <div style="padding:32px 40px;">
+      <p style="color:#333;font-size:15px;line-height:1.6;margin:0 0 16px;">
+        Dear ${firstName},
+      </p>
+      <p style="color:#555;font-size:14px;line-height:1.6;margin:0 0 16px;">
+        Thank you for choosing MintVision! Your invoice for Order ${input.orderNumber} is attached to this email as a PDF.
+      </p>
+      <p style="color:#555;font-size:14px;line-height:1.6;margin:0 0 16px;">
+        If you have any questions about your order or invoice, please don't hesitate to reach out.
+      </p>
+      <p style="color:#555;font-size:14px;line-height:1.6;margin:0;">
+        Warm regards,<br/>
+        <strong>Mint Vision Optique</strong><br/>
+        <span style="font-size:12px;color:#888;">905-257-6400 · harmeet@mintvision.ca</span>
+      </p>
     </div>
 
     <!-- Footer -->
-    <div style="padding:24px 40px 0;border-top:1px solid #eee;margin-top:24px;">
+    <div style="padding:16px 40px 0;border-top:1px solid #eee;">
       <p style="font-size:11px;color:#999;margin:0;">
-        Thank you for choosing ${business.name}.<br/>
-        30-day frame guarantee · 2-year lens warranty on manufacturing defects.<br/>
-        Custom orders are final sale. Insurance coverage subject to individual plan terms.
-      </p>
-      <p style="font-size:11px;color:#999;margin:8px 0 0;">
-        ${business.phone} · ${business.email}
+        478 Dundas St. W. Unit 5, Oakville, Ontario L6H 6L8<br/>
+        30-day frame guarantee · 2-year lens warranty on manufacturing defects.
       </p>
     </div>
   </div>
@@ -149,6 +64,12 @@ export async function sendInvoiceEmail(input: InvoiceEmailInput) {
     to: input.to,
     subject: `Your Invoice — Order ${input.orderNumber} | Mint Vision Optique`,
     html,
+    attachments: [
+      {
+        filename: `MintVision-Invoice-${invNum}.pdf`,
+        content: input.pdfBuffer,
+      },
+    ],
   });
 
   return result;

@@ -90,7 +90,7 @@ VERIFIED = Rx check by optician after lab receives order. PICKED_UP triggers Pic
 - `legacyCustomerId` is nullable — not all migrated records have it
 
 ## Version Status
-Current version: **V2.7.0 — Dashboard Cycling, Exam Tracking, Google Review Tracking** (2026-02-24)
+Current version: **V2.7.1 — Invoice System Redesign (PDF Generation + Email Attachment + B&W Layout)** (2026-02-25)
 
 | Feature | Status |
 |---------|--------|
@@ -106,7 +106,7 @@ Current version: **V2.7.0 — Dashboard Cycling, Exam Tracking, Google Review Tr
 | Dashboard (scoreboard cycling: Monthly/YTD/All Time) | ✅ Complete |
 | Migration scripts | ✅ Scaffolded |
 | Digital Forms (V1.2: 4 templates, intake packages, kiosk, AI review) | ✅ Complete |
-| Invoices (print, email, issue tracking, central list) | ✅ Complete |
+| Invoices (B&W PDF, email attachment, download, print, issue tracking, central list) | ✅ Complete |
 | Work order redesign (centered layout, email/phone boxes, spec grids) | ✅ Complete |
 | Notification system (bell, polling, 9 types, per-user prefs) | ✅ Complete |
 | Smart Intake Form (self-service /intake/start, returning patient lookup, prefill) | ✅ Complete |

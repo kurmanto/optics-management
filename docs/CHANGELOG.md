@@ -6,6 +6,36 @@ Format: `[Version] — Date`
 
 ---
 
+## [2.7.1] — 2026-02-25
+
+### Changed — Invoice System Redesign (PDF Generation + Email Attachment + B&W Layout)
+
+#### Invoice Layout (B&W)
+- **Removed all green brand color** — entire invoice is now black & white only
+- **Removed prescription table** from invoice view (prescription data remains on order detail page)
+- **Restructured totals section** — SUBTOTAL (sum of line items) shown first, followed by Insurance Coverage, Referral/Promo, Deposit (all always visible, even when $0.00), then bold Total
+- **Footer logo** changed from stacked MINT/VISION to inline "MINT [eye] VISION" layout, all black
+- **Website link** rendered as plain text instead of green hyperlink
+- **Fixed typo** "resalable" → "resellable" in terms text
+
+#### PDF Generation
+- **Added `@react-pdf/renderer`** dependency for server-side PDF generation (no headless browser needed)
+- **New `src/lib/invoice-pdf.tsx`** — `InvoiceDocument` component + `generateInvoicePdf()` function producing Buffer
+- **New API route** `GET /api/invoices/[orderId]/pdf?mode=customer|internal` — authenticated PDF download endpoint
+- **Download PDF button** added to invoice page action bar
+
+#### Email with PDF Attachment
+- **Simplified invoice email body** — short "Thank you for choosing MintVision" message instead of full inline HTML invoice
+- **PDF attachment** — invoice PDF generated and attached to email as `MintVision-Invoice-XXXX.pdf`
+- **Email action** orchestrates: fetch order → generate PDF → send email with attachment
+
+#### Tests
+- Updated `email.test.ts` — tests PDF generation + email attachment flow, call ordering, error handling
+- New `invoice-pdf.test.ts` — 4 tests (buffer output, zero deductions, null notes, internal mode)
+- **552 tests, 37 files** — all passing
+
+---
+
 ## [2.7.0] — 2026-02-24
 
 ### Added — Staff Task Queue, Dashboard Cycling, Exam Tracking, Google Review Tracking
