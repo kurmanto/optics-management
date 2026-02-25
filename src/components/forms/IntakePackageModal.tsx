@@ -205,12 +205,12 @@ export function IntakePackageModal({ customers, baseUrl, onClose }: Props) {
             {/* Package contents */}
             <div className="bg-gray-50 rounded-lg p-3 space-y-1.5">
               <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">
-                Included Forms
+                Unified Intake Form
               </p>
               {[
-                { label: "New Patient Registration", step: 1 },
-                { label: "Privacy & Consent (PIPEDA)", step: 2 },
-                { label: "Insurance Verification", step: 3 },
+                { label: "Check-in questions", step: 1 },
+                { label: "Contact details", step: 2 },
+                { label: "Patient information", step: 3 },
               ].map((f) => (
                 <div key={f.step} className="flex items-center gap-2 text-sm text-gray-700">
                   <span className="w-5 h-5 rounded-full bg-primary/10 text-primary text-xs font-semibold flex items-center justify-center flex-shrink-0">

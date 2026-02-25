@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { NewPatientForm } from "@/components/forms/public/NewPatientForm";
 import { HipaaConsentForm } from "@/components/forms/public/HipaaConsentForm";
 import { InsuranceVerificationForm } from "@/components/forms/public/InsuranceVerificationForm";
+import { UnifiedIntakeForm } from "@/components/forms/public/UnifiedIntakeForm";
 import { FormTemplateType } from "@prisma/client";
 import Link from "next/link";
 import type { ReturningPatientPrefill } from "@/lib/types/forms";
@@ -12,6 +13,7 @@ const STEP_LABELS: Record<FormTemplateType, string> = {
   HIPAA_CONSENT: "Privacy & Consent",
   INSURANCE_VERIFICATION: "Insurance Verification",
   FRAME_REPAIR_WAIVER: "Frame Repair Waiver",
+  UNIFIED_INTAKE: "Unified Intake Form",
 };
 
 const STEP_DESCRIPTIONS: Record<FormTemplateType, string> = {
@@ -19,6 +21,7 @@ const STEP_DESCRIPTIONS: Record<FormTemplateType, string> = {
   HIPAA_CONSENT: "Please review and sign our privacy consent form.",
   INSURANCE_VERIFICATION: "Please provide your insurance details so we can process your benefits.",
   FRAME_REPAIR_WAIVER: "",
+  UNIFIED_INTAKE: "Complete your intake information in one step.",
 };
 
 type Props = {
@@ -31,6 +34,170 @@ export default async function IntakePage({ params, searchParams }: Props) {
   const { handoff } = await searchParams;
   const isHandoff = handoff === "1";
 
+  // ── Try unified submission first (new flow) ──
+  const unifiedSubmission = await prisma.formSubmission.findFirst({
+    where: {
+      token,
+      template: { type: "UNIFIED_INTAKE" },
+    },
+    include: {
+      template: true,
+    },
+  });
+
+  if (unifiedSubmission) {
+    // ── Completed state ──
+    if (unifiedSubmission.status === "COMPLETED") {
+      const contactName = unifiedSubmission.customerName?.split(" ")[0] ?? null;
+      return (
+        <div className="bg-white rounded-xl border border-gray-200 p-8 text-center space-y-4">
+          <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="w-8 h-8 text-green-600"
+            >
+              <polyline points="20 6 9 17 4 12" />
+            </svg>
+          </div>
+          <div className="space-y-2">
+            <h1 className="text-xl font-semibold text-gray-900">All Done!</h1>
+            <p className="text-sm text-gray-500">
+              Thank you{contactName ? `, ${contactName}` : ""}! Your intake form has been received
+              securely by Mint Vision Optique.
+            </p>
+          </div>
+          <div className="bg-gray-50 rounded-lg p-4 text-sm text-gray-600">
+            <p>You may now hand the device back to staff.</p>
+            <p className="mt-1 text-xs text-gray-400">
+              Our team will review your information before your appointment.
+            </p>
+          </div>
+          <Link
+            href="/"
+            className="inline-flex items-center justify-center px-6 py-2.5 border border-gray-300 text-sm font-medium text-gray-600 rounded-xl hover:bg-gray-50 transition-colors"
+          >
+            Back to Dashboard
+          </Link>
+        </div>
+      );
+    }
+
+    // ── Handoff / welcome screen ──
+    if (isHandoff) {
+      const firstName = unifiedSubmission.customerName?.split(" ")[0] ?? null;
+      return (
+        <div className="flex flex-col items-center justify-center min-h-[60vh] text-center space-y-6 px-4">
+          <div className="w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center mx-auto">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="w-8 h-8 text-primary"
+            >
+              <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
+              <circle cx="12" cy="12" r="3" />
+            </svg>
+          </div>
+
+          <div className="space-y-2 max-w-sm">
+            <h1 className="text-2xl font-bold text-gray-900">
+              Welcome{firstName ? `, ${firstName}` : ""}!
+            </h1>
+            <p className="text-gray-500">
+              Mint Vision Optique has prepared your intake form.
+            </p>
+            <p className="text-sm text-gray-400 mt-1">
+              This will take about 3–5 minutes. Your information is stored securely.
+            </p>
+          </div>
+
+          <div className="bg-gray-50 rounded-xl border border-gray-100 p-4 text-left text-sm text-gray-600 w-full max-w-sm space-y-2">
+            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">
+              You&apos;ll complete
+            </p>
+            {["Check-in questions", "Contact details", "Patient information"].map((s, i) => (
+              <div key={i} className="flex items-center gap-3">
+                <span className="w-6 h-6 rounded-full bg-primary/10 text-primary text-xs font-semibold flex items-center justify-center flex-shrink-0">
+                  {i + 1}
+                </span>
+                <span>{s}</span>
+              </div>
+            ))}
+          </div>
+
+          <Link
+            href={`/intake/${token}`}
+            className="w-full max-w-sm flex items-center justify-center py-4 bg-primary text-white text-base font-semibold rounded-xl hover:bg-primary/90 active:scale-[0.98] transition-all shadow-sm"
+          >
+            Begin →
+          </Link>
+
+          <p className="text-xs text-gray-400">
+            Tap &ldquo;Begin&rdquo; to start your intake form
+          </p>
+        </div>
+      );
+    }
+
+    // ── Show unified form ──
+    let prefillData: ReturningPatientPrefill | null = null;
+    if (unifiedSubmission.customerId) {
+      const customer = await prisma.customer.findUnique({
+        where: { id: unifiedSubmission.customerId },
+        include: {
+          insurancePolicies: {
+            where: { isActive: true },
+            take: 1,
+            orderBy: { createdAt: "desc" },
+          },
+        },
+      });
+
+      if (customer) {
+        const ins = customer.insurancePolicies[0] ?? null;
+        prefillData = {
+          customerId: customer.id,
+          firstName: customer.firstName,
+          lastName: customer.lastName,
+          email: customer.email,
+          phone: customer.phone,
+          dateOfBirth: customer.dateOfBirth?.toISOString().split("T")[0] ?? null,
+          gender: customer.gender,
+          address: customer.address,
+          city: customer.city,
+          province: customer.province,
+          postalCode: customer.postalCode,
+          occupation: customer.occupation,
+          hearAboutUs: customer.hearAboutUs,
+          insurance: ins
+            ? {
+                providerName: ins.providerName,
+                policyNumber: ins.policyNumber,
+                groupNumber: ins.groupNumber,
+                memberId: ins.memberId,
+                coverageType: ins.coverageType,
+              }
+            : null,
+        };
+      }
+    }
+
+    return (
+      <div className="space-y-6">
+        <UnifiedIntakeForm token={token} prefillData={prefillData} />
+      </div>
+    );
+  }
+
+  // ── Legacy flow: FormPackage-based multi-step intake ──
   const pkg = await prisma.formPackage.findUnique({
     where: { token },
     include: {
@@ -81,12 +248,11 @@ export default async function IntakePage({ params, searchParams }: Props) {
     );
   }
 
-  // Handoff screen — shown when staff opens the link in-person before handing to patient
+  // Handoff screen
   if (isHandoff) {
     const firstName = pkg.customerName?.split(" ")[0] ?? null;
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] text-center space-y-6 px-4">
-        {/* Logo / brand */}
         <div className="w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center mx-auto">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-8 h-8 text-primary">
             <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
@@ -107,7 +273,7 @@ export default async function IntakePage({ params, searchParams }: Props) {
         </div>
 
         <div className="bg-gray-50 rounded-xl border border-gray-100 p-4 text-left text-sm text-gray-600 w-full max-w-sm space-y-2">
-          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">You'll complete</p>
+          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">You&apos;ll complete</p>
           {pkg.submissions.map((s, i) => (
             <div key={s.id} className="flex items-center gap-3">
               <span className="w-6 h-6 rounded-full bg-primary/10 text-primary text-xs font-semibold flex items-center justify-center flex-shrink-0">
@@ -144,7 +310,7 @@ export default async function IntakePage({ params, searchParams }: Props) {
 
   const redirectUrl = `/intake/${token}`;
 
-  // Fetch prefill data for returning patients (customerId already linked)
+  // Fetch prefill data for returning patients
   let prefillData: ReturningPatientPrefill | null = null;
   let prefillInsurance: { providerName: string; policyNumber: string | null; groupNumber: string | null; memberId: string | null; coverageType: string } | null = null;
 

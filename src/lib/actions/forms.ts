@@ -65,63 +65,28 @@ export async function createIntakePackage(
   const session = await verifyRole("STAFF");
 
   const customerName = String(formData.get("customerName") || "").trim();
-  const customerEmail = String(formData.get("customerEmail") || "").trim() || null;
   const customerId = String(formData.get("customerId") || "").trim() || null;
 
   if (!customerName) return { error: "Patient name is required" };
 
-  // Get the 3 intake templates
-  const intakeOrder: FormTemplateType[] = [
-    "NEW_PATIENT",
-    "HIPAA_CONSENT",
-    "INSURANCE_VERIFICATION",
-  ];
-  const templates = await prisma.formTemplate.findMany({
-    where: { type: { in: intakeOrder }, isActive: true },
+  // Use unified intake flow
+  const template = await prisma.formTemplate.findFirst({
+    where: { type: "UNIFIED_INTAKE", isActive: true },
+  });
+  if (!template) return { error: "Unified intake template not found" };
+
+  const submission = await prisma.formSubmission.create({
+    data: {
+      templateId: template.id,
+      customerId,
+      customerName,
+      sentByUserId: session.id,
+    },
   });
 
-  if (templates.length === 0) return { error: "Intake form templates not found" };
-
-  // Resolve name from existing customer if needed
-  let resolvedName = customerName;
-  if (customerId && !customerName) {
-    const customer = await prisma.customer.findUnique({
-      where: { id: customerId },
-      select: { firstName: true, lastName: true, email: true },
-    });
-    if (customer) resolvedName = `${customer.firstName} ${customer.lastName}`;
-  }
-
-  const pkg = await prisma.$transaction(async (tx) => {
-    const newPkg = await tx.formPackage.create({
-      data: {
-        customerName: resolvedName,
-        customerEmail,
-        customerId,
-        sentByUserId: session.id,
-      },
-    });
-
-    for (let i = 0; i < intakeOrder.length; i++) {
-      const template = templates.find((t) => t.type === intakeOrder[i]);
-      if (!template) continue;
-      await tx.formSubmission.create({
-        data: {
-          templateId: template.id,
-          customerId,
-          customerName: resolvedName,
-          sentByUserId: session.id,
-          packageId: newPkg.id,
-          packageOrder: i,
-        },
-      });
-    }
-
-    return newPkg;
-  });
-
+  void logAudit({ userId: session.id, action: "FORM_SUBMITTED", model: "FormSubmission", recordId: submission.id });
   revalidatePath("/forms");
-  return { token: pkg.token };
+  return { token: submission.token };
 }
 
 export async function autoPopulateFromSubmission(submissionId: string): Promise<FormActionState> {
@@ -210,6 +175,7 @@ export async function autoPopulateFromSubmission(submissionId: string): Promise<
         }
 
         case FormTemplateType.FRAME_REPAIR_WAIVER:
+        case FormTemplateType.UNIFIED_INTAKE:
           break;
       }
     });
@@ -318,6 +284,7 @@ export async function applyIntakePackage(
             break;
           }
           case FormTemplateType.FRAME_REPAIR_WAIVER:
+          case FormTemplateType.UNIFIED_INTAKE:
             break;
         }
       }
@@ -363,49 +330,24 @@ export async function sendIntakeLinkEmail(
 
   const customerName = `${customer.firstName} ${customer.lastName}`.trim();
 
-  // Create intake package
-  const intakeOrder: FormTemplateType[] = [
-    "NEW_PATIENT",
-    "HIPAA_CONSENT",
-    "INSURANCE_VERIFICATION",
-  ];
-  const templates = await prisma.formTemplate.findMany({
-    where: { type: { in: intakeOrder }, isActive: true },
+  // Use unified intake flow
+  const template = await prisma.formTemplate.findFirst({
+    where: { type: "UNIFIED_INTAKE", isActive: true },
   });
+  if (!template) return { error: "Unified intake template not found" };
 
-  if (templates.length === 0) return { error: "Intake form templates not found" };
-
-  const pkg = await prisma.$transaction(async (tx) => {
-    const newPkg = await tx.formPackage.create({
-      data: {
-        customerName,
-        customerEmail: customer.email,
-        customerId: customer.id,
-        sentByUserId: session.id,
-      },
-    });
-
-    for (let i = 0; i < intakeOrder.length; i++) {
-      const template = templates.find((t) => t.type === intakeOrder[i]);
-      if (!template) continue;
-      await tx.formSubmission.create({
-        data: {
-          templateId: template.id,
-          customerId: customer.id,
-          customerName,
-          sentByUserId: session.id,
-          packageId: newPkg.id,
-          packageOrder: i,
-        },
-      });
-    }
-
-    return newPkg;
+  const submission = await prisma.formSubmission.create({
+    data: {
+      templateId: template.id,
+      customerId: customer.id,
+      customerName,
+      sentByUserId: session.id,
+    },
   });
 
   // Send email
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
-  const intakeUrl = `${baseUrl}/intake/${pkg.token}`;
+  const intakeUrl = `${baseUrl}/intake/${submission.token}`;
 
   try {
     const { sendIntakeEmail } = await import("@/lib/email");
@@ -425,13 +367,13 @@ export async function sendIntakeLinkEmail(
   void logAudit({
     userId: session.id,
     action: "FORM_SUBMITTED",
-    model: "FormPackage",
-    recordId: pkg.id,
+    model: "FormSubmission",
+    recordId: submission.id,
     changes: { method: "email", email: customer.email },
   });
 
   revalidatePath("/forms");
-  return { token: pkg.token };
+  return { token: submission.token };
 }
 
 export async function createIntakeLinkForCustomer(
@@ -448,55 +390,31 @@ export async function createIntakeLinkForCustomer(
 
   const customerName = `${customer.firstName} ${customer.lastName}`.trim();
 
-  const intakeOrder: FormTemplateType[] = [
-    "NEW_PATIENT",
-    "HIPAA_CONSENT",
-    "INSURANCE_VERIFICATION",
-  ];
-  const templates = await prisma.formTemplate.findMany({
-    where: { type: { in: intakeOrder }, isActive: true },
+  // Use unified intake flow
+  const template = await prisma.formTemplate.findFirst({
+    where: { type: "UNIFIED_INTAKE", isActive: true },
   });
+  if (!template) return { error: "Unified intake template not found" };
 
-  if (templates.length === 0) return { error: "Intake form templates not found" };
-
-  const pkg = await prisma.$transaction(async (tx) => {
-    const newPkg = await tx.formPackage.create({
-      data: {
-        customerName,
-        customerEmail: customer.email,
-        customerId: customer.id,
-        sentByUserId: session.id,
-      },
-    });
-
-    for (let i = 0; i < intakeOrder.length; i++) {
-      const template = templates.find((t) => t.type === intakeOrder[i]);
-      if (!template) continue;
-      await tx.formSubmission.create({
-        data: {
-          templateId: template.id,
-          customerId: customer.id,
-          customerName,
-          sentByUserId: session.id,
-          packageId: newPkg.id,
-          packageOrder: i,
-        },
-      });
-    }
-
-    return newPkg;
+  const submission = await prisma.formSubmission.create({
+    data: {
+      templateId: template.id,
+      customerId: customer.id,
+      customerName,
+      sentByUserId: session.id,
+    },
   });
 
   void logAudit({
     userId: session.id,
     action: "FORM_SUBMITTED",
-    model: "FormPackage",
-    recordId: pkg.id,
+    model: "FormSubmission",
+    recordId: submission.id,
     changes: { method: "copy_link" },
   });
 
   revalidatePath("/forms");
-  return { token: pkg.token };
+  return { token: submission.token };
 }
 
 // ─── Public Self-Service Actions (no auth required) ─────────────────────────
@@ -590,55 +508,168 @@ export async function lookupReturningPatient(
   }
 }
 
+/** @deprecated Use createUnifiedIntakeSubmission instead — kept for old FormPackage backward compat */
 export async function createSelfServiceIntakePackage(
+  customerName: string,
+  customerId?: string
+): Promise<{ token: string } | { error: string }> {
+  // Redirect to the new unified flow
+  return createUnifiedIntakeSubmission(customerName, customerId);
+}
+
+export async function createUnifiedIntakeSubmission(
   customerName: string,
   customerId?: string
 ): Promise<{ token: string } | { error: string }> {
   if (!customerName.trim()) return { error: "Patient name is required" };
 
-  const intakeOrder: FormTemplateType[] = [
-    "NEW_PATIENT",
-    "HIPAA_CONSENT",
-    "INSURANCE_VERIFICATION",
-  ];
-  const templates = await prisma.formTemplate.findMany({
-    where: { type: { in: intakeOrder }, isActive: true },
+  const template = await prisma.formTemplate.findFirst({
+    where: { type: "UNIFIED_INTAKE", isActive: true },
   });
 
-  if (templates.length === 0) return { error: "Intake form templates not found" };
+  if (!template) return { error: "Unified intake template not found" };
 
   try {
-    const pkg = await prisma.$transaction(async (tx) => {
-      const newPkg = await tx.formPackage.create({
+    const submission = await prisma.formSubmission.create({
+      data: {
+        templateId: template.id,
+        customerId: customerId || null,
+        customerName: customerName.trim(),
+        sentByUserId: null, // self-service
+      },
+    });
+
+    return { token: submission.token };
+  } catch (e) {
+    console.error("createUnifiedIntakeSubmission error:", e);
+    return { error: "Failed to create intake form" };
+  }
+}
+
+export async function completeUnifiedIntake(
+  token: string,
+  formData: import("@/lib/types/unified-intake").IntakeFormState
+): Promise<{ error?: string }> {
+  const { UnifiedIntakeSchema } = await import("@/lib/validations/unified-intake");
+
+  const submission = await prisma.formSubmission.findUnique({
+    where: { token },
+    select: { id: true, status: true, customerId: true, customerName: true, template: { select: { type: true } } },
+  });
+
+  if (!submission) return { error: "Form not found" };
+  if (submission.status === "COMPLETED") return { error: "Form already completed" };
+  if (submission.template.type !== "UNIFIED_INTAKE") return { error: "Invalid form type" };
+
+  // Validate
+  const parsed = UnifiedIntakeSchema.safeParse(formData);
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? "Invalid form data" };
+  }
+
+  const data = parsed.data;
+
+  try {
+    await prisma.$transaction(async (tx) => {
+      // Store raw data + mark completed
+      await tx.formSubmission.update({
+        where: { token },
         data: {
-          customerName: customerName.trim(),
-          customerId: customerId || null,
-          sentByUserId: null, // self-service — no staff sender
+          status: "COMPLETED",
+          data: formData as unknown as Record<string, string | number | boolean | null>,
+          completedAt: new Date(),
         },
       });
 
-      for (let i = 0; i < intakeOrder.length; i++) {
-        const template = templates.find((t) => t.type === intakeOrder[i]);
-        if (!template) continue;
-        await tx.formSubmission.create({
-          data: {
-            templateId: template.id,
-            customerId: customerId || null,
-            customerName: customerName.trim(),
-            sentByUserId: null, // self-service
-            packageId: newPkg.id,
-            packageOrder: i,
-          },
+      const createdCustomerIds: string[] = [];
+
+      for (let i = 0; i < data.patients.length; i++) {
+        const patient = data.patients[i];
+        const nameParts = patient.fullName.trim().split(/\s+/);
+        const firstName = nameParts[0] ?? "";
+        const lastName = nameParts.slice(1).join(" ") || "";
+
+        // Determine contact details
+        const useContact = i > 0 && patient.sameContactAsPrimary;
+        const phone = useContact ? data.contactTelephone.replace(/\D/g, "") : (patient.telephone?.replace(/\D/g, "") || null);
+        const address = useContact ? data.contactAddress : (patient.address || null);
+
+        // Map gender
+        const genderMap: Record<string, Gender> = {
+          Male: "MALE",
+          Female: "FEMALE",
+          Other: "OTHER",
+          "Prefer not to say": "PREFER_NOT_TO_SAY",
+        };
+
+        const customerData = {
+          firstName,
+          lastName,
+          email: i === 0 ? data.contactEmail : null,
+          phone,
+          dateOfBirth: patient.dateOfBirth ? new Date(patient.dateOfBirth) : null,
+          gender: genderMap[patient.gender] || null,
+          address,
+          city: useContact ? data.contactCity : null,
+          hearAboutUs: data.hearAboutUs || null,
+          isOnboarded: true,
+          primaryContactName: data.contactFullName,
+          primaryContactPhone: data.contactTelephone.replace(/\D/g, ""),
+          primaryContactEmail: data.contactEmail,
+        };
+
+        // If returning patient (index 0 with customerId) — update existing
+        if (i === 0 && submission.customerId) {
+          await tx.customer.update({
+            where: { id: submission.customerId },
+            data: customerData,
+          });
+          createdCustomerIds.push(submission.customerId);
+        } else {
+          const newCustomer = await tx.customer.create({ data: customerData });
+          createdCustomerIds.push(newCustomer.id);
+        }
+      }
+
+      // Link the first customer to the submission
+      if (createdCustomerIds[0] && !submission.customerId) {
+        await tx.formSubmission.update({
+          where: { token },
+          data: { customerId: createdCustomerIds[0] },
         });
       }
 
-      return newPkg;
+      // Create insurance policy if provided
+      if (data.visionInsurance === "Yes, I have vision insurance" && data.insuranceProviderName && createdCustomerIds[0]) {
+        await tx.insurancePolicy.create({
+          data: {
+            customerId: createdCustomerIds[0],
+            providerName: data.insuranceProviderName,
+            policyNumber: data.insurancePolicyNumber || null,
+            memberId: data.insuranceMemberId || null,
+            coverageType: "VISION",
+          },
+        });
+      }
     });
 
-    return { token: pkg.token };
+    // Fire notification (outside transaction)
+    const patientCount = data.patients.length;
+    const contactName = data.contactFullName || submission.customerName || "A patient";
+    await createNotification({
+      type: "INTAKE_COMPLETED",
+      title: "Unified Intake Completed",
+      body: `${contactName} completed intake for ${patientCount} patient${patientCount > 1 ? "s" : ""}.`,
+      href: `/forms/${submission.id}`,
+      refId: submission.id,
+      refType: "FormSubmission",
+    });
+
+    revalidatePath("/forms");
+    return {};
   } catch (e) {
-    console.error("createSelfServiceIntakePackage error:", e);
-    return { error: "Failed to create intake package" };
+    console.error("completeUnifiedIntake error:", e);
+    return { error: "Failed to process intake form" };
   }
 }
 

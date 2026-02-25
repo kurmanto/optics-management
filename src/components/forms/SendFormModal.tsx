@@ -10,6 +10,7 @@ const FORM_LABELS: Record<FormTemplateType, string> = {
   HIPAA_CONSENT: "Privacy & Consent",
   FRAME_REPAIR_WAIVER: "Frame Repair Waiver",
   INSURANCE_VERIFICATION: "Insurance Verification",
+  UNIFIED_INTAKE: "Unified Intake",
 };
 
 type Template = {

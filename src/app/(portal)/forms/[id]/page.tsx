@@ -6,12 +6,14 @@ import { AutoPopulateButton } from "@/components/forms/AutoPopulateButton";
 import { formatDate } from "@/lib/utils/formatters";
 import { ArrowLeft, User } from "lucide-react";
 import { FormTemplateType } from "@prisma/client";
+import type { IntakeFormState } from "@/lib/types/unified-intake";
 
 const TYPE_LABELS: Record<FormTemplateType, string> = {
   NEW_PATIENT: "New Patient Registration",
   HIPAA_CONSENT: "Privacy & Consent",
   FRAME_REPAIR_WAIVER: "Frame Repair Waiver",
   INSURANCE_VERIFICATION: "Insurance Verification",
+  UNIFIED_INTAKE: "Unified Intake Form",
 };
 
 const STATUS_BADGE = {
@@ -27,7 +29,13 @@ type Props = {
 function FieldRow({ label, value }: { label: string; value: unknown }) {
   if (value === null || value === undefined || value === "") return null;
   const display =
-    typeof value === "boolean" ? (value ? "Yes" : "No") : String(value);
+    typeof value === "boolean"
+      ? value
+        ? "Yes"
+        : "No"
+      : Array.isArray(value)
+      ? value.join(", ")
+      : String(value);
   return (
     <div className="flex flex-col sm:flex-row sm:items-start gap-1 sm:gap-4 py-3 border-b border-gray-100 last:border-0">
       <dt className="text-sm text-gray-500 sm:w-48 flex-shrink-0">{label}</dt>
@@ -41,6 +49,72 @@ function humanizeKey(key: string): string {
     .replace(/([A-Z])/g, " $1")
     .replace(/^./, (s) => s.toUpperCase())
     .trim();
+}
+
+function UnifiedIntakeReview({ data }: { data: IntakeFormState }) {
+  return (
+    <div className="space-y-6">
+      {/* Check-In Summary */}
+      <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
+        <h2 className="font-semibold text-gray-900 mb-4">Check-In</h2>
+        <dl>
+          <FieldRow label="Visit Type" value={data.visitType === "COMPLETE_EYE_EXAM" ? "Complete Eye Exam" : "Eyewear Only"} />
+          <FieldRow label="New or Returning" value={data.newOrReturning === "NEW" ? "New Patient" : "Returning Patient"} />
+          <FieldRow label="Who Is This For" value={data.whoIsThisFor} />
+          <FieldRow label="Patient Count" value={data.patientCount} />
+          {data.visionInsurance && <FieldRow label="Vision Insurance" value={data.visionInsurance} />}
+          <FieldRow label="Heard About Us" value={data.hearAboutUs} />
+        </dl>
+      </div>
+
+      {/* Contact Details */}
+      <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
+        <h2 className="font-semibold text-gray-900 mb-4">Primary Contact</h2>
+        <dl>
+          <FieldRow label="Full Name" value={data.contactFullName} />
+          <FieldRow label="Telephone" value={data.contactTelephone} />
+          <FieldRow label="Address" value={data.contactAddress} />
+          <FieldRow label="City" value={data.contactCity} />
+          <FieldRow label="Email" value={data.contactEmail} />
+        </dl>
+      </div>
+
+      {/* Patients */}
+      {data.patients.map((patient, i) => (
+        <div key={i} className="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
+          <h2 className="font-semibold text-gray-900 mb-4">
+            Patient {i + 1}: {patient.fullName || "—"}
+          </h2>
+          <dl>
+            <FieldRow label="Full Name" value={patient.fullName} />
+            <FieldRow label="Gender" value={patient.gender} />
+            <FieldRow label="Date of Birth" value={patient.dateOfBirth} />
+            {i > 0 && <FieldRow label="Same Contact as Primary" value={patient.sameContactAsPrimary} />}
+            {!patient.sameContactAsPrimary && i > 0 && (
+              <>
+                <FieldRow label="Telephone" value={patient.telephone} />
+                <FieldRow label="Address" value={patient.address} />
+              </>
+            )}
+            <FieldRow label="Medications" value={patient.medications} />
+            <FieldRow label="Allergies" value={patient.allergies} />
+            <FieldRow label="Health Conditions" value={patient.healthConditions} />
+            <FieldRow label="Family Eye Conditions" value={patient.familyEyeConditions} />
+            <FieldRow label="Screen Hours/Day" value={patient.screenHoursPerDay} />
+            <FieldRow label="Currently Wears" value={patient.currentlyWearGlasses} />
+            {data.visitType === "COMPLETE_EYE_EXAM" && (
+              <>
+                <FieldRow label="Dilation Preference" value={patient.dilationPreference} />
+                <FieldRow label="Main Reason for Exam" value={patient.mainReasonForExam} />
+                <FieldRow label="Biggest Vision Annoyance" value={patient.biggestVisionAnnoyance} />
+                <FieldRow label="Exam Concerns" value={patient.examConcerns} />
+              </>
+            )}
+          </dl>
+        </div>
+      ))}
+    </div>
+  );
 }
 
 export default async function FormSubmissionDetailPage({ params }: Props) {
@@ -59,6 +133,7 @@ export default async function FormSubmissionDetailPage({ params }: Props) {
   if (!submission) notFound();
 
   const data = submission.data as Record<string, unknown> | null;
+  const isUnified = submission.template.type === "UNIFIED_INTAKE";
 
   return (
     <div className="p-6 max-w-3xl space-y-6">
@@ -115,14 +190,18 @@ export default async function FormSubmissionDetailPage({ params }: Props) {
 
       {/* Form Data */}
       {submission.status === "COMPLETED" && data && (
-        <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
-          <h2 className="font-semibold text-gray-900 mb-4">Submitted Information</h2>
-          <dl>
-            {Object.entries(data).map(([key, value]) => (
-              <FieldRow key={key} label={humanizeKey(key)} value={value} />
-            ))}
-          </dl>
-        </div>
+        isUnified ? (
+          <UnifiedIntakeReview data={data as unknown as IntakeFormState} />
+        ) : (
+          <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
+            <h2 className="font-semibold text-gray-900 mb-4">Submitted Information</h2>
+            <dl>
+              {Object.entries(data).map(([key, value]) => (
+                <FieldRow key={key} label={humanizeKey(key)} value={value} />
+              ))}
+            </dl>
+          </div>
+        )
       )}
 
       {/* Signature */}
@@ -149,8 +228,8 @@ export default async function FormSubmissionDetailPage({ params }: Props) {
         </div>
       )}
 
-      {/* Auto-populate */}
-      {submission.status === "COMPLETED" && (
+      {/* Auto-populate — only for non-unified legacy submissions */}
+      {submission.status === "COMPLETED" && !isUnified && (
         <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
           <h2 className="font-semibold text-gray-900 mb-1">Apply to Patient Record</h2>
           <p className="text-sm text-gray-500 mb-4">

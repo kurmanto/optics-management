@@ -124,6 +124,11 @@ async function main() {
       name: "Insurance Verification",
       description: "Collect policy details, member ID, group number, and renewal dates.",
     },
+    {
+      type: FormTemplateType.UNIFIED_INTAKE,
+      name: "Unified Intake Form",
+      description: "Single-page intake with check-in, contact, and multi-patient blocks.",
+    },
   ];
 
   for (const t of formTemplates) {

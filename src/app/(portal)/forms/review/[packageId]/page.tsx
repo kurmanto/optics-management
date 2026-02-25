@@ -12,6 +12,7 @@ const TYPE_LABELS: Record<FormTemplateType, string> = {
   HIPAA_CONSENT: "Privacy & Consent",
   FRAME_REPAIR_WAIVER: "Frame Repair Waiver",
   INSURANCE_VERIFICATION: "Insurance Verification",
+  UNIFIED_INTAKE: "Unified Intake",
 };
 
 // Field ordering per form type for clean display
