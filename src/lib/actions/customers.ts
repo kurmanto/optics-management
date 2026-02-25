@@ -382,6 +382,40 @@ export async function addToFamily(
   }
 }
 
+export async function toggleGoogleReview(
+  customerId: string,
+  given: boolean,
+  note?: string
+): Promise<{ error?: string }> {
+  const session = await verifyRole("STAFF");
+
+  try {
+    await prisma.customer.update({
+      where: { id: customerId },
+      data: {
+        googleReviewGiven: given,
+        googleReviewDate: given ? new Date() : null,
+        googleReviewNote: given ? (note?.trim() || null) : null,
+      },
+    });
+
+    void logAudit({
+      userId: session.id,
+      action: "UPDATE",
+      model: "Customer",
+      recordId: customerId,
+      changes: { googleReviewGiven: given },
+    });
+
+    revalidatePath(`/customers/${customerId}`);
+    revalidatePath("/customers");
+    return {};
+  } catch (e) {
+    console.error(e);
+    return { error: "Failed to update Google review status" };
+  }
+}
+
 export async function quickCreateCustomer(input: {
   firstName: string;
   lastName: string;

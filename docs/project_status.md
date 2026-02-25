@@ -1,15 +1,15 @@
 # Project Status
 ## Mint Vision Optique — Staff Portal
 
-**Last updated:** 2026-02-23
+**Last updated:** 2026-02-24
 
 ---
 
-## Current Version: V2.7.0 — Staff Task Queue
+## Current Version: V2.7.0 — Staff Task Queue, Dashboard Cycling, Exam Tracking, Google Review Tracking
 
 ---
 
-### V2.7.0 — Staff Task Queue (Complete)
+### V2.7.0 — Staff Task Queue, Dashboard Cycling, Exam Tracking, Google Review Tracking (Complete)
 
 | Feature | Status | Notes |
 |---------|--------|-------|
@@ -21,8 +21,14 @@
 | TaskDetailPanel (slide-over) | ✅ Complete | Inline editing, status transitions, comment thread, delete |
 | Sidebar Tasks link + badge | ✅ Complete | ClipboardList icon, red badge with open task count |
 | CustomerTasksCard | ✅ Complete | Shows patient-linked tasks on customer detail; inline quick-add form |
-| Zod validation schemas | ✅ Complete | CreateTaskSchema, UpdateTaskSchema, UpdateTaskStatusSchema, AddTaskCommentSchema |
-| Unit tests (524 total, 34 files) | ✅ Complete | +43 tests: 22 action tests, 21 validation schema tests |
+| Dashboard scoreboard click-to-cycle | ✅ Complete | Monthly → Year to Date → All Time; dot indicators; goal bar for monthly/yearly |
+| `ScoreboardCard` client component | ✅ Complete | `src/components/dashboard/ScoreboardCard.tsx` |
+| Weekly exam tracking page (`/exams`) | ✅ Complete | Week navigation, summary cards, detailed table, payment breakdown |
+| Log Exam modal | ✅ Complete | Customer search, date/type/doctor/payment/amounts/OHIP/notes |
+| `paymentMethod` on Exam model | ✅ Complete | `PaymentMethod?` reuses existing enum |
+| Google review fields on Customer | ✅ Complete | `googleReviewGiven`, `googleReviewDate`, `googleReviewNote` |
+| `GoogleReviewCard` + star indicator + filter | ✅ Complete | Mark/unmark, optional note, yellow star, "Reviewed"/"Not Reviewed" filter pills |
+| Unit tests (534 total, 35 files) | ✅ Complete | +53 tests across all features |
 
 ---
 

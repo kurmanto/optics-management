@@ -55,6 +55,8 @@ export function buildPrismaMock() {
     family: modelMock(),
     auditLog: modelMock(),
     breachReport: modelMock(),
+    exam: modelMock(),
+    systemSetting: modelMock(),
     $transaction: vi.fn(async (fn: (tx: unknown) => unknown) => {
       if (typeof fn === "function") {
         return fn(mock);
@@ -63,6 +65,7 @@ export function buildPrismaMock() {
       return Promise.all(fn as unknown as Promise<unknown>[]);
     }),
     $queryRawUnsafe: vi.fn(),
+    $executeRawUnsafe: vi.fn(),
   };
   return mock;
 }

@@ -461,6 +461,58 @@ describe("createFamilyAndLink", () => {
   });
 });
 
+describe("toggleGoogleReview", () => {
+  it("sets googleReviewGiven to true with date and note", async () => {
+    const prisma = await getPrisma();
+    prisma.customer.update.mockResolvedValue({ id: "cust-1" });
+
+    const { toggleGoogleReview } = await import("@/lib/actions/customers");
+    const result = await toggleGoogleReview("cust-1", true, "5 stars!");
+
+    expect(result.error).toBeUndefined();
+    expect(prisma.customer.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: "cust-1" },
+        data: expect.objectContaining({
+          googleReviewGiven: true,
+          googleReviewNote: "5 stars!",
+        }),
+      })
+    );
+    // Should set a date (Date instance)
+    const callData = prisma.customer.update.mock.calls[0][0].data;
+    expect(callData.googleReviewDate).toBeInstanceOf(Date);
+  });
+
+  it("clears review fields when given=false", async () => {
+    const prisma = await getPrisma();
+    prisma.customer.update.mockResolvedValue({ id: "cust-1" });
+
+    const { toggleGoogleReview } = await import("@/lib/actions/customers");
+    const result = await toggleGoogleReview("cust-1", false);
+
+    expect(result.error).toBeUndefined();
+    expect(prisma.customer.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          googleReviewGiven: false,
+          googleReviewDate: null,
+          googleReviewNote: null,
+        }),
+      })
+    );
+  });
+
+  it("returns error when prisma throws", async () => {
+    const prisma = await getPrisma();
+    prisma.customer.update.mockRejectedValue(new Error("DB error"));
+
+    const { toggleGoogleReview } = await import("@/lib/actions/customers");
+    const result = await toggleGoogleReview("cust-1", true);
+    expect(result.error).toBeDefined();
+  });
+});
+
 describe("addToFamily", () => {
   it("calls customer.update with familyId and returns { success: true }", async () => {
     const prisma = await getPrisma();

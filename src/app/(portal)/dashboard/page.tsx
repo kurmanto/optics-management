@@ -18,6 +18,7 @@ import {
   Glasses,
   Bell,
 } from "lucide-react";
+import { ScoreboardCard } from "@/components/dashboard/ScoreboardCard";
 
 
 // ─────────────────────────────────────────
@@ -53,6 +54,54 @@ async function getMonthScoreboard() {
   const goalPct = monthlyGoal > 0 ? Math.min(100, (revenueThisMonth / monthlyGoal) * 100) : 0;
 
   return { revenueThisMonth, transactionsThisMonth, avgTicket, monthlyGoal, goalPct };
+}
+
+async function getYearScoreboard() {
+  const now = new Date();
+  const yearStart = new Date(now.getFullYear(), 0, 1);
+
+  const [revenueAgg, ordersThisYear, goalSetting] = await Promise.all([
+    prisma.order.aggregate({
+      where: {
+        createdAt: { gte: yearStart },
+        status: { notIn: [OrderStatus.CANCELLED, OrderStatus.DRAFT] },
+      },
+      _sum: { totalReal: true },
+      _count: true,
+    }),
+    prisma.order.count({
+      where: {
+        createdAt: { gte: yearStart },
+        status: { notIn: [OrderStatus.CANCELLED, OrderStatus.DRAFT] },
+      },
+    }),
+    prisma.systemSetting.findUnique({ where: { key: "monthly_revenue_goal" } }),
+  ]);
+
+  const revenueThisYear = revenueAgg._sum.totalReal ?? 0;
+  const transactionsThisYear = ordersThisYear;
+  const avgTicket = transactionsThisYear > 0 ? revenueThisYear / transactionsThisYear : 0;
+  const monthlyGoal = goalSetting ? parseFloat(goalSetting.value) : 40000;
+  const yearlyGoal = monthlyGoal * 12;
+  const goalPct = yearlyGoal > 0 ? Math.min(100, (revenueThisYear / yearlyGoal) * 100) : 0;
+
+  return { revenue: revenueThisYear, transactions: transactionsThisYear, avgTicket, goal: yearlyGoal, goalPct };
+}
+
+async function getHistoricScoreboard() {
+  const revenueAgg = await prisma.order.aggregate({
+    where: {
+      status: { notIn: [OrderStatus.CANCELLED, OrderStatus.DRAFT] },
+    },
+    _sum: { totalReal: true },
+    _count: true,
+  });
+
+  const revenue = revenueAgg._sum.totalReal ?? 0;
+  const transactions = revenueAgg._count;
+  const avgTicket = transactions > 0 ? revenue / transactions : 0;
+
+  return { revenue, transactions, avgTicket };
 }
 
 async function getOpportunities() {
@@ -437,8 +486,10 @@ export default async function DashboardPage() {
   const session = await verifySession();
   const isAdmin = session.role === "ADMIN";
 
-  const [scoreboard, opportunities, conversion, recentOrders, adminMetrics, followUps] = await Promise.all([
+  const [scoreboard, yearScoreboard, historicScoreboard, opportunities, conversion, recentOrders, adminMetrics, followUps] = await Promise.all([
     getMonthScoreboard(),
+    getYearScoreboard(),
+    getHistoricScoreboard(),
     getOpportunities(),
     getConversionMetrics(),
     getRecentOrders(),
@@ -468,55 +519,28 @@ export default async function DashboardPage() {
         </p>
       </div>
 
-      {/* ── TODAY'S SCOREBOARD ── */}
-      <section className="bg-[#E8E8E8] border border-[#D8D8D8] rounded-lg p-6">
-        <h2 className="text-xs font-semibold uppercase tracking-widest text-[#808080] mb-5">
-          This Month
-        </h2>
-        <div className="grid grid-cols-3 gap-6 mb-6">
-          <div>
-            <p className="text-sm text-[#808080] mb-1">Revenue</p>
-            <p className="text-[48px] font-bold leading-none tabular-nums text-gray-900">
-              {formatCurrency(scoreboard.revenueThisMonth)}
-            </p>
-          </div>
-          <div>
-            <p className="text-sm text-[#808080] mb-1">Avg Ticket</p>
-            <p className="text-[48px] font-bold leading-none tabular-nums text-gray-900">
-              {scoreboard.transactionsThisMonth > 0
-                ? formatCurrency(scoreboard.avgTicket)
-                : <span className="text-[#C0C0C0]">—</span>}
-            </p>
-          </div>
-          <div>
-            <p className="text-sm text-[#808080] mb-1">Orders</p>
-            <p className="text-[48px] font-bold leading-none tabular-nums text-gray-900">
-              {scoreboard.transactionsThisMonth}
-            </p>
-          </div>
-        </div>
-
-        {/* Goal progress bar */}
-        <div>
-          <div className="flex justify-between text-xs mb-1.5">
-            <span className="text-[#808080]">Monthly Goal</span>
-            <span className="text-gray-900 font-medium">
-              {formatCurrency(scoreboard.revenueThisMonth)} / {formatCurrency(scoreboard.monthlyGoal)}
-            </span>
-          </div>
-          <div className="h-1.5 bg-[#D0D0D0] rounded-full overflow-hidden">
-            <div
-              className="h-full bg-[#059669] rounded-full transition-all duration-700"
-              style={{ width: `${scoreboard.goalPct}%` }}
-            />
-          </div>
-          <p className="text-xs text-[#808080] mt-1.5">
-            {scoreboard.goalPct >= 100
-              ? "Goal reached!"
-              : `${scoreboard.goalPct.toFixed(0)}% of monthly goal`}
-          </p>
-        </div>
-      </section>
+      {/* ── SCOREBOARD (click to cycle) ── */}
+      <ScoreboardCard
+        monthly={{
+          revenue: scoreboard.revenueThisMonth,
+          transactions: scoreboard.transactionsThisMonth,
+          avgTicket: scoreboard.avgTicket,
+          goal: scoreboard.monthlyGoal,
+          goalPct: scoreboard.goalPct,
+        }}
+        yearly={{
+          revenue: yearScoreboard.revenue,
+          transactions: yearScoreboard.transactions,
+          avgTicket: yearScoreboard.avgTicket,
+          goal: yearScoreboard.goal,
+          goalPct: yearScoreboard.goalPct,
+        }}
+        allTime={{
+          revenue: historicScoreboard.revenue,
+          transactions: historicScoreboard.transactions,
+          avgTicket: historicScoreboard.avgTicket,
+        }}
+      />
 
       {/* ── MONEY ON THE TABLE + FOLLOW UPS ── */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

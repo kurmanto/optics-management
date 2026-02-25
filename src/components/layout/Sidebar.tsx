@@ -43,6 +43,11 @@ const navItems = [
     ],
   },
   {
+    title: "Exams",
+    href: "/exams",
+    icon: Eye,
+  },
+  {
     title: "Appointments",
     href: "/appointments",
     icon: CalendarDays,

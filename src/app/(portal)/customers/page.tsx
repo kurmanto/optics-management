@@ -2,7 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { verifySession } from "@/lib/dal";
 import Link from "next/link";
 import { formatPhone, formatDate, formatCurrency } from "@/lib/utils/formatters";
-import { Plus, Search, UserCircle2 } from "lucide-react";
+import { Plus, Search, UserCircle2, Star } from "lucide-react";
 import { Prisma } from "@prisma/client";
 import { buttonVariants } from "@/components/ui/Button";
 import {
@@ -14,7 +14,7 @@ import {
   CustomerType,
 } from "@/lib/utils/customer";
 
-type SearchParams = { q?: string; page?: string; status?: string };
+type SearchParams = { q?: string; page?: string; status?: string; review?: string };
 
 const STATUS_OPTIONS: { value: string; label: string }[] = [
   { value: "", label: "All" },
@@ -36,6 +36,7 @@ export default async function CustomersPage({
   const params = await searchParams;
   const query = params.q?.trim() || "";
   const statusFilter = params.status || "";
+  const reviewFilter = params.review || "";
   const page = Math.max(1, parseInt(params.page || "1"));
   const limit = 25;
 
@@ -56,8 +57,8 @@ export default async function CustomersPage({
     prisma.customer.findMany({
       where,
       orderBy: [{ lastName: "asc" }, { firstName: "asc" }],
-      skip: statusFilter ? 0 : (page - 1) * limit,
-      take: statusFilter ? 200 : limit, // fetch more when filtering by lifecycle
+      skip: (statusFilter || reviewFilter) ? 0 : (page - 1) * limit,
+      take: (statusFilter || reviewFilter) ? 200 : limit, // fetch more when filtering client-side
       include: {
         family: { select: { name: true } },
         orders: {
@@ -118,18 +119,25 @@ export default async function CustomersPage({
   if (statusFilter) {
     enriched = enriched.filter((c) => c.customerType === statusFilter);
   }
+  if (reviewFilter === "yes") {
+    enriched = enriched.filter((c) => c.googleReviewGiven);
+  } else if (reviewFilter === "no") {
+    enriched = enriched.filter((c) => !c.googleReviewGiven);
+  }
 
-  // Paginate after filter if status filter is applied
-  const filteredTotal = statusFilter ? enriched.length : total;
-  const paginatedCustomers = statusFilter
+  // Paginate after filter if status or review filter is applied
+  const isClientFiltered = !!statusFilter || !!reviewFilter;
+  const filteredTotal = isClientFiltered ? enriched.length : total;
+  const paginatedCustomers = isClientFiltered
     ? enriched.slice((page - 1) * limit, page * limit)
     : enriched;
-  const totalPages = Math.ceil((statusFilter ? filteredTotal : total) / limit);
+  const totalPages = Math.ceil(filteredTotal / limit);
 
   const buildUrl = (overrides: Record<string, string>) => {
     const p = new URLSearchParams();
     if (query) p.set("q", query);
     if (statusFilter) p.set("status", statusFilter);
+    if (reviewFilter) p.set("review", reviewFilter);
     Object.entries(overrides).forEach(([k, v]) => {
       if (v) p.set(k, v);
       else p.delete(k);
@@ -138,7 +146,7 @@ export default async function CustomersPage({
     return `/customers${s ? `?${s}` : ""}`;
   };
 
-  const displayTotal = statusFilter ? filteredTotal : total;
+  const displayTotal = isClientFiltered ? filteredTotal : total;
 
   // Build page number list with ellipsis
   const pageNumbers: (number | "…")[] = [];
@@ -186,20 +194,43 @@ export default async function CustomersPage({
           </form>
         </div>
 
-        <div className="flex gap-1 overflow-x-auto pb-0.5">
-          {STATUS_OPTIONS.map((opt) => (
-            <Link
-              key={opt.value}
-              href={buildUrl({ status: opt.value, page: "1" })}
-              className={`flex-shrink-0 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
-                statusFilter === opt.value
-                  ? "bg-primary text-white"
-                  : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-              }`}
-            >
-              {opt.label}
-            </Link>
-          ))}
+        <div className="flex items-center gap-3 overflow-x-auto pb-0.5">
+          <div className="flex gap-1">
+            {STATUS_OPTIONS.map((opt) => (
+              <Link
+                key={opt.value}
+                href={buildUrl({ status: opt.value, page: "1" })}
+                className={`flex-shrink-0 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                  statusFilter === opt.value
+                    ? "bg-primary text-white"
+                    : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                }`}
+              >
+                {opt.label}
+              </Link>
+            ))}
+          </div>
+          <span className="text-gray-300">|</span>
+          <div className="flex gap-1">
+            {[
+              { value: "", label: "All Reviews" },
+              { value: "yes", label: "Reviewed" },
+              { value: "no", label: "Not Reviewed" },
+            ].map((opt) => (
+              <Link
+                key={opt.value}
+                href={buildUrl({ review: opt.value, page: "1" })}
+                className={`flex-shrink-0 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center gap-1 ${
+                  reviewFilter === opt.value
+                    ? "bg-yellow-500 text-white"
+                    : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                }`}
+              >
+                {opt.value && <Star className="w-3 h-3" />}
+                {opt.label}
+              </Link>
+            ))}
+          </div>
         </div>
       </div>
 
@@ -236,9 +267,12 @@ export default async function CustomersPage({
                     <td className="px-6 py-3.5">
                       <Link
                         href={`/customers/${c.id}`}
-                        className="font-medium text-gray-900 hover:text-primary"
+                        className="font-medium text-gray-900 hover:text-primary inline-flex items-center gap-1.5"
                       >
                         {c.lastName}, {c.firstName}
+                        {c.googleReviewGiven && (
+                          <Star className="w-3.5 h-3.5 text-yellow-500 fill-yellow-500 flex-shrink-0" />
+                        )}
                       </Link>
                       {c.legacyCustomerId && (
                         <p className="text-xs text-gray-400">{c.legacyCustomerId}</p>

@@ -6,10 +6,11 @@ Format: `[Version] — Date`
 
 ---
 
-## [2.7.0] — 2026-02-23
+## [2.7.0] — 2026-02-24
 
-### Added — Staff Task Queue
+### Added — Staff Task Queue, Dashboard Cycling, Exam Tracking, Google Review Tracking
 
+#### Staff Task Queue
 - **StaffTask model** — title, description, status (OPEN/IN_PROGRESS/DONE/CANCELLED), priority (NORMAL/URGENT), category (CLINICAL/ADMIN/LAB/MARKETING), assignee (user or role), optional patient link, due date, soft delete
 - **TaskComment model** — threaded activity/handoff notes per task (author, body, timestamps), cascade delete with parent task
 - **NotificationType additions** — `TASK_ASSIGNED`, `TASK_DUE_SOON` enum values
@@ -22,7 +23,41 @@ Format: `[Version] — Date`
 - **Notification integration** — TASK_ASSIGNED notification fired on create/reassign when assignee differs from creator
 - **SQL migration** — `staff_tasks_migration.sql` creates 3 enums, 2 tables, 7 indexes, 2 notification type values
 - **Zod schemas** — `CreateTaskSchema`, `UpdateTaskSchema`, `UpdateTaskStatusSchema`, `AddTaskCommentSchema`
-- **Unit tests** — 43 new tests (22 action tests + 21 validation tests); total suite now 524 tests across 34 files
+
+#### Dashboard Scoreboard Click-to-Cycle
+- Scoreboard section now cycles through **This Month → Year to Date → All Time** on click
+- Extracted `ScoreboardCard` client component (`src/components/dashboard/ScoreboardCard.tsx`)
+- Added `getYearScoreboard()` and `getHistoricScoreboard()` server-side data functions
+- All three datasets fetched in parallel — no client-side fetching
+- Goal progress bar: shown for Monthly (monthly goal) and Yearly (monthly goal × 12), hidden for All Time
+- Dot indicators show current view; can click individual dots to jump to specific view
+
+#### Weekly Exam Tracking with Payment Method
+- New `paymentMethod` field on `Exam` model (reuses existing `PaymentMethod` enum)
+- New `/exams` page with weekly calendar view (week navigation, current week indicator)
+- Summary cards: total exams, total billed, total paid, payment method breakdown
+- Detailed table: patient name (linked), date, exam type, doctor, payment method, billed, paid
+- **Log Exam** modal: debounced customer search, date/type/doctor/payment/amounts/OHIP/notes
+- New "Exams" sidebar entry with Eye icon (between Dashboard and Appointments)
+- Server actions: `createExam`, `getWeeklyExams` in `src/lib/actions/exams.ts`
+- Zod validation schema: `src/lib/validations/exam.ts`
+
+#### Google Review Tracking
+- 3 new fields on Customer model: `googleReviewGiven`, `googleReviewDate`, `googleReviewNote`
+- `GoogleReviewCard` component on customer detail page (left column) — mark as given with optional note, remove status
+- `toggleGoogleReview` server action with audit logging
+- Customer list: filled star icon next to name for reviewed customers
+- Customer list: "Reviewed" / "Not Reviewed" filter pills alongside lifecycle filters
+- Star indicator uses yellow fill when review is given
+
+#### Schema Changes
+- `Customer`: added `googleReviewGiven Boolean`, `googleReviewDate DateTime?`, `googleReviewNote String?`
+- `Exam`: added `paymentMethod PaymentMethod?`
+- SQL migration: `prisma/migrations/20260224_google_reviews_and_exam_payment.sql`
+
+#### Tests
+- 53 new tests total (43 task queue + 10 dashboard/exams/reviews)
+- **534 tests, 35 files** — all passing
 
 ---
 

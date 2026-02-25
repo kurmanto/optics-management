@@ -26,6 +26,7 @@ import { SavedFramesCard } from "@/components/customers/SavedFramesCard";
 import { QuickBookAppointment } from "@/components/customers/QuickBookAppointment";
 import { CurrentGlassesForm } from "@/components/customers/CurrentGlassesForm";
 import { SendIntakeLinkButton } from "@/components/customers/SendIntakeLinkButton";
+import { GoogleReviewCard } from "@/components/customers/GoogleReviewCard";
 import { CustomerTasksCard } from "@/components/customers/CustomerTasksCard";
 
 const FORM_TYPE_LABELS: Record<FormTemplateType, string> = {
@@ -391,6 +392,14 @@ export default async function CustomerDetailPage({
               ...c,
               expiresAt: c.expiresAt,
             }))}
+          />
+
+          {/* Google Review */}
+          <GoogleReviewCard
+            customerId={customer.id}
+            given={customer.googleReviewGiven}
+            date={customer.googleReviewDate}
+            note={customer.googleReviewNote}
           />
 
           {/* Notes */}
