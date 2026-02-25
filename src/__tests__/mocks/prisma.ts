@@ -50,6 +50,8 @@ export function buildPrismaMock() {
     referral: modelMock(),
     savedFrame: modelMock(),
     appointment: modelMock(),
+    staffTask: modelMock(),
+    taskComment: modelMock(),
     family: modelMock(),
     auditLog: modelMock(),
     breachReport: modelMock(),

@@ -78,6 +78,8 @@ optics_boutique/
 │   │   │   │       └── [id]/page.tsx           # Detail + IPC letter
 │   │   │   ├── appointments/
 │   │   │   │   └── page.tsx                    # Weekly calendar view
+│   │   │   ├── tasks/
+│   │   │   │   └── page.tsx                    # Staff task queue (filters, search, detail panel)
 │   │   │   └── settings/page.tsx
 │   │   ├── (forms)/                            # Public — no auth required
 │   │   │   ├── f/[token]/page.tsx              # Individual form fill

@@ -8,9 +8,23 @@ Format: `[Version] — Date`
 
 ## [2.7.0] — 2026-02-24
 
-### Added — Dashboard Cycling, Exam Tracking, Google Review Tracking
+### Added — Staff Task Queue, Dashboard Cycling, Exam Tracking, Google Review Tracking
 
-#### Feature 1: Dashboard Scoreboard Click-to-Cycle
+#### Staff Task Queue
+- **StaffTask model** — title, description, status (OPEN/IN_PROGRESS/DONE/CANCELLED), priority (NORMAL/URGENT), category (CLINICAL/ADMIN/LAB/MARKETING), assignee (user or role), optional patient link, due date, soft delete
+- **TaskComment model** — threaded activity/handoff notes per task (author, body, timestamps), cascade delete with parent task
+- **NotificationType additions** — `TASK_ASSIGNED`, `TASK_DUE_SOON` enum values
+- **Server actions** — `createTask`, `updateTask`, `updateTaskStatus`, `deleteTask` (soft), `addTaskComment`, `getActiveStaff`, `getTaskComments`, `getMyOpenTaskCount`, `searchCustomersForTask`
+- **Tasks list page** (`/tasks`) — filterable by status, category, priority, "My Tasks" toggle; search by title/description; URGENT-first + due-date sort; overdue row highlighting (red background); pagination (25 per page)
+- **CreateTaskModal** — full creation form with category, priority toggle, staff/role assignee dropdown, debounced patient search, due date, description
+- **TaskDetailPanel** — slide-over detail view with inline editing, status transition buttons, comment thread, delete
+- **Sidebar "Tasks" link** — ClipboardList icon between Forms and Orders, with red badge showing open task count
+- **CustomerTasksCard** — on customer detail page: shows open/in-progress tasks linked to patient, inline quick-add form pre-filled with customerId
+- **Notification integration** — TASK_ASSIGNED notification fired on create/reassign when assignee differs from creator
+- **SQL migration** — `staff_tasks_migration.sql` creates 3 enums, 2 tables, 7 indexes, 2 notification type values
+- **Zod schemas** — `CreateTaskSchema`, `UpdateTaskSchema`, `UpdateTaskStatusSchema`, `AddTaskCommentSchema`
+
+#### Dashboard Scoreboard Click-to-Cycle
 - Scoreboard section now cycles through **This Month → Year to Date → All Time** on click
 - Extracted `ScoreboardCard` client component (`src/components/dashboard/ScoreboardCard.tsx`)
 - Added `getYearScoreboard()` and `getHistoricScoreboard()` server-side data functions
@@ -18,7 +32,7 @@ Format: `[Version] — Date`
 - Goal progress bar: shown for Monthly (monthly goal) and Yearly (monthly goal × 12), hidden for All Time
 - Dot indicators show current view; can click individual dots to jump to specific view
 
-#### Feature 2: Weekly Exam Tracking with Payment Method
+#### Weekly Exam Tracking with Payment Method
 - New `paymentMethod` field on `Exam` model (reuses existing `PaymentMethod` enum)
 - New `/exams` page with weekly calendar view (week navigation, current week indicator)
 - Summary cards: total exams, total billed, total paid, payment method breakdown
@@ -28,7 +42,7 @@ Format: `[Version] — Date`
 - Server actions: `createExam`, `getWeeklyExams` in `src/lib/actions/exams.ts`
 - Zod validation schema: `src/lib/validations/exam.ts`
 
-#### Feature 3: Google Review Tracking
+#### Google Review Tracking
 - 3 new fields on Customer model: `googleReviewGiven`, `googleReviewDate`, `googleReviewNote`
 - `GoogleReviewCard` component on customer detail page (left column) — mark as given with optional note, remove status
 - `toggleGoogleReview` server action with audit logging
@@ -42,8 +56,8 @@ Format: `[Version] — Date`
 - SQL migration: `prisma/migrations/20260224_google_reviews_and_exam_payment.sql`
 
 #### Tests
-- 10 new tests: `toggleGoogleReview` (3), `createExam` (5), `getWeeklyExams` (2)
-- **491 tests, 33 files** — all passing
+- 53 new tests total (43 task queue + 10 dashboard/exams/reviews)
+- **534 tests, 35 files** — all passing
 
 ---
 

@@ -104,9 +104,8 @@ async function truncateAll() {
   await prisma.formTemplate.deleteMany();
 
   // StaffTask/TaskComment reference User — must delete before users
-  // Use raw SQL since model may not exist in this branch's schema
-  try { await prisma.$executeRawUnsafe('DELETE FROM task_comments'); } catch (_) {}
-  try { await prisma.$executeRawUnsafe('DELETE FROM staff_tasks'); } catch (_) {}
+  await prisma.taskComment.deleteMany();
+  await prisma.staffTask.deleteMany();
 
   await prisma.user.deleteMany();
 

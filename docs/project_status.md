@@ -5,26 +5,30 @@
 
 ---
 
-## Current Version: V2.7.0 — Dashboard Cycling, Exam Tracking, Google Review Tracking
+## Current Version: V2.7.0 — Staff Task Queue, Dashboard Cycling, Exam Tracking, Google Review Tracking
 
 ---
 
-### V2.7.0 — Dashboard Cycling, Exam Tracking, Google Review Tracking (Complete)
+### V2.7.0 — Staff Task Queue, Dashboard Cycling, Exam Tracking, Google Review Tracking (Complete)
 
 | Feature | Status | Notes |
 |---------|--------|-------|
+| StaffTask + TaskComment models | ✅ Complete | 3 new enums (TaskStatus, TaskPriority, TaskCategory), 2 new tables, 7 indexes |
+| TASK_ASSIGNED / TASK_DUE_SOON notification types | ✅ Complete | Added to NotificationType enum; TASK_ASSIGNED fires on create/reassign |
+| Task CRUD server actions | ✅ Complete | createTask, updateTask, updateTaskStatus, deleteTask (soft), addTaskComment, getActiveStaff, getTaskComments, getMyOpenTaskCount |
+| Tasks list page (`/tasks`) | ✅ Complete | Filter chips (status, category, priority), "My Tasks" toggle, search, overdue highlighting, pagination (25/page) |
+| CreateTaskModal | ✅ Complete | Category, priority toggle, staff/role assignee dropdown, debounced patient search, due date, description |
+| TaskDetailPanel (slide-over) | ✅ Complete | Inline editing, status transitions, comment thread, delete |
+| Sidebar Tasks link + badge | ✅ Complete | ClipboardList icon, red badge with open task count |
+| CustomerTasksCard | ✅ Complete | Shows patient-linked tasks on customer detail; inline quick-add form |
 | Dashboard scoreboard click-to-cycle | ✅ Complete | Monthly → Year to Date → All Time; dot indicators; goal bar for monthly/yearly |
-| `getYearScoreboard()` + `getHistoricScoreboard()` | ✅ Complete | Parallel server-side fetch; no client-side fetching |
 | `ScoreboardCard` client component | ✅ Complete | `src/components/dashboard/ScoreboardCard.tsx` |
 | Weekly exam tracking page (`/exams`) | ✅ Complete | Week navigation, summary cards, detailed table, payment breakdown |
 | Log Exam modal | ✅ Complete | Customer search, date/type/doctor/payment/amounts/OHIP/notes |
 | `paymentMethod` on Exam model | ✅ Complete | `PaymentMethod?` reuses existing enum |
-| Exam sidebar entry | ✅ Complete | Eye icon between Dashboard and Appointments |
 | Google review fields on Customer | ✅ Complete | `googleReviewGiven`, `googleReviewDate`, `googleReviewNote` |
-| `GoogleReviewCard` on customer detail | ✅ Complete | Mark/unmark, optional note, star indicator |
-| `toggleGoogleReview` server action | ✅ Complete | Audit logged, revalidates paths |
-| Customer list star indicator + filter | ✅ Complete | Yellow star next to name; "Reviewed" / "Not Reviewed" filter pills |
-| Unit tests (491 total, 33 files) | ✅ Complete | +10 tests: toggleGoogleReview (3), createExam (5), getWeeklyExams (2) |
+| `GoogleReviewCard` + star indicator + filter | ✅ Complete | Mark/unmark, optional note, yellow star, "Reviewed"/"Not Reviewed" filter pills |
+| Unit tests (534 total, 35 files) | ✅ Complete | +53 tests across all features |
 
 ---
 
