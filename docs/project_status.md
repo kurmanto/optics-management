@@ -1,11 +1,33 @@
 # Project Status
 ## Mint Vision Optique — Staff Portal
 
-**Last updated:** 2026-02-24
+**Last updated:** 2026-02-25
 
 ---
 
-## Current Version: V2.7.0 — Staff Task Queue, Dashboard Cycling, Exam Tracking, Google Review Tracking
+## Current Version: V2.7.1 — Invoice System Redesign (PDF Generation + Email Attachment + B&W Layout)
+
+---
+
+### V2.7.1 — Invoice System Redesign (Complete)
+
+| Feature | Status | Notes |
+|---------|--------|-------|
+| B&W invoice layout | ✅ Complete | All green brand color removed; plain text website; inline footer logo |
+| Prescription table removed from invoice | ✅ Complete | Rx data still accessible on order detail page |
+| Totals restructured (SUBTOTAL first) | ✅ Complete | Always show all rows including $0.00 (Insurance, Referral, Deposit) |
+| `@react-pdf/renderer` integration | ✅ Complete | Server-side PDF generation, no headless browser |
+| `generateInvoicePdf()` in `src/lib/invoice-pdf.tsx` | ✅ Complete | React-PDF document matching B&W spec |
+| PDF download endpoint (`/api/invoices/[orderId]/pdf`) | ✅ Complete | Authenticated GET, mode=customer\|internal, Content-Disposition: attachment |
+| Download PDF button on invoice page | ✅ Complete | Links to API endpoint |
+| Simplified invoice email body | ✅ Complete | Short thank-you message, PDF attached as `MintVision-Invoice-XXXX.pdf` |
+| Email action orchestration | ✅ Complete | Fetch order → generate PDF → send email with Buffer attachment |
+| "resalable" → "resellable" typo fix | ✅ Complete | In terms text |
+| Unit tests (552 total, 37 files) | ✅ Complete | +7 tests: email flow, PDF generation, call ordering, error cases |
+
+---
+
+### Previous Version: V2.7.0 — Staff Task Queue, Dashboard Cycling, Exam Tracking, Google Review Tracking
 
 ---
 

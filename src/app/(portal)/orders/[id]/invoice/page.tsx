@@ -37,24 +37,6 @@ export default async function InvoicePage({
         },
         user: { select: { name: true } },
         lineItems: { orderBy: { createdAt: "asc" } },
-        prescription: {
-          select: {
-            doctorName: true,
-            date: true,
-            source: true,
-            odSphere: true,
-            odCylinder: true,
-            odAxis: true,
-            odAdd: true,
-            odPd: true,
-            osSphere: true,
-            osCylinder: true,
-            osAxis: true,
-            osAdd: true,
-            osPd: true,
-            pdBinocular: true,
-          },
-        },
       },
     }),
     prisma.invoice.findFirst({
@@ -147,7 +129,6 @@ export default async function InvoicePage({
         insuranceCoverage={order.insuranceCoverage}
         referralCredit={order.referralCredit}
         notes={order.notes}
-        prescription={order.prescription}
         autoprint={autoprint === "true"}
       />
     </div>
