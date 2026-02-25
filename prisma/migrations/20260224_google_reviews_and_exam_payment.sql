@@ -3,5 +3,5 @@ ALTER TABLE customers ADD COLUMN IF NOT EXISTS google_review_given BOOLEAN NOT N
 ALTER TABLE customers ADD COLUMN IF NOT EXISTS google_review_date TIMESTAMPTZ;
 ALTER TABLE customers ADD COLUMN IF NOT EXISTS google_review_note TEXT;
 
--- Payment method on exams table
-ALTER TABLE exams ADD COLUMN IF NOT EXISTS payment_method TEXT;
+-- Payment method on exams table (use native enum type, not TEXT)
+ALTER TABLE exams ADD COLUMN IF NOT EXISTS payment_method "PaymentMethod";
