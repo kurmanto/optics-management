@@ -63,8 +63,9 @@ export async function createExam(input: {
     revalidatePath(`/customers/${data.customerId}`);
     return { success: true };
   } catch (e) {
-    console.error(e);
-    return { error: "Failed to create exam" };
+    console.error("createExam error:", e);
+    const msg = e instanceof Error ? e.message : String(e);
+    return { error: `Failed to create exam: ${msg}` };
   }
 }
 
