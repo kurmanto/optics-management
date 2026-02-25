@@ -8,7 +8,7 @@ import { OrderStatus, LineItemType, OrderType, PrescriptionSource } from "@prism
 import { generateOrderNumber } from "@/lib/utils/formatters";
 import { createNotification } from "@/lib/notifications";
 import { uploadPrescriptionScan } from "@/lib/supabase";
-import { sendInvoiceEmail } from "@/lib/email";
+import { emailInvoice } from "@/lib/actions/email";
 import { redeemReferral } from "@/lib/actions/referrals";
 
 export type OrderFormState = {
@@ -316,19 +316,11 @@ export async function handlePickupComplete(
       }
     });
 
-    // Auto-send invoice email on pickup
+    // Auto-send invoice email on pickup (generates PDF + sends attachment)
     if (order.customer.email) {
-      sendInvoiceEmail({
-        to: order.customer.email,
-        customerName: `${order.customer.firstName} ${order.customer.lastName}`,
-        orderNumber: order.orderNumber,
-        totalAmount: order.totalCustomer,
-        lineItems: order.lineItems,
-        depositAmount: order.depositCustomer > 0 ? order.depositCustomer : undefined,
-        balanceAmount: order.balanceCustomer > 0 ? order.balanceCustomer : undefined,
-        insuranceCoverage: order.insuranceCoverage ?? undefined,
-        referralCredit: order.referralCredit ?? undefined,
-      }).catch((err) => console.error("[Invoice Email] Failed to send on pickup:", err));
+      emailInvoice(orderId).catch((err) =>
+        console.error("[Invoice Email] Failed to send on pickup:", err)
+      );
     }
 
     // SMS placeholder — Twilio integration later
