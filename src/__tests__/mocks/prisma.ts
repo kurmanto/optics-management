@@ -65,6 +65,7 @@ export function buildPrismaMock() {
       return Promise.all(fn as unknown as Promise<unknown>[]);
     }),
     $queryRawUnsafe: vi.fn(),
+    $executeRawUnsafe: vi.fn(),
   };
   return mock;
 }
