@@ -17,6 +17,8 @@ import {
   CalendarDays,
   Glasses,
   Bell,
+  DollarSign,
+  UserPlus,
 } from "lucide-react";
 import { ScoreboardCard } from "@/components/dashboard/ScoreboardCard";
 
@@ -482,11 +484,176 @@ async function getFollowUps() {
   return { pendingReturnFrames, upcomingStylingAppts };
 }
 
+async function getAcquisitionMetrics() {
+  const now = new Date();
+  const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+  const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+  const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59);
+  const sameMonthLastYearStart = new Date(now.getFullYear() - 1, now.getMonth(), 1);
+  const sameMonthLastYearEnd = new Date(now.getFullYear() - 1, now.getMonth() + 1, 0, 23, 59, 59);
+
+  const [
+    referralsThisMonth,
+    referralsLastMonth,
+    newPatientExamsThisMonth,
+    totalExamsThisMonth,
+    newPatientExamsLastMonth,
+    totalExamsLastMonth,
+    newPatientExamsSameMonthLastYear,
+    totalExamsSameMonthLastYear,
+    newCustomersThisMonth,
+    marketingSpendSetting,
+    totalOrdersThisMonth,
+    newCustomerOrdersThisMonth,
+  ] = await Promise.all([
+    prisma.referral.count({ where: { createdAt: { gte: thisMonthStart } } }),
+    prisma.referral.count({ where: { createdAt: { gte: lastMonthStart, lte: lastMonthEnd } } }),
+    // New patient exams this month: customer was created this month
+    prisma.exam.count({
+      where: {
+        examDate: { gte: thisMonthStart },
+        customer: { createdAt: { gte: thisMonthStart } },
+      },
+    }),
+    prisma.exam.count({ where: { examDate: { gte: thisMonthStart } } }),
+    // Same pair for last month
+    prisma.exam.count({
+      where: {
+        examDate: { gte: lastMonthStart, lte: lastMonthEnd },
+        customer: { createdAt: { gte: lastMonthStart, lte: lastMonthEnd } },
+      },
+    }),
+    prisma.exam.count({ where: { examDate: { gte: lastMonthStart, lte: lastMonthEnd } } }),
+    // Same pair for same month last year
+    prisma.exam.count({
+      where: {
+        examDate: { gte: sameMonthLastYearStart, lte: sameMonthLastYearEnd },
+        customer: { createdAt: { gte: sameMonthLastYearStart, lte: sameMonthLastYearEnd } },
+      },
+    }),
+    prisma.exam.count({ where: { examDate: { gte: sameMonthLastYearStart, lte: sameMonthLastYearEnd } } }),
+    prisma.customer.count({ where: { createdAt: { gte: thisMonthStart } } }),
+    prisma.systemSetting.findUnique({ where: { key: "monthly_marketing_spend" } }),
+    prisma.order.count({
+      where: {
+        createdAt: { gte: thisMonthStart },
+        status: { notIn: [OrderStatus.CANCELLED, OrderStatus.DRAFT] },
+      },
+    }),
+    prisma.order.count({
+      where: {
+        createdAt: { gte: thisMonthStart },
+        status: { notIn: [OrderStatus.CANCELLED, OrderStatus.DRAFT] },
+        customer: { createdAt: { gte: thisMonthStart } },
+      },
+    }),
+  ]);
+
+  const newPatientPctThisMonth = totalExamsThisMonth > 0
+    ? (newPatientExamsThisMonth / totalExamsThisMonth) * 100 : 0;
+  const newPatientPctLastMonth = totalExamsLastMonth > 0
+    ? (newPatientExamsLastMonth / totalExamsLastMonth) * 100 : 0;
+  const newPatientPctLastYear = totalExamsSameMonthLastYear > 0
+    ? (newPatientExamsSameMonthLastYear / totalExamsSameMonthLastYear) * 100 : 0;
+
+  const marketingSpend = marketingSpendSetting ? parseFloat(marketingSpendSetting.value) : null;
+  const cac = marketingSpend !== null && newCustomersThisMonth > 0
+    ? marketingSpend / newCustomersThisMonth : null;
+
+  const returningExamsThisMonth = totalExamsThisMonth - newPatientExamsThisMonth;
+  const returningOrdersThisMonth = totalOrdersThisMonth - newCustomerOrdersThisMonth;
+
+  return {
+    referralsThisMonth,
+    referralsLastMonth,
+    newPatientExamsThisMonth,
+    totalExamsThisMonth,
+    newPatientPctThisMonth,
+    newPatientExamsLastMonth,
+    newPatientPctLastMonth,
+    newPatientExamsSameMonthLastYear,
+    newPatientPctLastYear,
+    cac,
+    marketingSpendConfigured: marketingSpend !== null,
+    newCustomerOrdersThisMonth,
+    returningOrdersThisMonth,
+    returningExamsThisMonth,
+  };
+}
+
+async function getRetentionMetrics() {
+  const now = new Date();
+  const threeYearsAgo = new Date(now);
+  threeYearsAgo.setFullYear(threeYearsAgo.getFullYear() - 3);
+  const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+
+  const [activeCustomers, dormantPatients, reactivatedThisMonth] = await Promise.all([
+    // Active: has at least one non-cancelled order in last 3 years
+    prisma.customer.count({
+      where: {
+        isActive: true,
+        orders: {
+          some: {
+            createdAt: { gte: threeYearsAgo },
+            status: { notIn: [OrderStatus.CANCELLED] },
+          },
+        },
+      },
+    }),
+    // Dormant: active customer, has orders, but none in last 3 years
+    prisma.customer.count({
+      where: {
+        isActive: true,
+        orders: {
+          some: {},
+          none: {
+            createdAt: { gte: threeYearsAgo },
+            status: { notIn: [OrderStatus.CANCELLED] },
+          },
+        },
+      },
+    }),
+    // Reactivated: has order this month AND had orders before this month AND
+    // no orders in 3-year window before this month
+    prisma.customer.count({
+      where: {
+        isActive: true,
+        orders: {
+          some: {
+            createdAt: { gte: thisMonthStart },
+            status: { notIn: [OrderStatus.CANCELLED] },
+          },
+        },
+        AND: [
+          {
+            orders: {
+              some: {
+                createdAt: { lt: threeYearsAgo },
+                status: { notIn: [OrderStatus.CANCELLED] },
+              },
+            },
+          },
+          {
+            orders: {
+              none: {
+                createdAt: { gte: threeYearsAgo, lt: thisMonthStart },
+                status: { notIn: [OrderStatus.CANCELLED] },
+              },
+            },
+          },
+        ],
+      },
+    }),
+  ]);
+
+  return { activeCustomers, dormantPatients, reactivatedThisMonth };
+}
+
 export default async function DashboardPage() {
   const session = await verifySession();
   const isAdmin = session.role === "ADMIN";
 
-  const [scoreboard, yearScoreboard, historicScoreboard, opportunities, conversion, recentOrders, adminMetrics, followUps] = await Promise.all([
+  const [scoreboard, yearScoreboard, historicScoreboard, opportunities, conversion, recentOrders, adminMetrics, followUps, acquisition, retention] = await Promise.all([
     getMonthScoreboard(),
     getYearScoreboard(),
     getHistoricScoreboard(),
@@ -495,6 +662,8 @@ export default async function DashboardPage() {
     getRecentOrders(),
     isAdmin ? getAdminMetrics() : Promise.resolve(null),
     getFollowUps(),
+    getAcquisitionMetrics(),
+    getRetentionMetrics(),
   ]);
 
   const totalOpportunities =
@@ -541,6 +710,168 @@ export default async function DashboardPage() {
           avgTicket: historicScoreboard.avgTicket,
         }}
       />
+
+      {/* ── NEW PATIENT ACQUISITION ── */}
+      <section>
+        <div className="flex items-center gap-2 mb-4">
+          <UserPlus className="w-4 h-4 text-gray-500" />
+          <h2 className="text-base font-semibold text-gray-900">New Patient Acquisition</h2>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {/* Referral Codes Used */}
+          <div className="bg-white border border-[#E5E5E5] rounded-lg p-5">
+            <p className="text-xs text-[#808080] font-medium mb-2">Referral Codes Used</p>
+            <p className="text-[40px] font-bold leading-none tabular-nums">
+              {acquisition.referralsThisMonth}
+            </p>
+            <p className="text-xs text-[#808080] mt-2">
+              vs {acquisition.referralsLastMonth} last month
+            </p>
+          </div>
+
+          {/* New Patient Exams */}
+          <div className="bg-white border border-[#E5E5E5] rounded-lg p-5">
+            <p className="text-xs text-[#808080] font-medium mb-2">New Patient Exams</p>
+            <p className="text-[40px] font-bold leading-none tabular-nums">
+              {acquisition.newPatientExamsThisMonth}
+              <span className="text-lg font-medium text-[#808080] ml-1">
+                / {acquisition.totalExamsThisMonth}
+              </span>
+            </p>
+            <p className="text-xs text-[#808080] mt-2">
+              {acquisition.newPatientPctThisMonth.toFixed(0)}% new patients
+            </p>
+            <div className="flex gap-3 mt-1">
+              <p className="text-xs text-[#808080]">
+                vs {acquisition.newPatientExamsLastMonth} ({acquisition.newPatientPctLastMonth.toFixed(0)}%) last month
+              </p>
+              <p className="text-xs text-[#808080]">
+                vs {acquisition.newPatientExamsSameMonthLastYear} ({acquisition.newPatientPctLastYear.toFixed(0)}%) YoY
+              </p>
+            </div>
+          </div>
+
+          {/* Blended CAC */}
+          <div className="bg-white border border-[#E5E5E5] rounded-lg p-5">
+            <div className="flex items-center gap-2 mb-2">
+              <DollarSign className="w-3.5 h-3.5 text-[#808080]" />
+              <p className="text-xs text-[#808080] font-medium">Blended CAC</p>
+            </div>
+            <p className="text-[40px] font-bold leading-none tabular-nums">
+              {acquisition.cac !== null
+                ? formatCurrency(acquisition.cac)
+                : "—"}
+            </p>
+            <p className="text-xs text-[#808080] mt-2">
+              {acquisition.marketingSpendConfigured
+                ? "Marketing spend / new customers"
+                : "Not configured — set monthly_marketing_spend in Settings"}
+            </p>
+          </div>
+        </div>
+
+        {/* New vs Returning sub-row */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+          {/* Exams: New vs Returning */}
+          <div className="bg-white border border-[#E5E5E5] rounded-lg p-5">
+            <p className="text-xs text-[#808080] font-medium mb-3">Exams: New vs Returning</p>
+            <div className="flex items-end gap-6">
+              <div>
+                <p className="text-2xl font-bold tabular-nums text-[#059669]">{acquisition.newPatientExamsThisMonth}</p>
+                <p className="text-xs text-[#808080] mt-0.5">New patients</p>
+              </div>
+              <div>
+                <p className="text-2xl font-bold tabular-nums">{acquisition.returningExamsThisMonth}</p>
+                <p className="text-xs text-[#808080] mt-0.5">Returning</p>
+              </div>
+            </div>
+            {acquisition.totalExamsThisMonth > 0 && (
+              <div className="mt-3 h-2 bg-[#F5F5F5] rounded-full overflow-hidden flex">
+                <div
+                  className="h-full bg-[#059669] rounded-l-full"
+                  style={{ width: `${acquisition.newPatientPctThisMonth}%` }}
+                />
+                <div
+                  className="h-full bg-gray-900 rounded-r-full"
+                  style={{ width: `${100 - acquisition.newPatientPctThisMonth}%` }}
+                />
+              </div>
+            )}
+          </div>
+
+          {/* Purchases: New vs Returning */}
+          <div className="bg-white border border-[#E5E5E5] rounded-lg p-5">
+            <p className="text-xs text-[#808080] font-medium mb-3">Purchases: New vs Returning</p>
+            <div className="flex items-end gap-6">
+              <div>
+                <p className="text-2xl font-bold tabular-nums text-[#059669]">{acquisition.newCustomerOrdersThisMonth}</p>
+                <p className="text-xs text-[#808080] mt-0.5">New customers</p>
+              </div>
+              <div>
+                <p className="text-2xl font-bold tabular-nums">{acquisition.returningOrdersThisMonth}</p>
+                <p className="text-xs text-[#808080] mt-0.5">Returning</p>
+              </div>
+            </div>
+            {(acquisition.newCustomerOrdersThisMonth + acquisition.returningOrdersThisMonth) > 0 && (
+              <div className="mt-3 h-2 bg-[#F5F5F5] rounded-full overflow-hidden flex">
+                {(() => {
+                  const total = acquisition.newCustomerOrdersThisMonth + acquisition.returningOrdersThisMonth;
+                  const newPct = (acquisition.newCustomerOrdersThisMonth / total) * 100;
+                  return (
+                    <>
+                      <div
+                        className="h-full bg-[#059669] rounded-l-full"
+                        style={{ width: `${newPct}%` }}
+                      />
+                      <div
+                        className="h-full bg-gray-900 rounded-r-full"
+                        style={{ width: `${100 - newPct}%` }}
+                      />
+                    </>
+                  );
+                })()}
+              </div>
+            )}
+          </div>
+        </div>
+      </section>
+
+      {/* ── RETENTION ── */}
+      <section>
+        <div className="flex items-center gap-2 mb-4">
+          <RefreshCw className="w-4 h-4 text-gray-500" />
+          <h2 className="text-base font-semibold text-gray-900">Retention</h2>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {/* Active Customers */}
+          <div className="bg-white border border-[#E5E5E5] rounded-lg p-5">
+            <p className="text-xs text-[#808080] font-medium mb-2">Active Customers</p>
+            <p className="text-[40px] font-bold leading-none tabular-nums">
+              {retention.activeCustomers}
+            </p>
+            <p className="text-xs text-[#808080] mt-2">Purchase within last 3 years</p>
+          </div>
+
+          {/* Reactivated This Month */}
+          <div className="bg-white border border-[#E5E5E5] rounded-lg p-5">
+            <p className="text-xs text-[#059669] font-medium mb-2">Reactivated This Month</p>
+            <p className="text-[40px] font-bold leading-none tabular-nums text-[#059669]">
+              {retention.reactivatedThisMonth}
+            </p>
+            <p className="text-xs text-[#808080] mt-2">Had 3+ year gap, came back</p>
+          </div>
+
+          {/* Dormant Patients */}
+          <div className="bg-white border border-[#E5E5E5] rounded-lg p-5">
+            <p className="text-xs text-[#DC2626] font-medium mb-2">Dormant Patients</p>
+            <p className="text-[40px] font-bold leading-none tabular-nums text-[#DC2626]">
+              {retention.dormantPatients}
+            </p>
+            <p className="text-xs text-[#808080] mt-2">No purchase in 3+ years</p>
+          </div>
+        </div>
+      </section>
 
       {/* ── MONEY ON THE TABLE + FOLLOW UPS ── */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

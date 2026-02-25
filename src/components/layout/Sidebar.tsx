@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -93,11 +94,6 @@ const navItems = [
       { title: "Analytics", href: "/campaigns/analytics" },
     ],
   },
-  {
-    title: "Settings",
-    href: "/settings",
-    icon: Settings,
-  },
 ];
 
 type NavChild = { title: string; href: string; icon?: React.ElementType };
@@ -116,6 +112,8 @@ type Props = {
 
 export function Sidebar({ userName, userRole, taskCount }: Props) {
   const pathname = usePathname();
+  const adminActive = pathname.startsWith("/admin");
+  const [adminOpen, setAdminOpen] = useState(adminActive);
 
   function isGroupActive(item: NavItem) {
     if (item.href === "/dashboard") return pathname === "/dashboard";
@@ -150,41 +148,8 @@ export function Sidebar({ userName, userRole, taskCount }: Props) {
       </div>
 
       {/* Nav */}
-      <nav className="flex-1 p-4 space-y-1">
-          {userRole === "ADMIN" && (
-          <div>
-            <div className="flex items-center gap-3 px-3 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider mt-2">
-              <Shield className="w-4 h-4" />
-              Admin
-            </div>
-            <div className="mt-1 space-y-0.5">
-              <Link
-                href="/admin/audit"
-                className={cn(
-                  "flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors",
-                  pathname.startsWith("/admin/audit")
-                    ? "bg-primary text-white font-medium"
-                    : "text-gray-400 hover:text-white hover:bg-gray-800"
-                )}
-              >
-                <ScrollText className="w-4 h-4 flex-shrink-0" />
-                Audit Log
-              </Link>
-              <Link
-                href="/admin/breach"
-                className={cn(
-                  "flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors",
-                  pathname.startsWith("/admin/breach")
-                    ? "bg-primary text-white font-medium"
-                    : "text-gray-400 hover:text-white hover:bg-gray-800"
-                )}
-              >
-                <AlertTriangle className="w-4 h-4 flex-shrink-0" />
-                Breach Reports
-              </Link>
-            </div>
-          </div>
-        )}
+      <nav className="flex-1 p-4 flex flex-col">
+        <div className="space-y-1">
         {navItems.map((item) => {
           const isActive = isGroupActive(item);
           const Icon = item.icon;
@@ -252,6 +217,72 @@ export function Sidebar({ userName, userRole, taskCount }: Props) {
             </Link>
           );
         })}
+        </div>
+
+        <div className="flex-1" />
+
+        <div className="border-t border-gray-700 my-3" />
+
+        <div className="space-y-0.5">
+          <Link
+            href="/settings"
+            className={cn(
+              "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors",
+              pathname.startsWith("/settings")
+                ? "bg-primary text-white"
+                : "text-gray-400 hover:text-white hover:bg-gray-800"
+            )}
+          >
+            <Settings className="w-5 h-5 flex-shrink-0" />
+            <span className="flex-1">Settings</span>
+          </Link>
+          {userRole === "ADMIN" && (
+            <div>
+              <button
+                type="button"
+                onClick={() => setAdminOpen((o) => !o)}
+                className={cn(
+                  "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors mt-1",
+                  adminActive
+                    ? "bg-primary/20 text-white"
+                    : "text-gray-400 hover:text-white hover:bg-gray-800"
+                )}
+              >
+                <Shield className="w-5 h-5 flex-shrink-0" />
+                <span className="flex-1 text-left">Admin</span>
+                <ChevronDown className={cn("w-4 h-4 transition-transform", (adminOpen || adminActive) && "rotate-180")} />
+              </button>
+              {(adminOpen || adminActive) && (
+                <div className="mt-1 ml-4 pl-4 border-l border-gray-700 space-y-0.5">
+                  <Link
+                    href="/admin/audit"
+                    className={cn(
+                      "flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors",
+                      pathname.startsWith("/admin/audit")
+                        ? "bg-primary text-white font-medium"
+                        : "text-gray-400 hover:text-white hover:bg-gray-800"
+                    )}
+                  >
+                    <ScrollText className="w-3.5 h-3.5 flex-shrink-0" />
+                    Audit Log
+                  </Link>
+                  <Link
+                    href="/admin/breach"
+                    className={cn(
+                      "flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors",
+                      pathname.startsWith("/admin/breach")
+                        ? "bg-primary text-white font-medium"
+                        : "text-gray-400 hover:text-white hover:bg-gray-800"
+                    )}
+                  >
+                    <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0" />
+                    Breach Reports
+                  </Link>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
       </nav>
 
       {/* User */}
