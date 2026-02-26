@@ -61,6 +61,15 @@ type CreateOrderInput = {
   examPaymentMethod?: string;
   examBillingCode?: string;
   insuranceCoveredAmount?: number;
+  // Work order frame/lens details
+  frameSource?: string;
+  frameStatus?: string;
+  frameConditionNotes?: string;
+  lensBrand?: string;
+  lensProductName?: string;
+  lensMaterial?: string;
+  lensTint?: string;
+  lensEdgeType?: string;
 };
 
 export async function createOrder(input: CreateOrderInput): Promise<{ id: string; orderNumber: string } | { error: string }> {
@@ -122,6 +131,14 @@ export async function createOrder(input: CreateOrderInput): Promise<{ id: string
         examPaymentMethod: input.examPaymentMethod || null,
         examBillingCode: input.examBillingCode || null,
         insuranceCoveredAmount: input.insuranceCoveredAmount ?? null,
+        frameSource: input.frameSource || null,
+        frameStatus: input.frameStatus || null,
+        frameConditionNotes: input.frameConditionNotes || null,
+        lensBrand: input.lensBrand || null,
+        lensProductName: input.lensProductName || null,
+        lensMaterial: input.lensMaterial || null,
+        lensTint: input.lensTint || null,
+        lensEdgeType: input.lensEdgeType || null,
         notes: input.notes || null,
         labNotes: input.labNotes || null,
         dueDate: input.dueDate ? new Date(input.dueDate) : null,
@@ -157,8 +174,8 @@ export async function createOrder(input: CreateOrderInput): Promise<{ id: string
 
     void logAudit({ userId: session.id, action: "CREATE", model: "Order", recordId: order.id, changes: { after: { orderNumber: order.orderNumber, customerId: input.customerId } } });
     return { id: order.id, orderNumber: order.orderNumber };
-  } catch (e) {
-    console.error(e);
+  } catch (e: unknown) {
+    console.error("[createOrder] Error:", e instanceof Error ? e.message : e);
     return { error: "Failed to create order" };
   }
 }
@@ -173,8 +190,8 @@ export async function advanceOrderStatus(
   const statusTimestamps: Partial<Record<OrderStatus, object>> = {
     LAB_ORDERED: { labOrderedAt: new Date() },
     LAB_RECEIVED: { labReceivedAt: new Date() },
-    VERIFIED: { verifiedAt: new Date() },
-    READY: { readyAt: new Date() },
+    VERIFIED: { verifiedAt: new Date(), verifiedBy: session.name },
+    READY: { readyAt: new Date(), preparedBy: session.name },
     PICKED_UP: { pickedUpAt: new Date() },
   };
 
@@ -644,4 +661,31 @@ export async function addPayment(
   ]);
 
   revalidatePath(`/orders/${orderId}`);
+}
+
+export async function markQcChecked(
+  orderId: string
+): Promise<{ success: true } | { error: string }> {
+  const session = await verifyRole("STAFF");
+
+  try {
+    await prisma.order.update({
+      where: { id: orderId },
+      data: { qcCheckedAt: new Date() },
+    });
+
+    void logAudit({
+      userId: session.id,
+      action: "UPDATE",
+      model: "Order",
+      recordId: orderId,
+      changes: { after: { qcCheckedAt: new Date().toISOString() } },
+    });
+    revalidatePath(`/orders/${orderId}`);
+    revalidatePath(`/orders/${orderId}/work-order`);
+    return { success: true };
+  } catch (e) {
+    console.error(e);
+    return { error: "Failed to mark QC checked" };
+  }
 }

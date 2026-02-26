@@ -35,6 +35,16 @@ export const OrderSchema = z.object({
   lensDesign: z.string().optional().or(z.literal("")),
   lensAddOns: z.array(z.string()).optional().default([]),
 
+  // Work order frame/lens details
+  frameSource: z.string().optional().or(z.literal("")),
+  frameStatus: z.string().optional().or(z.literal("")),
+  frameConditionNotes: z.string().optional().or(z.literal("")),
+  lensBrand: z.string().optional().or(z.literal("")),
+  lensProductName: z.string().optional().or(z.literal("")),
+  lensMaterial: z.string().optional().or(z.literal("")),
+  lensTint: z.string().optional().or(z.literal("")),
+  lensEdgeType: z.string().optional().or(z.literal("")),
+
   insuranceCoverage: z.number().min(0).optional().nullable(),
   referralCredit: z.number().min(0).optional().nullable(),
 
