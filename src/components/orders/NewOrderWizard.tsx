@@ -85,6 +85,36 @@ const ORDER_CATEGORIES = [
 const LENS_TYPES = [
   { value: "single_vision", label: "Single Vision" },
   { value: "progressive", label: "Progressive" },
+  { value: "bifocal", label: "Bifocal" },
+  { value: "reading", label: "Reading" },
+  { value: "non_prescription", label: "Non-Prescription" },
+] as const;
+
+const FRAME_SOURCE_OPTIONS = [
+  { value: "from_inventory", label: "From Inventory" },
+  { value: "patient_supplied", label: "Patient Supplied" },
+  { value: "to_be_ordered", label: "To Be Ordered" },
+] as const;
+
+const FRAME_STATUS_OPTIONS = [
+  { value: "in_stock", label: "In Stock" },
+  { value: "ordered", label: "Ordered" },
+  { value: "patients_own", label: "Patient's Own Frame" },
+] as const;
+
+const LENS_MATERIAL_OPTIONS = [
+  { value: "cr39", label: "CR39" },
+  { value: "polycarbonate", label: "Polycarbonate" },
+  { value: "1.67_hi_index", label: "1.67 Hi-Index" },
+  { value: "trivex", label: "Trivex" },
+  { value: "1.74_hi_index", label: "1.74 Hi-Index" },
+] as const;
+
+const LENS_EDGE_TYPE_OPTIONS = [
+  { value: "standard", label: "Standard" },
+  { value: "polish", label: "Polish" },
+  { value: "groove", label: "Groove" },
+  { value: "drill_mount", label: "Drill Mount" },
 ] as const;
 
 const LENS_DESIGNS = [
@@ -171,6 +201,11 @@ export function NewOrderWizard({
   const [lensType, setLensType] = useState("");
   const [lensDesign, setLensDesign] = useState("");
   const [lensAddOns, setLensAddOns] = useState<string[]>([]);
+  const [lensBrand, setLensBrand] = useState("");
+  const [lensProductName, setLensProductName] = useState("");
+  const [lensMaterial, setLensMaterial] = useState("");
+  const [lensTint, setLensTint] = useState("");
+  const [lensEdgeType, setLensEdgeType] = useState("");
 
   // Step 4: Frame details
   const [frameBrand, setFrameBrand] = useState("");
@@ -182,6 +217,9 @@ export function NewOrderWizard({
   const [frameTemple, setFrameTemple] = useState("");
   const [frameWholesale, setFrameWholesale] = useState("");
   const [frameSku, setFrameSku] = useState("");
+  const [frameSource, setFrameSource] = useState("");
+  const [frameStatus, setFrameStatus] = useState("");
+  const [frameConditionNotes, setFrameConditionNotes] = useState("");
   const [frameInventorySearch, setFrameInventorySearch] = useState("");
 
   // Step 5: Line Items
@@ -259,14 +297,20 @@ export function NewOrderWizard({
 
   // Normalize search: strip commas, collapse spaces, lowercase
   const normalizedSearch = customerSearch.replace(/,/g, "").replace(/\s+/g, " ").trim().toLowerCase();
+  const digitsOnly = customerSearch.replace(/\D/g, "");
   const filteredCustomers = allCustomers
-    .filter(
-      (c) =>
-        normalizedSearch.length === 0 ||
-        `${c.lastName} ${c.firstName}`.toLowerCase().includes(normalizedSearch) ||
-        `${c.firstName} ${c.lastName}`.toLowerCase().includes(normalizedSearch) ||
-        (c.phone && c.phone.includes(customerSearch.replace(/\D/g, "")))
-    )
+    .filter((c) => {
+      if (normalizedSearch.length === 0) return true;
+      const fullName = `${c.firstName} ${c.lastName}`.toLowerCase();
+      const reverseName = `${c.lastName} ${c.firstName}`.toLowerCase();
+      // Check each search token against name (supports "John 647" or "Doe Jane")
+      const tokens = normalizedSearch.split(" ").filter(Boolean);
+      const nameMatch = tokens.every(
+        (t) => fullName.includes(t) || reverseName.includes(t)
+      );
+      const phoneMatch = digitsOnly.length > 0 && c.phone ? c.phone.includes(digitsOnly) : false;
+      return nameMatch || phoneMatch;
+    })
     .slice(0, 10);
 
   function addLineItem() {
@@ -300,6 +344,8 @@ export function NewOrderWizard({
     if (inv.eyeSize) setFrameEyeSize(String(inv.eyeSize));
     if (inv.bridgeSize) setFrameBridgeState(String(inv.bridgeSize));
     if (inv.templeLength) setFrameTemple(String(inv.templeLength));
+    setFrameSource("from_inventory");
+    setFrameStatus("in_stock");
 
     // Auto-fill frame line item
     const frameDesc = `${inv.brand} ${inv.model}${inv.color ? ` — ${inv.color}` : ""}`;
@@ -326,6 +372,11 @@ export function NewOrderWizard({
     setLensType("");
     setLensDesign("");
     setLensAddOns([]);
+    setLensBrand("");
+    setLensProductName("");
+    setLensMaterial("");
+    setLensTint("");
+    setLensEdgeType("");
     setFrameBrand("");
     setFrameModel("");
     setFrameColor("");
@@ -335,6 +386,9 @@ export function NewOrderWizard({
     setFrameTemple("");
     setFrameWholesale("");
     setFrameSku("");
+    setFrameSource("");
+    setFrameStatus("");
+    setFrameConditionNotes("");
     setFrameInventorySearch("");
     setLineItems([
       { type: "FRAME", description: "", quantity: 1, unitPriceCustomer: 0, unitPriceReal: 0 },
@@ -496,6 +550,14 @@ export function NewOrderWizard({
       lensCoating: undefined,
       lensDesign: lensDesign || undefined,
       lensAddOns,
+      frameSource: frameSource || undefined,
+      frameStatus: frameStatus || undefined,
+      frameConditionNotes: frameConditionNotes || undefined,
+      lensBrand: lensBrand || undefined,
+      lensProductName: lensProductName || undefined,
+      lensMaterial: lensMaterial || undefined,
+      lensTint: lensTint || undefined,
+      lensEdgeType: lensEdgeType || undefined,
       insuranceCoverage: insuranceCoverage || undefined,
       referralCredit: referralCredit || undefined,
       referralId: referralId || undefined,
@@ -786,6 +848,13 @@ export function NewOrderWizard({
                     if (cat.value === "eye_exam") {
                       setLineItems([{ type: "EXAM", description: "Complete Eye Exam", quantity: 1, unitPriceCustomer: 90, unitPriceReal: 90 }]);
                     }
+                    if (cat.value === "lens_update") {
+                      setFrameSource("patient_supplied");
+                      setFrameStatus("patients_own");
+                    } else {
+                      setFrameSource("");
+                      setFrameStatus("");
+                    }
                   }}
                   className={`flex flex-col items-start gap-2 p-4 rounded-xl border-2 text-left transition-all ${
                     selected
@@ -997,6 +1066,68 @@ export function NewOrderWizard({
               </div>
             </div>
           </div>
+
+          {/* 3d: Lens Details */}
+          <div>
+            <h3 className="text-sm font-semibold text-gray-700 mb-3">Lens Details (optional)</h3>
+            <div className="space-y-3">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">Lens Brand / Supplier</label>
+                  <input value={lensBrand} onChange={(e) => setLensBrand(e.target.value)} placeholder="e.g. Essilor" className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">Product Name</label>
+                  <input value={lensProductName} onChange={(e) => setLensProductName(e.target.value)} placeholder="e.g. Varilux Comfort Max" className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-2">Material</label>
+                <div className="flex flex-wrap gap-2">
+                  {LENS_MATERIAL_OPTIONS.map((opt) => (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      onClick={() => setLensMaterial(lensMaterial === opt.value ? "" : opt.value)}
+                      className={`px-3 py-1.5 rounded-lg border text-sm font-medium transition-all ${
+                        lensMaterial === opt.value
+                          ? "border-primary bg-primary/5 text-primary"
+                          : "border-gray-200 text-gray-700 hover:border-gray-300"
+                      }`}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">Tint</label>
+                <input value={lensTint} onChange={(e) => setLensTint(e.target.value)} placeholder="e.g. Grey 50%" className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-2">Edge Type</label>
+                <div className="flex flex-wrap gap-2">
+                  {LENS_EDGE_TYPE_OPTIONS.map((opt) => (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      onClick={() => setLensEdgeType(lensEdgeType === opt.value ? "" : opt.value)}
+                      className={`px-3 py-1.5 rounded-lg border text-sm font-medium transition-all ${
+                        lensEdgeType === opt.value
+                          ? "border-primary bg-primary/5 text-primary"
+                          : "border-gray-200 text-gray-700 hover:border-gray-300"
+                      }`}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       )}
 
@@ -1085,6 +1216,67 @@ export function NewOrderWizard({
               <label className="block text-xs font-medium text-gray-700 mb-1">Wholesale Cost</label>
               <input type="number" min="0" step="0.01" value={frameWholesale} onChange={(e) => setFrameWholesale(e.target.value)} placeholder="0.00" className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
             </div>
+          </div>
+
+          {/* Frame Source & Status */}
+          <div className="space-y-3 pt-2 border-t border-gray-100">
+            <div>
+              <label className="block text-xs font-medium text-gray-700 mb-2">Frame Source</label>
+              <div className="flex flex-wrap gap-2">
+                {FRAME_SOURCE_OPTIONS.map((opt) => (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() => {
+                      setFrameSource(opt.value);
+                      if (opt.value === "from_inventory") setFrameStatus("in_stock");
+                      else if (opt.value === "patient_supplied") setFrameStatus("patients_own");
+                      else if (opt.value === "to_be_ordered") setFrameStatus("ordered");
+                    }}
+                    className={`px-3 py-1.5 rounded-lg border text-sm font-medium transition-all ${
+                      frameSource === opt.value
+                        ? "border-primary bg-primary/5 text-primary"
+                        : "border-gray-200 text-gray-700 hover:border-gray-300"
+                    }`}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-medium text-gray-700 mb-2">Frame Status</label>
+              <div className="flex flex-wrap gap-2">
+                {FRAME_STATUS_OPTIONS.map((opt) => (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() => setFrameStatus(opt.value)}
+                    className={`px-3 py-1.5 rounded-lg border text-sm font-medium transition-all ${
+                      frameStatus === opt.value
+                        ? "border-primary bg-primary/5 text-primary"
+                        : "border-gray-200 text-gray-700 hover:border-gray-300"
+                    }`}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {frameSource === "patient_supplied" && (
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">Frame Condition Notes</label>
+                <textarea
+                  value={frameConditionNotes}
+                  onChange={(e) => setFrameConditionNotes(e.target.value)}
+                  rows={2}
+                  placeholder="Describe the condition of the patient's frame..."
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary resize-none"
+                />
+              </div>
+            )}
           </div>
 
           <div>
@@ -1484,12 +1676,14 @@ export function NewOrderWizard({
                 <Mail className="w-4 h-4 text-gray-400" />
                 <span className="text-sm text-gray-700">Email Invoice to Customer</span>
               </label>
+              {!needsExamDetails && (
               <label className="flex items-center gap-3 p-3 rounded-lg border border-gray-200 cursor-pointer hover:bg-gray-50">
                 <input type="checkbox" checked={printWorkOrder} onChange={(e) => setPrintWorkOrder(e.target.checked)} className="rounded border-gray-300 text-primary focus:ring-primary" />
                 <Printer className="w-4 h-4 text-gray-400" />
                 <span className="text-sm text-gray-700">Print Work Order</span>
                 <span className="text-xs text-primary font-medium ml-auto">Recommended</span>
               </label>
+              )}
               {selectedCustomer && (
                 <label className="flex items-center gap-3 p-3 rounded-lg border border-gray-200 cursor-pointer hover:bg-gray-50">
                   <input

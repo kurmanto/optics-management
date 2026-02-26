@@ -78,6 +78,9 @@ export default async function OrderDetailPage({
   if (!order) notFound();
 
   const nextStatus = NEXT_STATUS[order.status];
+  const hasFrameOrLens = order.lineItems.some(
+    (li) => li.type === "FRAME" || li.type === "LENS"
+  );
 
   return (
     <div className="p-6 max-w-4xl mx-auto space-y-5">
@@ -112,13 +115,15 @@ export default async function OrderDetailPage({
               <span className="ml-1 text-green-600 font-semibold">✓</span>
             )}
           </Link>
-          <Link
-            href={`/orders/${order.id}/work-order`}
-            className="inline-flex items-center gap-1.5 text-xs text-gray-500 border border-gray-300 rounded-lg px-3 py-2 hover:bg-gray-50 transition-colors"
-          >
-            <FileText className="w-3.5 h-3.5" />
-            Work Order
-          </Link>
+          {hasFrameOrLens && (
+            <Link
+              href={`/orders/${order.id}/work-order`}
+              className="inline-flex items-center gap-1.5 text-xs text-gray-500 border border-gray-300 rounded-lg px-3 py-2 hover:bg-gray-50 transition-colors"
+            >
+              <FileText className="w-3.5 h-3.5" />
+              Work Order
+            </Link>
+          )}
 
         {/* Status Advance Button */}
         {nextStatus && (

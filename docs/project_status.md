@@ -5,7 +5,29 @@
 
 ---
 
-## Current Version: V2.7.1 — Invoice System Redesign (PDF Generation + Email Attachment + B&W Layout)
+## Current Version: V2.8.0 — Work Order Redesign
+
+---
+
+### V2.8.0 — Work Order Redesign (Complete)
+
+| Feature | Status | Notes |
+|---------|--------|-------|
+| 12 new Order fields (frame/lens/QC) | ✅ Complete | `frameSource`, `frameStatus`, `frameConditionNotes`, `lensBrand`, `lensProductName`, `lensMaterial`, `lensTint`, `lensEdgeType`, `qcCheckedAt`, `preparedBy`, `verifiedBy` |
+| `nearPd` on Prescription | ✅ Complete | Near PD for progressive/bifocal |
+| SQL migration | ✅ Complete | `work_order_redesign.sql` |
+| Wizard: expanded lens types | ✅ Complete | Bifocal, Reading, Non-Prescription added |
+| Wizard: Lens Details section | ✅ Complete | Brand/Supplier, Product Name, Material, Tint, Edge Type |
+| Wizard: Frame Source/Status | ✅ Complete | 3-button groups with auto-set defaults |
+| WorkOrderView rewrite | ✅ Complete | New header, 6-col Rx table, frame/lens spec grids, status checklist |
+| `markQcChecked` action | ✅ Complete | Independent QC timestamp |
+| `verifiedBy`/`preparedBy` auto-set | ✅ Complete | Set from session.name during status transitions |
+| Scope guard (exam-only) | ✅ Complete | Work Order link hidden + page guard |
+| Unit tests (559 total, 36 files) | ✅ Complete | +7 new tests |
+
+---
+
+### Previous Version: V2.7.1 — Invoice System Redesign (PDF Generation + Email Attachment + B&W Layout)
 
 ---
 

@@ -6,6 +6,46 @@ Format: `[Version] — Date`
 
 ---
 
+## [2.8.0] — 2026-02-25
+
+### Changed — Work Order Redesign
+
+#### Schema + Migration
+- **12 new Order fields** — `frameSource`, `frameStatus`, `frameConditionNotes`, `lensBrand`, `lensProductName`, `lensMaterial`, `lensTint`, `lensEdgeType`, `qcCheckedAt`, `preparedBy`, `verifiedBy`
+- **1 new Prescription field** — `nearPd` (near PD for progressive/bifocal)
+- SQL migration: `work_order_redesign.sql` (ADD COLUMN IF NOT EXISTS)
+
+#### Order Wizard
+- **Expanded lens types** — Bifocal, Reading, Non-Prescription added to wizard
+- **Lens Details section** in Lens Config step — Brand/Supplier, Product Name, Material (button group), Tint, Edge Type (button group)
+- **Frame Source/Status** in Frame step — 3-button groups with auto-set defaults (inventory → in_stock, patient supplied → patient's own, to be ordered → ordered)
+- **Frame Condition Notes** — textarea shown only for patient-supplied frames
+- **Auto-set** — lens_update category auto-selects patient_supplied + patient's own
+
+#### WorkOrderView Complete Rewrite
+- **New header** — `WORK ORDER — {Patient Name} — {Date}` (bold, full-width, no business info)
+- **Prescription table** — 6 columns (Eye/Sphere/Cylinder/Axis/Add/PD), no Seg Ht column; Near PD shown below for progressive/bifocal
+- **Frame Specifications** — two-column grid with Frame Size (combined), Frame Source, Frame Status, Condition Notes
+- **Lens Specifications** — two-column grid with Brand/Supplier, Product Name, Material (with backward-compat derivation from add-ons), Coating/Treatment, Tint, Edge Type, PD (L/R), Segment Height (OD/OS)
+- **Lab Instructions / Notes** — full-width bordered box (plain bg for print)
+- **Order Status Checklist** — 5 rows (Sent to Lab, Received, QC Checked, Ready, Dispensed) with checkbox + date + by columns; blanks for manual write-in
+- **Backward compatibility** — `deriveMaterial()` infers from lens_thinning add-ons; `deriveCoatings()` combines lensCoating + non-thinning add-ons
+
+#### Server Actions
+- **`markQcChecked(orderId)`** — new action sets `qcCheckedAt` timestamp, logs audit
+- **`advanceOrderStatus`** — VERIFIED sets `verifiedBy: session.name`, READY sets `preparedBy: session.name`
+- **`createOrder`** — passes 8 new frame/lens fields through
+
+#### Scope Guard
+- **Work Order link hidden** for exam-only orders (no FRAME/LENS line items)
+- **Work order page guard** — redirects to order detail if no frame/lens items
+
+#### Tests
+- **559 tests, 36 files** — all passing
+- 7 new tests: createOrder with new fields, empty strings → null, backward compat, markQcChecked happy/error, verifiedBy/preparedBy auto-set
+
+---
+
 ## [2.7.1] — 2026-02-25
 
 ### Changed — Invoice System Redesign (PDF Generation + Email Attachment + B&W Layout)

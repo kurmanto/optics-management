@@ -190,6 +190,9 @@ model Prescription {
   odSegmentHeight Float? @map("od_segment_height")
   osSegmentHeight Float? @map("os_segment_height")
 
+  // Near PD (for progressive/bifocal)
+  nearPd  Float?  @map("near_pd")
+
   doctorName String?
   notes      String?
   isActive   Boolean   @default(true)
@@ -475,6 +478,19 @@ model Order {
   lensDesign    String?  @map("lens_design")
   lensAddOns    String[] @default([]) @map("lens_add_ons")
   orderCategory String?  @map("order_category")
+
+  // Work order frame/lens details
+  frameSource          String?  @map("frame_source")
+  frameStatus          String?  @map("frame_status")
+  frameConditionNotes  String?  @map("frame_condition_notes")
+  lensBrand            String?  @map("lens_brand")
+  lensProductName      String?  @map("lens_product_name")
+  lensMaterial         String?  @map("lens_material")
+  lensTint             String?  @map("lens_tint")
+  lensEdgeType         String?  @map("lens_edge_type")
+  qcCheckedAt          DateTime? @map("qc_checked_at")
+  preparedBy           String?  @map("prepared_by")
+  verifiedBy           String?  @map("verified_by")
 
   // Payment/deduction fields
   insuranceCoverage Float? @map("insurance_coverage")

@@ -828,7 +828,7 @@ describe("recordCurrentGlassesReading", () => {
     if ("error" in result) expect(result.error).toMatch(/failed/i);
   });
 
-  it("stores imageUrl in externalImageUrl field", async () => {
+  it("stores imageUrl in externalImageUrl field (current glasses)", async () => {
     const prisma = await getPrisma();
 
     let capturedImageUrl: string | null = null;
@@ -853,5 +853,134 @@ describe("recordCurrentGlassesReading", () => {
     });
 
     expect(capturedImageUrl).toBe("https://cdn.example.com/lensometer.jpg");
+  });
+});
+
+// ── Work Order Redesign: new fields ─────────────────────────────────────────
+
+describe("createOrder — work order fields", () => {
+  it("passes new frame/lens fields to Prisma", async () => {
+    const prisma = await getPrisma();
+    prisma.order.create.mockResolvedValue({ id: "order-wo-1", orderNumber: "ORD-2026-5000" });
+
+    const { createOrder } = await import("@/lib/actions/orders");
+    await createOrder({
+      ...validOrderInput,
+      frameSource: "from_inventory",
+      frameStatus: "in_stock",
+      frameConditionNotes: "Good condition",
+      lensBrand: "Essilor",
+      lensProductName: "Varilux Comfort Max",
+      lensMaterial: "polycarbonate",
+      lensTint: "Grey 50%",
+      lensEdgeType: "polish",
+    });
+
+    const callArgs = prisma.order.create.mock.calls[0][0];
+    expect(callArgs.data.frameSource).toBe("from_inventory");
+    expect(callArgs.data.frameStatus).toBe("in_stock");
+    expect(callArgs.data.frameConditionNotes).toBe("Good condition");
+    expect(callArgs.data.lensBrand).toBe("Essilor");
+    expect(callArgs.data.lensProductName).toBe("Varilux Comfort Max");
+    expect(callArgs.data.lensMaterial).toBe("polycarbonate");
+    expect(callArgs.data.lensTint).toBe("Grey 50%");
+    expect(callArgs.data.lensEdgeType).toBe("polish");
+  });
+
+  it("passes empty strings as null for new optional fields", async () => {
+    const prisma = await getPrisma();
+    prisma.order.create.mockResolvedValue({ id: "order-wo-2", orderNumber: "ORD-2026-5001" });
+
+    const { createOrder } = await import("@/lib/actions/orders");
+    await createOrder({
+      ...validOrderInput,
+      frameSource: "",
+      lensBrand: "",
+      lensEdgeType: "",
+    });
+
+    const callArgs = prisma.order.create.mock.calls[0][0];
+    expect(callArgs.data.frameSource).toBeNull();
+    expect(callArgs.data.lensBrand).toBeNull();
+    expect(callArgs.data.lensEdgeType).toBeNull();
+  });
+
+  it("omitted new fields still pass (backward compat)", async () => {
+    const prisma = await getPrisma();
+    prisma.order.create.mockResolvedValue({ id: "order-wo-3", orderNumber: "ORD-2026-5002" });
+
+    const { createOrder } = await import("@/lib/actions/orders");
+    const result = await createOrder(validOrderInput);
+
+    expect("id" in result).toBe(true);
+    const callArgs = prisma.order.create.mock.calls[0][0];
+    expect(callArgs.data.frameSource).toBeNull();
+    expect(callArgs.data.lensMaterial).toBeNull();
+  });
+});
+
+describe("markQcChecked", () => {
+  it("sets qcCheckedAt timestamp", async () => {
+    const prisma = await getPrisma();
+    prisma.order.update.mockResolvedValue({});
+
+    const { markQcChecked } = await import("@/lib/actions/orders");
+    const before = new Date();
+    const result = await markQcChecked("order-qc-1");
+    const after = new Date();
+
+    expect("success" in result).toBe(true);
+    expect(prisma.order.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: "order-qc-1" },
+        data: expect.objectContaining({
+          qcCheckedAt: expect.any(Date),
+        }),
+      })
+    );
+    const calledDate = prisma.order.update.mock.calls[0][0].data.qcCheckedAt as Date;
+    expect(calledDate.getTime()).toBeGreaterThanOrEqual(before.getTime());
+    expect(calledDate.getTime()).toBeLessThanOrEqual(after.getTime());
+  });
+
+  it("returns error on failure", async () => {
+    const prisma = await getPrisma();
+    prisma.order.update.mockRejectedValue(new Error("DB error"));
+
+    const { markQcChecked } = await import("@/lib/actions/orders");
+    const result = await markQcChecked("order-qc-2");
+
+    expect("error" in result).toBe(true);
+    if ("error" in result) expect(result.error).toBe("Failed to mark QC checked");
+  });
+});
+
+describe("advanceOrderStatus — verifiedBy/preparedBy", () => {
+  beforeEach(async () => {
+    const prisma = await getPrisma();
+    prisma.order.update.mockResolvedValue({
+      orderNumber: "ORD-2026-0001",
+      customer: { firstName: "Jane", lastName: "Doe" },
+    });
+  });
+
+  it("sets verifiedBy when advancing to VERIFIED", async () => {
+    const prisma = await getPrisma();
+    const { advanceOrderStatus } = await import("@/lib/actions/orders");
+    await advanceOrderStatus("order-1", "VERIFIED" as any);
+
+    const callArgs = prisma.order.update.mock.calls[0][0];
+    expect(callArgs.data.verifiedBy).toBe(mockSession.name);
+    expect(callArgs.data.verifiedAt).toBeInstanceOf(Date);
+  });
+
+  it("sets preparedBy when advancing to READY", async () => {
+    const prisma = await getPrisma();
+    const { advanceOrderStatus } = await import("@/lib/actions/orders");
+    await advanceOrderStatus("order-1", "READY" as any);
+
+    const callArgs = prisma.order.update.mock.calls[0][0];
+    expect(callArgs.data.preparedBy).toBe(mockSession.name);
+    expect(callArgs.data.readyAt).toBeInstanceOf(Date);
   });
 });

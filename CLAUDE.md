@@ -90,7 +90,7 @@ VERIFIED = Rx check by optician after lab receives order. PICKED_UP triggers Pic
 - `legacyCustomerId` is nullable — not all migrated records have it
 
 ## Version Status
-Current version: **V2.7.1 — Invoice System Redesign (PDF Generation + Email Attachment + B&W Layout)** (2026-02-25)
+Current version: **V2.8.0 — Work Order Redesign** (2026-02-25)
 
 | Feature | Status |
 |---------|--------|
@@ -107,7 +107,7 @@ Current version: **V2.7.1 — Invoice System Redesign (PDF Generation + Email At
 | Migration scripts | ✅ Scaffolded |
 | Digital Forms (V1.2: 4 templates, intake packages, kiosk, AI review) | ✅ Complete |
 | Invoices (B&W PDF, email attachment, download, print, issue tracking, central list) | ✅ Complete |
-| Work order redesign (centered layout, email/phone boxes, spec grids) | ✅ Complete |
+| Work order redesign (print-ready layout, frame source/status, lens details, status checklist, QC check) | ✅ Complete |
 | Notification system (bell, polling, 9 types, per-user prefs) | ✅ Complete |
 | Smart Intake Form (self-service /intake/start, returning patient lookup, prefill) | ✅ Complete |
 | Current Glasses Reading (CURRENT_GLASSES Rx, lensometer photo, customer detail section) | ✅ Complete |
