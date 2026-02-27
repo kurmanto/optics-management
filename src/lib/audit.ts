@@ -15,7 +15,13 @@ export type AuditAction =
   | "FORM_SUBMITTED"
   | "INTAKE_APPLIED"
   | "PO_RECEIVED"
-  | "PO_CANCELLED";
+  | "PO_CANCELLED"
+  | "CLIENT_LOGIN"
+  | "CLIENT_LOGOUT"
+  | "CLIENT_LOGIN_FAILED"
+  | "CLIENT_PORTAL_VIEW"
+  | "CLIENT_PASSWORD_CHANGE"
+  | "CLIENT_BOOKING";
 
 export async function logAudit(params: {
   userId?: string;

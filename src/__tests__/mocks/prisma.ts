@@ -57,6 +57,10 @@ export function buildPrismaMock() {
     breachReport: modelMock(),
     exam: modelMock(),
     systemSetting: modelMock(),
+    clientAccount: modelMock(),
+    magicLink: modelMock(),
+    clientSession: modelMock(),
+    unlockCard: modelMock(),
     $transaction: vi.fn(async (fn: (tx: unknown) => unknown) => {
       if (typeof fn === "function") {
         return fn(mock);
