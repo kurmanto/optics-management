@@ -2,7 +2,8 @@ import { prisma } from "@/lib/prisma";
 import { verifySession } from "@/lib/dal";
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { formatPhone, formatDate, formatCurrency, formatRxValue } from "@/lib/utils/formatters";
+import { formatPhone, formatDate, formatCurrency } from "@/lib/utils/formatters";
+import { RxTable } from "@/components/shared/RxTable";
 import { ChevronLeft, Edit, Plus, FileText, PenLine, CheckCircle2, Clock, AlertTriangle, TrendingUp, Shield, Calendar, Glasses, Camera } from "lucide-react";
 import { OrderStatus, FormTemplateType } from "@prisma/client";
 import {
@@ -28,6 +29,7 @@ import { CurrentGlassesForm } from "@/components/customers/CurrentGlassesForm";
 import { SendIntakeLinkButton } from "@/components/customers/SendIntakeLinkButton";
 import { GoogleReviewCard } from "@/components/customers/GoogleReviewCard";
 import { CustomerTasksCard } from "@/components/customers/CustomerTasksCard";
+import { ClientPortalCard } from "@/components/customers/ClientPortalCard";
 
 const FORM_TYPE_LABELS: Record<FormTemplateType, string> = {
   NEW_PATIENT: "New Patient Registration",
@@ -76,6 +78,11 @@ export default async function CustomerDetailPage({
           customers: {
             where: { isActive: true },
             select: { id: true, firstName: true, lastName: true, phone: true },
+          },
+          clientAccounts: {
+            where: { primaryCustomerId: id },
+            select: { id: true, email: true, isActive: true, lastLoginAt: true, createdAt: true },
+            take: 1,
           },
         },
       },
@@ -384,6 +391,15 @@ export default async function CustomerDetailPage({
             familyMembers={(customer.family as any)?.customers?.filter((c: any) => c.id !== customer.id) ?? []}
             customerPhone={customer.phone}
             customerAddress={customer.address}
+          />
+
+          {/* Client Portal */}
+          <ClientPortalCard
+            customerId={customer.id}
+            customerEmail={customer.email}
+            familyId={customer.familyId}
+            familyName={customer.family?.name ?? null}
+            portalAccount={(customer.family as any)?.clientAccounts?.[0] ?? null}
           />
 
           {/* Store Credits */}
@@ -807,51 +823,4 @@ export default async function CustomerDetailPage({
   );
 }
 
-function RxTable({ rx }: { rx: {
-  odSphere: number | null; odCylinder: number | null; odAxis: number | null;
-  odAdd: number | null; odPd: number | null;
-  osSphere: number | null; osCylinder: number | null; osAxis: number | null;
-  osAdd: number | null; osPd: number | null;
-  pdBinocular: number | null;
-  [key: string]: unknown;
-} }) {
-  return (
-    <div className="overflow-x-auto">
-      <table className="w-full text-sm">
-        <thead>
-          <tr className="text-xs text-gray-500 uppercase">
-            <th className="text-left pb-1.5">Eye</th>
-            <th className="text-center pb-1.5">Sph</th>
-            <th className="text-center pb-1.5">Cyl</th>
-            <th className="text-center pb-1.5">Axis</th>
-            <th className="text-center pb-1.5">Add</th>
-            <th className="text-center pb-1.5">PD</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td className="py-1 font-medium text-gray-700">OD (R)</td>
-            <td className="text-center py-1 font-mono">{formatRxValue(rx.odSphere)}</td>
-            <td className="text-center py-1 font-mono">{formatRxValue(rx.odCylinder)}</td>
-            <td className="text-center py-1 font-mono">{rx.odAxis ?? "—"}</td>
-            <td className="text-center py-1 font-mono">{formatRxValue(rx.odAdd)}</td>
-            <td className="text-center py-1 font-mono">{rx.odPd ?? "—"}</td>
-          </tr>
-          <tr>
-            <td className="py-1 font-medium text-gray-700">OS (L)</td>
-            <td className="text-center py-1 font-mono">{formatRxValue(rx.osSphere)}</td>
-            <td className="text-center py-1 font-mono">{formatRxValue(rx.osCylinder)}</td>
-            <td className="text-center py-1 font-mono">{rx.osAxis ?? "—"}</td>
-            <td className="text-center py-1 font-mono">{formatRxValue(rx.osAdd)}</td>
-            <td className="text-center py-1 font-mono">{rx.osPd ?? "—"}</td>
-          </tr>
-        </tbody>
-      </table>
-      {rx.pdBinocular && (
-        <p className="mt-1 text-xs text-gray-500">
-          Binocular PD: <span className="font-medium text-gray-900">{rx.pdBinocular}</span>
-        </p>
-      )}
-    </div>
-  );
-}
+// RxTable imported from @/components/shared/RxTable

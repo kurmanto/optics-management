@@ -39,6 +39,21 @@ vi.mock("@/lib/notifications", () => ({
   createNotification: vi.fn(),
 }));
 
+// ── Client auth/DAL mocks ────────────────────────────────────────────────────
+
+vi.mock("@/lib/client-dal", () => ({
+  verifyClientSession: vi.fn(),
+}));
+
+vi.mock("@/lib/client-auth", () => ({
+  createClientSession: vi.fn(),
+  getClientSession: vi.fn(),
+  destroyClientSession: vi.fn(),
+  verifyClientPassword: vi.fn(),
+  hashClientPassword: vi.fn(),
+  CLIENT_COOKIE_NAMES: { session: "mvo_client_session", lastActive: "mvo_client_last_active" },
+}));
+
 // ── Supabase storage mock ─────────────────────────────────────────────────────
 
 vi.mock("@/lib/supabase", () => ({
