@@ -98,6 +98,12 @@ async function truncateAll() {
   try { await (prisma as any).appointment.deleteMany(); } catch (_) {}
   try { await (prisma as any).campaign.deleteMany(); } catch (_) {}
 
+  // Client portal tables (FK to customer + family)
+  try { await prisma.clientSession.deleteMany(); } catch (_) {}
+  try { await prisma.magicLink.deleteMany(); } catch (_) {}
+  try { await prisma.clientAccount.deleteMany(); } catch (_) {}
+  try { await prisma.unlockCard.deleteMany(); } catch (_) {}
+
   await prisma.customer.deleteMany();
   await prisma.family.deleteMany();
   await prisma.systemSetting.deleteMany();
