@@ -13,6 +13,7 @@ import {
   FormTemplateType,
   MessageChannel,
   CampaignType,
+  RimType,
 } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { config } from "dotenv";
@@ -177,26 +178,95 @@ async function main() {
   }
   console.log(`✅ ${customerDefs.length} customers`);
 
-  // ── Inventory ──
-  const frameDefs = [
-    { brand: "Ray-Ban",  model: "RB5154",  sku: "RB5154-BLK", category: "OPTICAL" as const, gender: "UNISEX"  as const, wholesaleCost: 85,  retailPrice: 285 },
-    { brand: "Ray-Ban",  model: "RB3025",  sku: "RB3025-GLD", category: "SUN"     as const, gender: "UNISEX"  as const, wholesaleCost: 75,  retailPrice: 250 },
-    { brand: "Tom Ford", model: "TF5634",  sku: "TF5634-HVN", category: "OPTICAL" as const, gender: "WOMENS"  as const, wholesaleCost: 120, retailPrice: 420 },
-    { brand: "Tom Ford", model: "TF0237",  sku: "TF0237-BLK", category: "SUN"     as const, gender: "MENS"    as const, wholesaleCost: 130, retailPrice: 450 },
-    { brand: "Oakley",   model: "OX8046",  sku: "OX8046-SAT", category: "OPTICAL" as const, gender: "MENS"    as const, wholesaleCost: 90,  retailPrice: 320 },
-    { brand: "Gucci",    model: "GG0026O", sku: "GG0026-GLD", category: "OPTICAL" as const, gender: "WOMENS"  as const, wholesaleCost: 160, retailPrice: 560 },
-    { brand: "Persol",   model: "PO3007V", sku: "PO3007-BLK", category: "OPTICAL" as const, gender: "UNISEX"  as const, wholesaleCost: 100, retailPrice: 350 },
-    { brand: "Maui Jim", model: "MJ440",   sku: "MJ440-BLK",  category: "SUN"     as const, gender: "UNISEX"  as const, wholesaleCost: 110, retailPrice: 380 },
+  // ── Inventory (~40 frames with full style-matching fields) ──
+  const frameDefs: {
+    brand: string; model: string; sku: string;
+    category: "OPTICAL" | "SUN"; gender: "UNISEX" | "MENS" | "WOMENS";
+    wholesaleCost: number; retailPrice: number;
+    material: string; rimType: RimType;
+    color: string; colorCode: string;
+    eyeSize: number; bridgeSize: number; templeLength: number;
+    styleTags: string[];
+  }[] = [
+    // ── Round/Oval + Acetate + FULL_RIM (5) ──
+    { brand: "Moscot",          model: "Lemtosh",       sku: "MSC-LEM-TRT",   category: "OPTICAL", gender: "UNISEX",  wholesaleCost: 110, retailPrice: 340,  material: "Acetate",  rimType: RimType.FULL_RIM,   color: "Tortoise",       colorCode: "TRT", eyeSize: 46, bridgeSize: 24, templeLength: 145, styleTags: ["round", "retro"] },
+    { brand: "Ray-Ban",         model: "RB5283",        sku: "RB5283-HVN",    category: "OPTICAL", gender: "UNISEX",  wholesaleCost: 85,  retailPrice: 285,  material: "Acetate",  rimType: RimType.FULL_RIM,   color: "Havana",         colorCode: "HVN", eyeSize: 49, bridgeSize: 21, templeLength: 145, styleTags: ["round", "oval"] },
+    { brand: "Tom Ford",        model: "TF5634",        sku: "TF5634-HVN",    category: "OPTICAL", gender: "WOMENS",  wholesaleCost: 120, retailPrice: 420,  material: "Acetate",  rimType: RimType.FULL_RIM,   color: "Dark Havana",    colorCode: "DHV", eyeSize: 53, bridgeSize: 18, templeLength: 140, styleTags: ["cat-eye", "oval"] },
+    { brand: "Celine",          model: "CL40019",       sku: "CEL-40019-BLK", category: "OPTICAL", gender: "WOMENS",  wholesaleCost: 140, retailPrice: 490,  material: "Acetate",  rimType: RimType.FULL_RIM,   color: "Black",          colorCode: "BLK", eyeSize: 50, bridgeSize: 20, templeLength: 145, styleTags: ["round", "circular"] },
+    { brand: "Garrett Leight",  model: "Kinney",        sku: "GL-KIN-WHT",    category: "OPTICAL", gender: "UNISEX",  wholesaleCost: 105, retailPrice: 355,  material: "Acetate",  rimType: RimType.FULL_RIM,   color: "Whiskey Tortoise", colorCode: "WHT", eyeSize: 49, bridgeSize: 22, templeLength: 145, styleTags: ["round", "retro"] },
+
+    // ── Round/Oval + Acetate + HALF_RIM / RIMLESS (4) ──
+    { brand: "Persol",          model: "PO3007V",       sku: "PO3007-BLK",    category: "OPTICAL", gender: "UNISEX",  wholesaleCost: 100, retailPrice: 350,  material: "Acetate",  rimType: RimType.HALF_RIM,   color: "Black",          colorCode: "BLK", eyeSize: 50, bridgeSize: 18, templeLength: 145, styleTags: ["round", "oval"] },
+    { brand: "Oliver Peoples",  model: "Gregory Peck",  sku: "OP-GP-OLV",     category: "OPTICAL", gender: "UNISEX",  wholesaleCost: 150, retailPrice: 480,  material: "Acetate",  rimType: RimType.HALF_RIM,   color: "Olive Tortoise", colorCode: "OLV", eyeSize: 47, bridgeSize: 23, templeLength: 150, styleTags: ["round", "circular"] },
+    { brand: "Warby Parker",    model: "Haskell",       sku: "WP-HAS-ROS",    category: "OPTICAL", gender: "WOMENS",  wholesaleCost: 48,  retailPrice: 145,  material: "Acetate",  rimType: RimType.RIMLESS,    color: "Rose Crystal",   colorCode: "ROS", eyeSize: 49, bridgeSize: 21, templeLength: 140, styleTags: ["oval", "cat-eye"] },
+    { brand: "Moscot",          model: "Miltzen",       sku: "MSC-MLT-BLN",   category: "OPTICAL", gender: "UNISEX",  wholesaleCost: 105, retailPrice: 330,  material: "Acetate",  rimType: RimType.HALF_RIM,   color: "Blonde",         colorCode: "BLN", eyeSize: 46, bridgeSize: 22, templeLength: 145, styleTags: ["round", "retro"] },
+
+    // ── Round/Oval + Metal + FULL_RIM (5) ──
+    { brand: "Ray-Ban",         model: "RB3447",        sku: "RB3447-GLD",    category: "SUN",     gender: "UNISEX",  wholesaleCost: 75,  retailPrice: 250,  material: "Metal",    rimType: RimType.FULL_RIM,   color: "Gold",           colorCode: "GLD", eyeSize: 50, bridgeSize: 21, templeLength: 145, styleTags: ["round", "circular"] },
+    { brand: "Oliver Peoples",  model: "MP-2",          sku: "OP-MP2-SLV",    category: "OPTICAL", gender: "UNISEX",  wholesaleCost: 165, retailPrice: 520,  material: "Metal",    rimType: RimType.FULL_RIM,   color: "Silver",         colorCode: "SLV", eyeSize: 48, bridgeSize: 24, templeLength: 148, styleTags: ["round", "oval"] },
+    { brand: "Garrett Leight",  model: "Wilson",        sku: "GL-WIL-RGD",    category: "OPTICAL", gender: "UNISEX",  wholesaleCost: 115, retailPrice: 380,  material: "Metal",    rimType: RimType.FULL_RIM,   color: "Rose Gold",      colorCode: "RGD", eyeSize: 49, bridgeSize: 22, templeLength: 145, styleTags: ["round", "retro"] },
+    { brand: "Dior",            model: "StellaireO8",   sku: "DIO-ST8-GLD",   category: "OPTICAL", gender: "WOMENS",  wholesaleCost: 155, retailPrice: 540,  material: "Metal",    rimType: RimType.FULL_RIM,   color: "Gold",           colorCode: "GLD", eyeSize: 50, bridgeSize: 18, templeLength: 140, styleTags: ["oval", "cat-eye"] },
+    { brand: "Maui Jim",        model: "MJ245",         sku: "MJ245-BRZ",     category: "SUN",     gender: "UNISEX",  wholesaleCost: 110, retailPrice: 380,  material: "Metal",    rimType: RimType.FULL_RIM,   color: "Bronze",         colorCode: "BRZ", eyeSize: 52, bridgeSize: 20, templeLength: 140, styleTags: ["round", "oval"] },
+
+    // ── Round/Oval + Metal + HALF_RIM / RIMLESS (5) ──
+    { brand: "Ray-Ban",         model: "RB3547",        sku: "RB3547-SLV",    category: "SUN",     gender: "UNISEX",  wholesaleCost: 70,  retailPrice: 235,  material: "Metal",    rimType: RimType.HALF_RIM,   color: "Silver",         colorCode: "SLV", eyeSize: 51, bridgeSize: 21, templeLength: 145, styleTags: ["oval", "round"] },
+    { brand: "Prada",           model: "PR55WV",        sku: "PRA-55W-GLD",   category: "OPTICAL", gender: "WOMENS",  wholesaleCost: 135, retailPrice: 450,  material: "Metal",    rimType: RimType.RIMLESS,    color: "Pale Gold",      colorCode: "PGD", eyeSize: 52, bridgeSize: 19, templeLength: 140, styleTags: ["oval", "cat-eye"] },
+    { brand: "Warby Parker",    model: "Simon",         sku: "WP-SIM-ANT",    category: "OPTICAL", gender: "MENS",    wholesaleCost: 50,  retailPrice: 145,  material: "Metal",    rimType: RimType.RIMLESS,    color: "Antique Silver", colorCode: "ANT", eyeSize: 49, bridgeSize: 20, templeLength: 145, styleTags: ["round", "circular"] },
+    { brand: "Saint Laurent",   model: "SL292",         sku: "SL-292-SLV",    category: "OPTICAL", gender: "WOMENS",  wholesaleCost: 145, retailPrice: 490,  material: "Metal",    rimType: RimType.HALF_RIM,   color: "Silver",         colorCode: "SLV", eyeSize: 48, bridgeSize: 20, templeLength: 145, styleTags: ["round", "oval"] },
+    { brand: "Persol",          model: "PO2491V",       sku: "PO2491-GNM",    category: "OPTICAL", gender: "UNISEX",  wholesaleCost: 100, retailPrice: 340,  material: "Metal",    rimType: RimType.HALF_RIM,   color: "Gunmetal",       colorCode: "GNM", eyeSize: 51, bridgeSize: 20, templeLength: 145, styleTags: ["oval", "round"] },
+
+    // ── Angular + Acetate + FULL_RIM (6) ──
+    { brand: "Ray-Ban",         model: "RB5154",        sku: "RB5154-BLK",    category: "OPTICAL", gender: "UNISEX",  wholesaleCost: 85,  retailPrice: 285,  material: "Acetate",  rimType: RimType.FULL_RIM,   color: "Black",          colorCode: "BLK", eyeSize: 51, bridgeSize: 21, templeLength: 145, styleTags: ["rectangular", "geometric"] },
+    { brand: "Tom Ford",        model: "TF5681",        sku: "TF5681-HVN",    category: "OPTICAL", gender: "MENS",    wholesaleCost: 125, retailPrice: 440,  material: "Acetate",  rimType: RimType.FULL_RIM,   color: "Dark Havana",    colorCode: "DHV", eyeSize: 54, bridgeSize: 17, templeLength: 145, styleTags: ["rectangular", "square"] },
+    { brand: "Gucci",           model: "GG0026O",       sku: "GG0026-GLD",    category: "OPTICAL", gender: "WOMENS",  wholesaleCost: 160, retailPrice: 560,  material: "Acetate",  rimType: RimType.FULL_RIM,   color: "Burgundy",       colorCode: "BRG", eyeSize: 53, bridgeSize: 17, templeLength: 140, styleTags: ["square", "geometric"] },
+    { brand: "Prada",           model: "PR16MV",        sku: "PRA-16MV-BLK",  category: "OPTICAL", gender: "WOMENS",  wholesaleCost: 130, retailPrice: 440,  material: "Acetate",  rimType: RimType.FULL_RIM,   color: "Black",          colorCode: "BLK", eyeSize: 55, bridgeSize: 16, templeLength: 140, styleTags: ["rectangular", "geometric"] },
+    { brand: "Oakley",          model: "OX8046",        sku: "OX8046-SAT",    category: "OPTICAL", gender: "MENS",    wholesaleCost: 90,  retailPrice: 320,  material: "Acetate",  rimType: RimType.FULL_RIM,   color: "Satin Black",    colorCode: "SAT", eyeSize: 57, bridgeSize: 18, templeLength: 143, styleTags: ["rectangular", "square"] },
+    { brand: "Dior",            model: "DiorBlackSuit", sku: "DIO-BKS-NVY",   category: "OPTICAL", gender: "MENS",    wholesaleCost: 155, retailPrice: 530,  material: "Acetate",  rimType: RimType.FULL_RIM,   color: "Navy Blue",      colorCode: "NVY", eyeSize: 52, bridgeSize: 18, templeLength: 150, styleTags: ["rectangular", "geometric"] },
+
+    // ── Angular + Acetate + HALF_RIM / RIMLESS (4) ──
+    { brand: "Warby Parker",    model: "Chamberlain",   sku: "WP-CHM-CRY",    category: "OPTICAL", gender: "UNISEX",  wholesaleCost: 48,  retailPrice: 145,  material: "Acetate",  rimType: RimType.HALF_RIM,   color: "Crystal",        colorCode: "CRY", eyeSize: 50, bridgeSize: 19, templeLength: 145, styleTags: ["rectangular", "square"] },
+    { brand: "Ray-Ban",         model: "RB5228",        sku: "RB5228-DMB",    category: "OPTICAL", gender: "UNISEX",  wholesaleCost: 80,  retailPrice: 270,  material: "Acetate",  rimType: RimType.HALF_RIM,   color: "Dark Brown",     colorCode: "DMB", eyeSize: 53, bridgeSize: 17, templeLength: 140, styleTags: ["rectangular", "geometric"] },
+    { brand: "Persol",          model: "PO3012V",       sku: "PO3012-TRT",    category: "OPTICAL", gender: "UNISEX",  wholesaleCost: 95,  retailPrice: 330,  material: "Acetate",  rimType: RimType.RIMLESS,    color: "Tortoise",       colorCode: "TRT", eyeSize: 54, bridgeSize: 18, templeLength: 145, styleTags: ["square", "geometric"] },
+    { brand: "Moscot",          model: "Zayde",         sku: "MSC-ZAY-BLK",   category: "OPTICAL", gender: "MENS",    wholesaleCost: 110, retailPrice: 350,  material: "Acetate",  rimType: RimType.HALF_RIM,   color: "Black",          colorCode: "BLK", eyeSize: 53, bridgeSize: 20, templeLength: 150, styleTags: ["rectangular", "aviator"] },
+
+    // ── Angular + Metal + FULL_RIM (6) ──
+    { brand: "Ray-Ban",         model: "RB3025",        sku: "RB3025-GLD",    category: "SUN",     gender: "UNISEX",  wholesaleCost: 75,  retailPrice: 250,  material: "Metal",    rimType: RimType.FULL_RIM,   color: "Gold",           colorCode: "GLD", eyeSize: 58, bridgeSize: 14, templeLength: 135, styleTags: ["aviator", "geometric"] },
+    { brand: "Tom Ford",        model: "TF0237",        sku: "TF0237-BLK",    category: "SUN",     gender: "MENS",    wholesaleCost: 130, retailPrice: 450,  material: "Metal",    rimType: RimType.FULL_RIM,   color: "Shiny Black",    colorCode: "BLK", eyeSize: 52, bridgeSize: 20, templeLength: 145, styleTags: ["square", "geometric"] },
+    { brand: "Saint Laurent",   model: "SL309",         sku: "SL-309-GLD",    category: "OPTICAL", gender: "UNISEX",  wholesaleCost: 140, retailPrice: 470,  material: "Metal",    rimType: RimType.FULL_RIM,   color: "Gold",           colorCode: "GLD", eyeSize: 56, bridgeSize: 17, templeLength: 145, styleTags: ["aviator", "rectangular"] },
+    { brand: "Oakley",          model: "OX5038",        sku: "OX5038-PWT",    category: "OPTICAL", gender: "MENS",    wholesaleCost: 95,  retailPrice: 330,  material: "Metal",    rimType: RimType.FULL_RIM,   color: "Pewter",         colorCode: "PWT", eyeSize: 55, bridgeSize: 18, templeLength: 140, styleTags: ["rectangular", "square"] },
+    { brand: "Maui Jim",        model: "MJ440",         sku: "MJ440-BLK",     category: "SUN",     gender: "UNISEX",  wholesaleCost: 110, retailPrice: 380,  material: "Metal",    rimType: RimType.FULL_RIM,   color: "Gloss Black",    colorCode: "BLK", eyeSize: 60, bridgeSize: 15, templeLength: 138, styleTags: ["aviator", "geometric"] },
+    { brand: "Gucci",           model: "GG0529S",       sku: "GG0529-RTH",    category: "SUN",     gender: "MENS",    wholesaleCost: 170, retailPrice: 580,  material: "Metal",    rimType: RimType.FULL_RIM,   color: "Ruthenium",      colorCode: "RTH", eyeSize: 60, bridgeSize: 16, templeLength: 145, styleTags: ["aviator", "rectangular"] },
+
+    // ── Angular + Metal + HALF_RIM / RIMLESS (5) ──
+    { brand: "Ray-Ban",         model: "RB6335",        sku: "RB6335-GNM",    category: "OPTICAL", gender: "MENS",    wholesaleCost: 70,  retailPrice: 240,  material: "Metal",    rimType: RimType.HALF_RIM,   color: "Gunmetal",       colorCode: "GNM", eyeSize: 56, bridgeSize: 17, templeLength: 145, styleTags: ["rectangular", "geometric"] },
+    { brand: "Oakley",          model: "OX3218",        sku: "OX3218-SAT",    category: "OPTICAL", gender: "MENS",    wholesaleCost: 85,  retailPrice: 295,  material: "Metal",    rimType: RimType.HALF_RIM,   color: "Satin Chrome",   colorCode: "SAT", eyeSize: 54, bridgeSize: 17, templeLength: 140, styleTags: ["rectangular", "square"] },
+    { brand: "Warby Parker",    model: "Larsen",        sku: "WP-LAR-SLV",    category: "OPTICAL", gender: "UNISEX",  wholesaleCost: 50,  retailPrice: 145,  material: "Metal",    rimType: RimType.RIMLESS,    color: "Polished Silver", colorCode: "SLV", eyeSize: 52, bridgeSize: 18, templeLength: 145, styleTags: ["rectangular", "geometric"] },
+    { brand: "Prada",           model: "PR54WV",        sku: "PRA-54W-BLK",   category: "OPTICAL", gender: "MENS",    wholesaleCost: 135, retailPrice: 460,  material: "Metal",    rimType: RimType.RIMLESS,    color: "Matte Black",    colorCode: "MBK", eyeSize: 56, bridgeSize: 18, templeLength: 145, styleTags: ["square", "geometric"] },
+    { brand: "Garrett Leight",  model: "Grant",         sku: "GL-GRA-BRS",    category: "OPTICAL", gender: "UNISEX",  wholesaleCost: 110, retailPrice: 370,  material: "Metal",    rimType: RimType.HALF_RIM,   color: "Brushed Silver", colorCode: "BRS", eyeSize: 51, bridgeSize: 20, templeLength: 145, styleTags: ["aviator", "rectangular"] },
   ];
 
   const invIds: string[] = [];
   for (const f of frameDefs) {
-    const existing = await prisma.inventoryItem.findFirst({ where: { sku: f.sku } });
-    invIds.push(
-      existing
-        ? existing.id
-        : (await prisma.inventoryItem.create({ data: { ...f, stockQuantity: 5, reorderPoint: 2 } })).id
-    );
+    const item = await prisma.inventoryItem.upsert({
+      where: { sku: f.sku },
+      update: {
+        material: f.material,
+        rimType: f.rimType,
+        styleTags: f.styleTags,
+        color: f.color,
+        colorCode: f.colorCode,
+        eyeSize: f.eyeSize,
+        bridgeSize: f.bridgeSize,
+        templeLength: f.templeLength,
+      },
+      create: {
+        ...f,
+        stockQuantity: 5,
+        reorderPoint: 2,
+        totalUnitsSold: Math.floor(Math.random() * 16),
+      },
+    });
+    invIds.push(item.id);
   }
   console.log(`✅ ${frameDefs.length} inventory items`);
 

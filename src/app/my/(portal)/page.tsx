@@ -5,7 +5,9 @@ import { UpcomingExamCards } from "@/components/client/dashboard/UpcomingExamCar
 import { BenefitsCountdown } from "@/components/client/dashboard/BenefitsCountdown";
 import { CreditBalancePill } from "@/components/client/dashboard/CreditBalancePill";
 import { ActiveOrdersStrip } from "@/components/client/dashboard/ActiveOrdersStrip";
+import { ReferralShareCard } from "@/components/client/dashboard/ReferralShareCard";
 import Link from "next/link";
+import { Palette } from "lucide-react";
 
 export default async function FamilyOverviewPage() {
   const data = await getFamilyOverview();
@@ -65,6 +67,27 @@ export default async function FamilyOverviewPage() {
       <ActiveOrdersStrip orders={data.activeOrders} />
 
       <BenefitsCountdown policies={data.insurancePolicies} />
+
+      {/* Style ID */}
+      <Link
+        href="/my/style"
+        className="block bg-gradient-to-br from-amber-50 to-orange-50 rounded-xl border border-amber-100 shadow-sm p-4 hover:border-amber-200 transition-colors"
+      >
+        <div className="flex items-center gap-3">
+          <div className="h-10 w-10 rounded-full bg-amber-100 flex items-center justify-center shrink-0">
+            <Palette className="h-5 w-5 text-amber-600" />
+          </div>
+          <div>
+            <h3 className="text-sm font-semibold text-gray-900">Find Your Style</h3>
+            <p className="text-xs text-gray-500">
+              Take the Style ID quiz and discover frames picked for you
+            </p>
+          </div>
+        </div>
+      </Link>
+
+      {/* Referral share card */}
+      <ReferralShareCard />
 
       {/* Unlock summary */}
       {data.unlockSummary.total > 0 && (

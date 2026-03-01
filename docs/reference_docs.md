@@ -1,7 +1,7 @@
 # Developer Reference
 ## Mint Vision Optique — Staff Portal
 
-**Last updated:** 2026-02-23
+**Last updated:** 2026-02-28
 
 ---
 
@@ -26,6 +26,13 @@
 | `src/lib/actions/breach.ts` | `createBreachReport`, `updateBreachStatus`, `generateIPCNotificationText` (all Admin-only) |
 | `src/lib/actions/tasks.ts` | `createTask`, `updateTask`, `updateTaskStatus`, `deleteTask`, `addTaskComment`, `getActiveStaff`, `getTaskComments`, `getMyOpenTaskCount` |
 | `src/lib/actions/tasks-client.ts` | `searchCustomersForTask` — debounced patient search for task creation |
+| `src/lib/client-auth.ts` | Client portal HMAC session: `createClientSession()`, `destroyClientSession()`, `getClientSession()` |
+| `src/lib/client-dal.ts` | `verifyClientSession()` — returns `{ clientAccountId, familyId, primaryCustomerId, email }` |
+| `src/lib/actions/client-auth.ts` | `requestMagicLink`, `verifyMagicLink`, `clientLogin`, `clientLogout`, `setClientPassword`, `requestPasswordReset` |
+| `src/lib/actions/client-portal.ts` | `getFamilyOverview`, `getMemberProfile`, `getExamDetail`, `getUnlockCards`, `getFamilyMembers` |
+| `src/lib/actions/client-booking.ts` | `getAvailableSlots`, `bookAppointment`, `cancelAppointment` (client-side, family-scoped) |
+| `src/lib/actions/client-portal-admin.ts` | `createClientPortalAccount`, `disableClientPortalAccount`, `sendPortalInviteEmail`, `createUnlockCard`, `updateUnlockCardStatus` |
+| `src/lib/validations/client-portal.ts` | Zod schemas for client portal actions |
 | `src/lib/campaigns/campaign-engine.ts` | `processCampaign(id)`, `processAllCampaigns()` |
 | `src/lib/campaigns/segment-engine.ts` | `executeSegment(config)`, `previewSegmentCount(config)`, `previewSegmentSample(config)` |
 | `src/lib/campaigns/dispatch.ts` | `dispatchMessage(opts)` — creates Message record + sends (SMS/email stubs) |
@@ -311,6 +318,31 @@ Format: `ORD-YYYY-NNN` (e.g. `ORD-2026-001`).
 
 ### RecipientStatus
 `ACTIVE | COMPLETED | OPTED_OUT | CONVERTED | PAUSED`
+
+### UnlockCardStatus
+`LOCKED | UNLOCKED | CLAIMED | EXPIRED`
+
+---
+
+## Client Portal Auth Pattern
+
+Client portal actions use `verifyClientSession()` instead of `verifySession()`. All data is scoped by `familyId`.
+
+```typescript
+// Client portal action pattern
+export async function getFamilyOverview() {
+  const session = await verifyClientSession();
+  // session = { clientAccountId, familyId, primaryCustomerId, email }
+
+  const family = await prisma.family.findUnique({
+    where: { id: session.familyId },
+    include: { customers: true, ... },
+  });
+  // All queries MUST include familyId scoping
+}
+```
+
+Staff-side admin actions for managing client portal accounts use `verifyRole('STAFF')` or `verifyRole('ADMIN')`.
 
 ---
 

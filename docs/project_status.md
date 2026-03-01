@@ -1,11 +1,45 @@
 # Project Status
 ## Mint Vision Optique — Staff Portal
 
-**Last updated:** 2026-02-25
+**Last updated:** 2026-02-28
 
 ---
 
-## Current Version: V2.8.0 — Work Order Redesign
+## Current Version: V3.0.0 — Client Portal
+
+---
+
+### V3.0.0 — Client Portal (Complete)
+
+| Feature | Status | Notes |
+|---------|--------|-------|
+| ClientAccount, MagicLink, ClientSession models | ✅ Complete | Separate auth entity for client portal |
+| UnlockCard model | ✅ Complete | Achievement/bonus tracking (LOCKED/UNLOCKED/CLAIMED/EXPIRED) |
+| Family extensions (tier, portal fields) | ✅ Complete | `tierLevel`, `tierPointsTotal`, `portalEnabled`, `avatarUrl` |
+| SQL migration | ✅ Complete | `client_portal_migration.sql` |
+| Magic link login (15-min TTL) | ✅ Complete | Via Resend email, single-use, rate-limited |
+| Password login | ✅ Complete | bcrypt, 5-attempt lockout |
+| `mvo_client_session` cookie | ✅ Complete | HMAC-signed, 30-day max, httpOnly |
+| 60-min idle timeout | ✅ Complete | `mvo_client_last_active` cookie |
+| Client middleware branch | ✅ Complete | `/my/` route guard in `src/middleware.ts` |
+| Family overview page (`/my`) | ✅ Complete | Banner, quick actions, upcoming exams, benefits, credits, orders, unlocks |
+| Member profile (`/my/member/[id]`) | ✅ Complete | Exam timeline, current Rx, Rx comparison, frame history |
+| Exam detail (`/my/exam/[id]`) | ✅ Complete | Summary, Rx result, change indicators |
+| Booking wizard (`/my/book`) | ✅ Complete | 4-step: member → type → date/time → confirm; 6 types with icons |
+| Unlock cards (`/my/unlocks`) | ✅ Complete | Responsive grid, status-based styling |
+| Settings page (`/my/settings`) | ✅ Complete | Account info, password change, logout |
+| Login page (`/my/login`) | ✅ Complete | Magic link + password forms |
+| Verify page (`/my/verify`) | ✅ Complete | Token verification + session creation |
+| Mobile-first layout | ✅ Complete | Bottom nav, max-w-lg container, large touch targets |
+| Staff admin: ClientPortalCard | ✅ Complete | Create/invite/disable from customer detail page |
+| Staff admin: Unlock card management | ✅ Complete | Create/update unlock cards |
+| PHI data scoping (PHIPA/PIPEDA) | ✅ Complete | All queries scoped by familyId; clinical data hidden |
+| Seed script | ✅ Complete | `scripts/seed-client-portal.ts`; test: `portal@mintvisionsoptique.com` / `Portal123!` |
+| Unit tests (591 total, 36 files) | ✅ Complete | Client auth + portal + booking + admin tests |
+
+---
+
+### Previous Version: V2.8.0 — Work Order Redesign
 
 ---
 

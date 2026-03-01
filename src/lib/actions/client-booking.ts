@@ -5,6 +5,7 @@ import { verifyClientSession } from "@/lib/client-dal";
 import { logAudit } from "@/lib/audit";
 import { BookAppointmentSchema } from "@/lib/validations/client-portal";
 import { AppointmentType } from "@prisma/client";
+import { checkAndUnlockCards } from "@/lib/unlock-triggers";
 
 // Business hours: 9 AM - 6 PM, 30-minute slots
 const OPENING_HOUR = 9;
@@ -137,6 +138,8 @@ export async function bookAppointment(
       bookedVia: "client_portal",
     },
   });
+
+  void checkAndUnlockCards(session.familyId);
 
   return { success: true, appointmentId: appointment.id };
 }

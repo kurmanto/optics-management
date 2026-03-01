@@ -39,6 +39,24 @@ export const CreateUnlockCardSchema = z.object({
   value: z.coerce.number().optional(),
   valueType: z.string().optional(),
   progressGoal: z.coerce.number().optional(),
+  triggerRule: z
+    .object({
+      type: z.enum(["STYLE_QUIZ_COMPLETED", "REFERRAL_COUNT", "ORDER_COUNT", "APPOINTMENT_BOOKED"]),
+      threshold: z.number().int().positive().optional(),
+    })
+    .optional(),
+});
+
+export const StyleQuizSchema = z.object({
+  customerId: z.string().min(1, "Customer is required"),
+  choices: z.object({
+    shape: z.enum(["ROUND", "ANGULAR"]),
+    size: z.enum(["OVERSIZED", "COMPACT"]),
+    material: z.enum(["ACETATE", "METAL"]),
+    style: z.enum(["BOLD", "MINIMAL"]),
+    color: z.enum(["WARM", "COOL"]),
+    vibe: z.enum(["CLASSIC", "TRENDY"]),
+  }),
 });
 
 export const BookAppointmentSchema = z.object({

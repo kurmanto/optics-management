@@ -44,9 +44,13 @@ cp .env.example .env
 # Edit .env and fill in your Supabase credentials + SESSION_SECRET
 ```
 
-### Generate SESSION_SECRET
+### Generate Secrets
 ```bash
-openssl rand -base64 32
+# Staff portal session secret
+openssl rand -base64 32   # → SESSION_SECRET
+
+# Client portal session secret (separate key)
+openssl rand -base64 32   # → CLIENT_SESSION_SECRET
 ```
 
 ---
@@ -63,8 +67,11 @@ Edit `.env` with the following values from your Supabase project:
 DATABASE_URL="postgresql://postgres.[project-ref]:[password]@aws-1-ca-central-1.pooler.supabase.com:6543/postgres"
 DIRECT_URL="postgresql://postgres.[project-ref]:[password]@aws-1-ca-central-1.pooler.supabase.com:5432/postgres"
 
-# Auth (generate with: openssl rand -base64 32)
+# Staff Auth (generate with: openssl rand -base64 32)
 SESSION_SECRET="your-secret-here"
+
+# Client Portal Auth (separate key — generate with: openssl rand -base64 32)
+CLIENT_SESSION_SECRET="your-client-secret-here"
 
 # Supabase API (Settings > API)
 NEXT_PUBLIC_SUPABASE_URL="https://[project-ref].supabase.co"
@@ -127,6 +134,18 @@ npx tsx scripts/seed-test-data.ts
 
 Creates 2 staff users, 10 customers, 10 orders across all statuses, 10 inventory items, and more.
 Staff login: `sarah@mintvisionsoptique.com` / `staff123`
+
+### Client Portal test data
+
+To set up a client portal test account:
+
+```bash
+npx tsx scripts/seed-client-portal.ts
+```
+
+Creates a client portal account with unlock cards, store credit, and family tier data.
+Client login: `portal@mintvisionsoptique.com` / `Portal123!`
+Portal URL: `http://localhost:3000/my/login`
 
 ### Step 2 — Run migration scripts
 

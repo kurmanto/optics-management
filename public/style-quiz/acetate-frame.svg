@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="120" height="120" fill="none">
+  <defs>
+    <pattern id="tort" patternUnits="userSpaceOnUse" width="8" height="8">
+      <rect width="8" height="8" fill="#92400e"/>
+      <circle cx="2" cy="3" r="2.5" fill="#b45309" opacity="0.7"/>
+      <circle cx="6" cy="6" r="2" fill="#78350f" opacity="0.5"/>
+      <circle cx="4" cy="1" r="1.5" fill="#d97706" opacity="0.4"/>
+    </pattern>
+  </defs>
+  <rect x="10" y="38" width="44" height="36" rx="8" stroke="#78350f" stroke-width="5.5" fill="url(#tort)" fill-opacity="0.6"/>
+  <rect x="66" y="38" width="44" height="36" rx="8" stroke="#78350f" stroke-width="5.5" fill="url(#tort)" fill-opacity="0.6"/>
+  <path d="M54 50 C57 44, 63 44, 66 50" stroke="#78350f" stroke-width="5" fill="none" stroke-linecap="round"/>
+  <circle cx="12" cy="50" r="2.5" fill="#92400e"/>
+  <circle cx="108" cy="50" r="2.5" fill="#92400e"/>
+  <path d="M10 48 L4 50 Q2 52 2 58" stroke="#78350f" stroke-width="4" fill="none" stroke-linecap="round"/>
+  <path d="M110 48 L116 50 Q118 52 118 58" stroke="#78350f" stroke-width="4" fill="none" stroke-linecap="round"/>
+</svg>

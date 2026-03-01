@@ -6,6 +6,109 @@ Format: `[Version] — Date`
 
 ---
 
+## [3.0.0] — 2026-02-28
+
+### Added — Client Portal (Family Vision Dashboard)
+
+#### Database Schema
+- **ClientAccount** — separate auth entity for client portal users (email, passwordHash, familyId, primaryCustomerId, lockout fields)
+- **MagicLink** — short-lived passwordless login tokens (15-min TTL, single-use, EMAIL/SMS channel)
+- **ClientSession** — session tracking for audit/revocation (tokenHash, IP, userAgent, expiry)
+- **UnlockCard** — achievement/bonus cards per family (LOCKED/UNLOCKED/CLAIMED/EXPIRED status, progress tracking, value/type)
+- **Family extensions** — `tierLevel`, `tierPointsTotal`, `avatarUrl`, `portalEnabled`, `portalNote`
+- SQL migration: `client_portal_migration.sql`
+
+#### Client Auth System
+- **Separate cookie:** `mvo_client_session` (HMAC-signed, 30-day max, httpOnly) — zero cross-contamination with staff portal
+- **Magic link login:** 15-min TTL, single-use, sends via Resend email
+- **Password login:** email + password with bcrypt verification
+- **Password set/change:** via settings page or first magic link prompt
+- **Account lockout:** 5 failed password attempts → 15-min lockout
+- **60-min idle timeout** via `mvo_client_last_active` cookie (more lenient than staff 30-min)
+- **Rate limiting:** 5 magic link requests per email per 15 min
+- **No email enumeration:** always returns success on magic link request
+- **Staff-only account creation:** no self-registration (PHIPA compliance)
+- New files: `src/lib/client-auth.ts`, `src/lib/client-dal.ts`, `src/lib/actions/client-auth.ts`
+
+#### Route Structure (`/my/*`)
+- New `(client)` route group with mobile-first layout (header + bottom nav)
+- `/my` — Family overview (landing page)
+- `/my/login` — Magic link + password login
+- `/my/verify` — Token verification
+- `/my/member/[customerId]` — Member profile (exam timeline, current Rx, frame history)
+- `/my/exam/[examId]` — Exam detail with Rx comparison
+- `/my/book` — Appointment booking wizard (select member → type → date/time → confirm)
+- `/my/unlocks` — Achievement card grid
+- `/my/settings` — Account settings, password change, logout
+
+#### Middleware
+- `/my/` branch added before staff logic in `src/middleware.ts`
+- Public paths: `/my/login`, `/my/verify` (no auth required)
+- Client session check + 60-min idle timeout enforcement
+
+#### Family Overview Dashboard
+- `FamilyBanner` — family name + tier badge (Bronze/Silver/Gold) with progress bar
+- `QuickActionsRow` — Book Exam, View Rx, Unlocks quick action buttons
+- `UpcomingExamCards` — member appointment cards sorted by next exam due date
+- `BenefitsCountdown` — insurance renewal countdown
+- `CreditBalancePill` — total store credit balance
+- `ActiveOrdersStrip` — in-progress orders with status badges
+- Unlock summary link with unlocked/total count
+
+#### Member Profile Page
+- `MemberHeader` — name, DOB, initials avatar
+- `ExamTimeline` — vertical timeline of past exams
+- `CurrentRxCard` — active prescription in clean OD/OS format
+- `RxComparisonView` — side-by-side current vs previous Rx with change highlights
+- `FrameHistory` — grid of purchased frames with brand/model
+
+#### Exam Detail Page
+- `ExamSummaryCard` — date, doctor, type
+- `RxResultCard` — full Rx from this exam
+- `RxChangeIndicator` — visual diff showing changed values
+
+#### Booking Wizard
+- Multi-step: select member → appointment type → date/time → confirm
+- 6 appointment types with icons and descriptions (Eye Exam, Contact Lens Fitting, Follow-up, Glasses Pickup, Adjustment, Styling)
+- Auto-skips member selection for single-member families
+- Calendar date picker + available time slots grid
+- Optional notes field
+- Rich confirmation step with long-format date, duration, notes display
+
+#### Unlock Cards
+- `UnlockCardGrid` — responsive grid with status-based styling
+- `UnlockCardItem` — locked (greyed), unlocked (glowing), progress bar for partial
+
+#### Staff-Side Admin
+- `ClientPortalCard` component on customer detail page
+- Three states: no family → prompt, no account → create form, account exists → status/send invite/disable
+- `createClientPortalAccount`, `sendPortalInviteEmail`, `disableClientPortalAccount` actions
+- `createUnlockCard`, `updateUnlockCardStatus` actions for unlock card management
+
+#### PHI Data Scoping (PHIPA/PIPEDA)
+- All client-facing actions call `verifyClientSession()` → returns `{ familyId }`
+- All queries scoped with `familyId` from session
+- **Shown:** Rx values, exam dates, doctor names, order status, frame details, insurance eligibility, store credit, appointments
+- **Hidden:** IOP, VA, clinical notes, billing codes, amounts billed/paid, wholesale costs, staff notes, audit logs
+
+#### Email
+- `sendMagicLinkEmail()` added to `src/lib/email.ts` — branded email with login button
+- `sendPasswordResetEmail()` for password reset flow
+
+#### Seed Script
+- `scripts/seed-client-portal.ts` — creates test client portal account
+- Test credentials: `portal@mintvisionsoptique.com` / `Portal123!`
+- Seeds 4 sample UnlockCards, $35 store credit, family tier data
+
+#### Tests
+- **591 tests, 36 files** — all passing
+- Client auth tests: magic link, password login, session management, lockout
+- Client portal tests: family overview, member profile, exam detail, data scoping
+- Client booking tests: available slots, book appointment, cancel appointment
+- Admin tests: create account, disable account, unlock card management
+
+---
+
 ## [2.8.0] — 2026-02-25
 
 ### Changed — Work Order Redesign
