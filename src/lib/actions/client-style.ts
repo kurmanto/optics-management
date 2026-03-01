@@ -1,5 +1,6 @@
 "use server";
 
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { verifyClientSession } from "@/lib/client-dal";
 import { StyleQuizSchema } from "@/lib/validations/client-portal";
@@ -44,7 +45,7 @@ export async function submitStyleQuiz(
 
   await prisma.customer.update({
     where: { id: customerId },
-    data: { styleProfile: profile as unknown as Record<string, unknown> },
+    data: { styleProfile: profile as unknown as Prisma.InputJsonValue },
   });
 
   void checkAndUnlockCards(session.familyId);

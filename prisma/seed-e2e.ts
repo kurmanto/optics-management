@@ -697,6 +697,53 @@ async function main() {
   );
   console.log("✅ Test fixtures written to e2e/helpers/test-fixtures.json");
 
+  // ── Client Portal seed ─────────────────────────────────────────────────────
+
+  // Enable portal on Anderson family
+  await prisma.family.update({
+    where: { id: andersonFamily.id },
+    data: { portalEnabled: true },
+  });
+
+  // Create client portal account with password "Portal123!"
+  const portalPasswordHash = await bcrypt.hash("Portal123!", 10);
+  const clientAccount = await prisma.clientAccount.create({
+    data: {
+      email: "portal@mintvisionsoptique.com",
+      familyId: andersonFamily.id,
+      primaryCustomerId: andersonPrimary.id,
+      passwordHash: portalPasswordHash,
+      isActive: true,
+    },
+  });
+  console.log(`✅ Client portal account: ${clientAccount.email}`);
+
+  // Create unlock cards for Anderson family
+  await prisma.unlockCard.create({
+    data: {
+      familyId: andersonFamily.id,
+      type: "WELCOME",
+      title: "Welcome Badge",
+      description: "Welcome to Mint Vision Optique!",
+      status: "UNLOCKED",
+      unlockedAt: daysAgo(1),
+      unlockedBy: "system",
+    },
+  });
+  await prisma.unlockCard.create({
+    data: {
+      familyId: andersonFamily.id,
+      type: "STYLE_CREDIT",
+      title: "Style Quiz Reward",
+      description: "Complete your Style ID quiz to unlock",
+      status: "LOCKED",
+      value: 25,
+      valueType: "FREEBIE",
+      triggerRule: { type: "STYLE_QUIZ_COMPLETED" },
+    },
+  });
+  console.log("✅ Client portal unlock cards");
+
   console.log("\n✅ E2E seed complete!\n");
 }
 

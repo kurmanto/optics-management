@@ -1,5 +1,6 @@
 "use server";
 
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { verifyRole } from "@/lib/dal";
 import { logAudit } from "@/lib/audit";
@@ -200,7 +201,7 @@ export async function createUnlockCard(formData: FormData): Promise<{ error?: st
       value: parsed.data.value,
       valueType: parsed.data.valueType,
       progressGoal: parsed.data.progressGoal,
-      triggerRule: parsed.data.triggerRule || null,
+      triggerRule: (parsed.data.triggerRule ?? Prisma.JsonNull) as Prisma.InputJsonValue,
       unlockedAt: parsed.data.status === "UNLOCKED" ? new Date() : null,
       unlockedBy: parsed.data.status === "UNLOCKED" ? session.id : null,
     },

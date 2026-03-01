@@ -1,3 +1,4 @@
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 
 type TriggerRule =
@@ -16,7 +17,7 @@ export async function checkAndUnlockCards(familyId: string): Promise<void> {
       where: {
         familyId,
         status: "LOCKED",
-        triggerRule: { not: null },
+        triggerRule: { not: Prisma.DbNull },
       },
       select: {
         id: true,
