@@ -11,6 +11,8 @@ import { uploadPrescriptionScan } from "@/lib/supabase";
 import { checkAndUnlockCards } from "@/lib/unlock-triggers";
 import { emailInvoice } from "@/lib/actions/email";
 import { redeemReferral } from "@/lib/actions/referrals";
+import { createClientNotificationForFamily } from "@/lib/client-notifications";
+import { awardPoints } from "@/lib/gamification";
 
 export type OrderFormState = {
   error?: string;
@@ -211,7 +213,8 @@ export async function advanceOrderStatus(
     },
     select: {
       orderNumber: true,
-      customer: { select: { firstName: true, lastName: true } },
+      customerId: true,
+      customer: { select: { firstName: true, lastName: true, familyId: true } },
     },
   });
 
@@ -227,6 +230,18 @@ export async function advanceOrderStatus(
       refId: orderId,
       refType: "Order",
     });
+    // Client portal notification
+    if (order.customer.familyId) {
+      void createClientNotificationForFamily({
+        familyId: order.customer.familyId,
+        type: "ORDER_STATUS_UPDATE",
+        title: "Your Order is Ready!",
+        body: `Order ${order.orderNumber} is ready for pickup at Mint Vision Optique.`,
+        href: "/my",
+        refId: orderId,
+        refType: "Order",
+      });
+    }
   } else if (newStatus === OrderStatus.CANCELLED) {
     await createNotification({
       type: "ORDER_CANCELLED",
@@ -344,6 +359,19 @@ export async function handlePickupComplete(
     // Unlock trigger check for family (fire-and-forget)
     if (order.customer.familyId) {
       void checkAndUnlockCards(order.customer.familyId);
+      // Client portal notification for pickup
+      void createClientNotificationForFamily({
+        familyId: order.customer.familyId,
+        type: "ORDER_STATUS_UPDATE",
+        title: "Order Picked Up",
+        body: `Order ${order.orderNumber} has been picked up. Thank you for choosing Mint Vision!`,
+        href: "/my",
+        refId: orderId,
+        refType: "Order",
+        sendEmail: false, // Already got invoice email
+      });
+      // Award points for order pickup
+      void awardPoints(order.customer.familyId, 100, "Order Picked Up", orderId, "Order");
     }
 
     // SMS placeholder — Twilio integration later

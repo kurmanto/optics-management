@@ -6,6 +6,7 @@ import { logAudit } from "@/lib/audit";
 import { BookAppointmentSchema } from "@/lib/validations/client-portal";
 import { AppointmentType } from "@prisma/client";
 import { checkAndUnlockCards } from "@/lib/unlock-triggers";
+import { awardPoints } from "@/lib/gamification";
 
 // Business hours: 9 AM - 6 PM, 30-minute slots
 const OPENING_HOUR = 9;
@@ -140,6 +141,7 @@ export async function bookAppointment(
   });
 
   void checkAndUnlockCards(session.familyId);
+  void awardPoints(session.familyId, 25, "Appointment Booked", appointment.id, "Appointment");
 
   return { success: true, appointmentId: appointment.id };
 }

@@ -6,15 +6,15 @@ import { verifyClientSession } from "@/lib/client-dal";
 import { StyleQuizSchema } from "@/lib/validations/client-portal";
 import {
   computeStyleLabel,
-  buildFrameMatchFilters,
-  buildBroadenedFilters,
   type StyleChoice,
   type StyleProfile,
 } from "@/lib/utils/style-quiz";
+import { scoreFrame, type FrameData, type ScoreResult } from "@/lib/utils/frame-scoring";
 import { checkAndUnlockCards } from "@/lib/unlock-triggers";
+import { awardPoints } from "@/lib/gamification";
 
 const MAX_MATCHED_FRAMES = 12;
-const MIN_RESULTS_BEFORE_BROADEN = 3;
+const MIN_SCORE = 20;
 
 export async function submitStyleQuiz(
   customerId: string,
@@ -30,11 +30,13 @@ export async function submitStyleQuiz(
   // Verify customer belongs to family
   const customer = await prisma.customer.findUnique({
     where: { id: customerId },
-    select: { familyId: true },
+    select: { familyId: true, styleProfile: true },
   });
   if (!customer || customer.familyId !== session.familyId) {
     return { error: "Invalid family member." };
   }
+
+  const hadProfileBefore = customer.styleProfile != null;
 
   const label = computeStyleLabel(choices);
   const profile: StyleProfile = {
@@ -49,6 +51,11 @@ export async function submitStyleQuiz(
   });
 
   void checkAndUnlockCards(session.familyId);
+
+  // Award points only on first quiz completion (not retakes)
+  if (!hadProfileBefore && customer.familyId) {
+    void awardPoints(customer.familyId, 50, "Style Quiz Completed", customerId, "Customer");
+  }
 
   return { profile };
 }
@@ -67,7 +74,21 @@ export async function getStyleProfile(customerId: string): Promise<StyleProfile 
   return (customer.styleProfile as unknown as StyleProfile) || null;
 }
 
-export async function getMatchedFrames(customerId: string) {
+export type MatchedFrameResult = {
+  id: string;
+  brand: string;
+  model: string;
+  color: string | null;
+  material: string | null;
+  rimType: string | null;
+  retailPrice: number | null;
+  imageUrl: string | null;
+  styleTags: string[];
+  score: number;
+  matchReasons: string[];
+};
+
+export async function getMatchedFrames(customerId: string): Promise<MatchedFrameResult[]> {
   const session = await verifyClientSession();
 
   const customer = await prisma.customer.findUnique({
@@ -81,37 +102,63 @@ export async function getMatchedFrames(customerId: string) {
   const profile = customer.styleProfile as unknown as StyleProfile | null;
   if (!profile?.choices) return [];
 
-  const select = {
-    id: true,
-    brand: true,
-    model: true,
-    color: true,
-    material: true,
-    rimType: true,
-    retailPrice: true,
-    imageUrl: true,
-    styleTags: true,
-  };
-
-  // Try strict filters first
-  let frames = await prisma.inventoryItem.findMany({
-    where: buildFrameMatchFilters(profile.choices) as any,
-    select,
-    take: MAX_MATCHED_FRAMES,
-    orderBy: { totalUnitsSold: "desc" },
+  // Fetch all in-stock active frames (broad query)
+  const frames = await prisma.inventoryItem.findMany({
+    where: {
+      isActive: true,
+      stockQuantity: { gt: 0 },
+    },
+    select: {
+      id: true,
+      brand: true,
+      model: true,
+      color: true,
+      material: true,
+      rimType: true,
+      retailPrice: true,
+      imageUrl: true,
+      styleTags: true,
+      eyeSize: true,
+      totalUnitsSold: true,
+      staffPickStyleLabels: true,
+    },
   });
 
-  // Broaden if too few results
-  if (frames.length < MIN_RESULTS_BEFORE_BROADEN) {
-    frames = await prisma.inventoryItem.findMany({
-      where: buildBroadenedFilters(profile.choices) as any,
-      select,
-      take: MAX_MATCHED_FRAMES,
-      orderBy: { totalUnitsSold: "desc" },
-    });
-  }
+  // Find max sold for popularity normalization
+  const maxSold = frames.reduce((max, f) => Math.max(max, f.totalUnitsSold), 0);
 
-  return frames;
+  // Score each frame
+  const scored = frames.map((f) => {
+    const frameData: FrameData = {
+      material: f.material,
+      styleTags: f.styleTags,
+      rimType: f.rimType,
+      color: f.color,
+      eyeSize: f.eyeSize,
+      totalUnitsSold: f.totalUnitsSold,
+      staffPickStyleLabels: f.staffPickStyleLabels,
+    };
+    const result = scoreFrame(frameData, profile.choices, profile.label, maxSold);
+    return {
+      id: f.id,
+      brand: f.brand,
+      model: f.model,
+      color: f.color,
+      material: f.material,
+      rimType: f.rimType,
+      retailPrice: f.retailPrice,
+      imageUrl: f.imageUrl,
+      styleTags: f.styleTags,
+      score: result.score,
+      matchReasons: result.matchReasons,
+    };
+  });
+
+  // Filter, sort, take top N
+  return scored
+    .filter((f) => f.score >= MIN_SCORE)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, MAX_MATCHED_FRAMES);
 }
 
 export async function getSavedFrameIds(

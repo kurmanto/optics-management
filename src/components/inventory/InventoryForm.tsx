@@ -39,6 +39,17 @@ const STYLE_TAGS = [
   "classic", "modern", "bold", "minimal", "sport", "luxury",
 ];
 
+const STYLE_LABELS = [
+  "Bold Trendsetter",
+  "Retro Statement",
+  "Power Classic",
+  "Refined Professional",
+  "Understated Elegance",
+  "Modern Minimalist",
+  "Clean Contemporary",
+  "Style Explorer",
+];
+
 export function InventoryForm({ action, item, vendors = [] }: Props) {
   const [state, formAction, isPending] = useActionState(action, {});
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -249,6 +260,28 @@ export function InventoryForm({ action, item, vendors = [] }: Props) {
                     className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary"
                   />
                   <span className="text-sm text-gray-700 capitalize">{tag}</span>
+                </label>
+              );
+            })}
+          </div>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">Staff Pick — Style ID Labels</label>
+          <p className="text-xs text-gray-400 mb-2">Tag this frame as a staff pick for clients with these Style ID results</p>
+          <div className="flex flex-wrap gap-3">
+            {STYLE_LABELS.map((label) => {
+              const checked = ((item as any)?.staffPickStyleLabels ?? []).includes(label);
+              return (
+                <label key={label} className="flex items-center gap-2 cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    name="staffPickStyleLabels"
+                    value={label}
+                    defaultChecked={checked}
+                    className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary"
+                  />
+                  <span className="text-sm text-gray-700">{label}</span>
                 </label>
               );
             })}

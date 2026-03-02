@@ -1,6 +1,7 @@
 import { verifyClientSession } from "@/lib/client-dal";
 import { prisma } from "@/lib/prisma";
 import { SetPasswordForm } from "@/components/client/auth/SetPasswordForm";
+import { ClientNotificationPreferencesForm } from "@/components/client/settings/ClientNotificationPreferencesForm";
 import { LogoutButton } from "./LogoutButton";
 import { Settings, Mail, Shield } from "lucide-react";
 
@@ -67,6 +68,9 @@ export default async function SettingsPage() {
         </h3>
         <SetPasswordForm />
       </div>
+
+      {/* Notification preferences */}
+      <ClientNotificationPreferencesForm />
 
       {/* Logout */}
       <div className="pt-4">

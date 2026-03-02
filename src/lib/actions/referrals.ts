@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { verifySession } from "@/lib/dal";
 import { createNotification } from "@/lib/notifications";
 import { checkAndUnlockCards } from "@/lib/unlock-triggers";
+import { awardPoints } from "@/lib/gamification";
 
 function generateCode(firstName: string, lastName: string): string {
   const first2 = (firstName || "XX").slice(0, 2).toUpperCase().replace(/[^A-Z]/g, "X");
@@ -141,6 +142,7 @@ export async function redeemReferral(
     });
     if (referrer?.familyId) {
       void checkAndUnlockCards(referrer.familyId);
+      void awardPoints(referrer.familyId, 150, "Referral Qualified", referralId, "Referral");
     }
 
     return { success: true };

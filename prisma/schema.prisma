@@ -76,6 +76,7 @@ model Family {
   customers      Customer[]
   clientAccounts ClientAccount[]
   unlockCards    UnlockCard[]
+  pointsLedger   PointsLedger[]
 
   @@map("families")
 }
@@ -297,6 +298,7 @@ model InventoryItem {
   imageUrl      String?
   additionalImageUrls String[] @default([]) @map("additional_image_urls")
   vendorId      String?       @map("vendor_id")
+  staffPickStyleLabels String[]  @default([]) @map("staff_pick_style_labels")
   // Display tracking
   isDisplayed    Boolean       @default(false) @map("is_displayed")
   displayedAt    DateTime?     @map("displayed_at")
@@ -1390,6 +1392,8 @@ model ClientAccount {
   primaryCustomer Customer        @relation("ClientAccountPrimary", fields: [primaryCustomerId], references: [id])
   magicLinks      MagicLink[]
   clientSessions  ClientSession[]
+  clientNotifications          ClientNotification[]
+  clientNotificationPreferences ClientNotificationPreference[]
 
   @@index([familyId])
   @@map("client_accounts")
@@ -1461,4 +1465,70 @@ model UnlockCard {
   @@index([familyId])
   @@index([customerId])
   @@map("unlock_cards")
+}
+
+// ─────────────────────────────────────────
+// CLIENT NOTIFICATIONS
+// ─────────────────────────────────────────
+
+enum ClientNotificationType {
+  EXAM_DUE_SOON
+  APPOINTMENT_REMINDER
+  ORDER_STATUS_UPDATE
+  BENEFIT_ELIGIBLE
+  UNLOCK_CARD_EARNED
+  TIER_UPGRADED
+  POINTS_EARNED
+}
+
+model ClientNotification {
+  id              String                 @id @default(cuid())
+  clientAccountId String                 @map("client_account_id")
+  type            ClientNotificationType
+  title           String
+  body            String
+  href            String?
+  isRead          Boolean                @default(false) @map("is_read")
+  emailSent       Boolean                @default(false) @map("email_sent")
+  refId           String?                @map("ref_id")
+  refType         String?                @map("ref_type")
+  createdAt       DateTime               @default(now()) @map("created_at")
+
+  clientAccount ClientAccount @relation(fields: [clientAccountId], references: [id], onDelete: Cascade)
+
+  @@index([clientAccountId])
+  @@index([clientAccountId, isRead])
+  @@map("client_notifications")
+}
+
+model ClientNotificationPreference {
+  id              String                 @id @default(cuid())
+  clientAccountId String                 @map("client_account_id")
+  type            ClientNotificationType
+  inAppEnabled    Boolean                @default(true) @map("in_app_enabled")
+  emailEnabled    Boolean                @default(true) @map("email_enabled")
+
+  clientAccount ClientAccount @relation(fields: [clientAccountId], references: [id], onDelete: Cascade)
+
+  @@unique([clientAccountId, type])
+  @@map("client_notification_preferences")
+}
+
+// ─────────────────────────────────────────
+// GAMIFICATION — POINTS LEDGER
+// ─────────────────────────────────────────
+
+model PointsLedger {
+  id        String   @id @default(cuid())
+  familyId  String   @map("family_id")
+  points    Int
+  reason    String
+  refId     String?  @map("ref_id")
+  refType   String?  @map("ref_type")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  family Family @relation(fields: [familyId], references: [id], onDelete: Cascade)
+
+  @@index([familyId])
+  @@map("points_ledger")
 }

@@ -1,5 +1,6 @@
 import { getStyleTraits, type StyleProfile } from "@/lib/utils/style-quiz";
 import { MatchedFrameGrid } from "./MatchedFrameGrid";
+import { ShareStyleButton } from "./ShareStyleButton";
 import { Sparkles, RefreshCw } from "lucide-react";
 
 interface StyleProfileViewProps {
@@ -36,6 +37,9 @@ export function StyleProfileView({ profile, customerId, onRetake }: StyleProfile
           ))}
         </div>
       </div>
+
+      {/* Share button */}
+      <ShareStyleButton label={profile.label} customerId={customerId} />
 
       {/* Matched frames */}
       <MatchedFrameGrid customerId={customerId} />

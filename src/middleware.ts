@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 const PUBLIC_PATHS = ["/login", "/api/auth", "/api/health", "/api/cron/", "/f/", "/intake/"];
 const STAFF_IDLE_TIMEOUT_MS = 30 * 60 * 1000; // 30 minutes
 const CLIENT_IDLE_TIMEOUT_MS = 60 * 60 * 1000; // 60 minutes
-const CLIENT_PUBLIC_PATHS = ["/my/login", "/my/verify"];
+const CLIENT_PUBLIC_PATHS = ["/my/login", "/my/verify", "/my/style/share/"];
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;

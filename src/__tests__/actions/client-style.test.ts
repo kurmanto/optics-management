@@ -259,7 +259,7 @@ describe("toggleSaveFrameFromPortal", () => {
 });
 
 describe("getMatchedFrames", () => {
-  it("returns frames matching strict filters", async () => {
+  it("scores and returns matching frames sorted by score", async () => {
     const { getMatchedFrames } = await import("@/lib/actions/client-style");
     const { prisma } = await import("@/lib/prisma");
 
@@ -269,18 +269,26 @@ describe("getMatchedFrames", () => {
     } as any);
 
     const mockFrames = [
-      { id: "f1", brand: "Gucci", model: "GG001", color: "Tortoise", material: "Acetate", rimType: "FULL_RIM", retailPrice: 299, imageUrl: null, styleTags: ["round"] },
-      { id: "f2", brand: "Ray-Ban", model: "RB4567", color: "Brown", material: "Acetate", rimType: "FULL_RIM", retailPrice: 199, imageUrl: null, styleTags: ["round", "oval"] },
-      { id: "f3", brand: "Prada", model: "PR99", color: "Honey", material: "Acetate", rimType: "FULL_RIM", retailPrice: 349, imageUrl: null, styleTags: ["circular"] },
+      { id: "f1", brand: "Gucci", model: "GG001", color: "Tortoise", material: "Acetate", rimType: "FULL_RIM", retailPrice: 299, imageUrl: null, styleTags: ["round"], eyeSize: 56, totalUnitsSold: 50, staffPickStyleLabels: ["Bold Trendsetter"] },
+      { id: "f2", brand: "Ray-Ban", model: "RB4567", color: "Brown", material: "Acetate", rimType: "FULL_RIM", retailPrice: 199, imageUrl: null, styleTags: ["round", "oval"], eyeSize: 54, totalUnitsSold: 30, staffPickStyleLabels: [] },
+      { id: "f3", brand: "Prada", model: "PR99", color: "Honey", material: "Acetate", rimType: "FULL_RIM", retailPrice: 349, imageUrl: null, styleTags: ["circular"], eyeSize: 58, totalUnitsSold: 10, staffPickStyleLabels: [] },
     ];
     vi.mocked(prisma.inventoryItem.findMany).mockResolvedValue(mockFrames as any);
 
     const result = await getMatchedFrames("customer-1");
-    expect(result).toHaveLength(3);
+    expect(result.length).toBeGreaterThan(0);
+    // Should be sorted by score descending
+    for (let i = 1; i < result.length; i++) {
+      expect(result[i - 1].score).toBeGreaterThanOrEqual(result[i].score);
+    }
+    // First frame should have highest score (has staff pick + good matches)
+    expect(result[0].id).toBe("f1");
+    expect(result[0].matchReasons.length).toBeGreaterThan(0);
+    // One broad query for all in-stock frames
     expect(vi.mocked(prisma.inventoryItem.findMany)).toHaveBeenCalledTimes(1);
   });
 
-  it("broadens filters when strict returns fewer than 3", async () => {
+  it("filters out frames scoring below 20", async () => {
     const { getMatchedFrames } = await import("@/lib/actions/client-style");
     const { prisma } = await import("@/lib/prisma");
 
@@ -289,15 +297,14 @@ describe("getMatchedFrames", () => {
       styleProfile: { completedAt: "2026-03-01", label: "Bold Trendsetter", choices: validChoices },
     } as any);
 
-    // First call (strict): only 1 result
-    vi.mocked(prisma.inventoryItem.findMany)
-      .mockResolvedValueOnce([{ id: "f1" }] as any)
-      // Second call (broadened): 5 results
-      .mockResolvedValueOnce([{ id: "f2" }, { id: "f3" }, { id: "f4" }, { id: "f5" }, { id: "f6" }] as any);
+    // Frame that won't score above 20: metal (not acetate), no matching tags, wrong rim, cool color, small
+    const mockFrames = [
+      { id: "low", brand: "Generic", model: "X1", color: "Black", material: "Metal", rimType: "RIMLESS", retailPrice: 50, imageUrl: null, styleTags: ["rectangular"], eyeSize: 48, totalUnitsSold: 0, staffPickStyleLabels: [] },
+    ];
+    vi.mocked(prisma.inventoryItem.findMany).mockResolvedValue(mockFrames as any);
 
     const result = await getMatchedFrames("customer-1");
-    expect(result).toHaveLength(5);
-    expect(vi.mocked(prisma.inventoryItem.findMany)).toHaveBeenCalledTimes(2);
+    expect(result).toHaveLength(0);
   });
 
   it("returns empty array when no style profile", async () => {
@@ -311,5 +318,35 @@ describe("getMatchedFrames", () => {
 
     const result = await getMatchedFrames("customer-1");
     expect(result).toEqual([]);
+  });
+
+  it("returns at most 12 frames", async () => {
+    const { getMatchedFrames } = await import("@/lib/actions/client-style");
+    const { prisma } = await import("@/lib/prisma");
+
+    vi.mocked(prisma.customer.findUnique).mockResolvedValue({
+      familyId: "family-1",
+      styleProfile: { completedAt: "2026-03-01", label: "Bold Trendsetter", choices: validChoices },
+    } as any);
+
+    // 20 frames that all score well
+    const mockFrames = Array.from({ length: 20 }, (_, i) => ({
+      id: `f${i}`,
+      brand: "Brand",
+      model: `M${i}`,
+      color: "Tortoise",
+      material: "Acetate",
+      rimType: "FULL_RIM",
+      retailPrice: 200,
+      imageUrl: null,
+      styleTags: ["round"],
+      eyeSize: 56,
+      totalUnitsSold: 10,
+      staffPickStyleLabels: [],
+    }));
+    vi.mocked(prisma.inventoryItem.findMany).mockResolvedValue(mockFrames as any);
+
+    const result = await getMatchedFrames("customer-1");
+    expect(result.length).toBeLessThanOrEqual(12);
   });
 });
