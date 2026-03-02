@@ -80,6 +80,7 @@ export async function createInventoryItem(
 
   try {
     const styleTags = formData.getAll("styleTags") as string[];
+    const staffPickStyleLabels = formData.getAll("staffPickStyleLabels") as string[];
 
     // Auto-generate SKU if not provided
     let finalSku = d.sku || null;
@@ -119,6 +120,7 @@ export async function createInventoryItem(
         vendorId: d.vendorId || null,
         countryOfOrigin: d.countryOfOrigin || null,
         styleTags,
+        staffPickStyleLabels,
         notes: d.notes || null,
       },
     });
@@ -163,6 +165,7 @@ export async function updateInventoryItem(
 
   try {
     const styleTags = formData.getAll("styleTags") as string[];
+    const staffPickStyleLabels = formData.getAll("staffPickStyleLabels") as string[];
 
     const item = await prisma.inventoryItem.update({
       where: { id },
@@ -188,6 +191,7 @@ export async function updateInventoryItem(
         vendorId: d.vendorId || null,
         countryOfOrigin: d.countryOfOrigin || null,
         styleTags,
+        staffPickStyleLabels,
         notes: d.notes || null,
       },
     });

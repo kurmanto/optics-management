@@ -2,6 +2,7 @@ import { getFamilyOverview } from "@/lib/actions/client-portal";
 import { FamilyBanner } from "@/components/client/dashboard/FamilyBanner";
 import { QuickActionsRow } from "@/components/client/dashboard/QuickActionsRow";
 import { UpcomingExamCards } from "@/components/client/dashboard/UpcomingExamCards";
+import { ExamDueCards } from "@/components/client/dashboard/ExamDueCards";
 import { BenefitsCountdown } from "@/components/client/dashboard/BenefitsCountdown";
 import { CreditBalancePill } from "@/components/client/dashboard/CreditBalancePill";
 import { ActiveOrdersStrip } from "@/components/client/dashboard/ActiveOrdersStrip";
@@ -59,6 +60,8 @@ export default async function FamilyOverviewPage() {
           ))}
         </div>
       </div>
+
+      <ExamDueCards examDueDates={data.examDueDates} />
 
       <UpcomingExamCards appointments={data.upcomingAppointments} />
 

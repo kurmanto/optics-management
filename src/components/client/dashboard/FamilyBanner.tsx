@@ -1,5 +1,6 @@
 import { cn } from "@/lib/utils/cn";
 import { Crown, Shield, Star } from "lucide-react";
+import Link from "next/link";
 
 const TIERS = [
   { name: "Bronze", icon: Shield, bg: "bg-amber-100", text: "text-amber-800", border: "border-amber-200" },
@@ -30,7 +31,9 @@ export function FamilyBanner({ familyName, tierLevel, tierPoints }: FamilyBanner
           <h2 className="text-lg font-semibold text-gray-900">
             {/family$/i.test(familyName.trim()) ? familyName : `${familyName} Family`}
           </h2>
-          <p className="text-xs text-gray-500">{tierPoints} vision points</p>
+          <Link href="/my/points" className="text-xs text-gray-500 hover:text-primary transition-colors">
+            {tierPoints} vision points
+          </Link>
         </div>
         <span
           className={cn(

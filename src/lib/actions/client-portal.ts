@@ -2,6 +2,7 @@
 
 import { prisma } from "@/lib/prisma";
 import { verifyClientSession } from "@/lib/client-dal";
+import { computeExamDueDate, type ExamDueResult } from "@/lib/utils/exam-due";
 
 export async function getFamilyOverview() {
   const session = await verifyClientSession();
@@ -115,6 +116,37 @@ export async function getFamilyOverview() {
     locked: unlockCards.filter((c) => c.status === "LOCKED").length,
   };
 
+  // Exam due dates per member
+  const examDueDates: ExamDueResult[] = await Promise.all(
+    members.map(async (member) => {
+      const [lastExam, activeRx, policy] = await Promise.all([
+        prisma.exam.findFirst({
+          where: { customerId: member.id },
+          select: { examDate: true },
+          orderBy: { examDate: "desc" },
+        }),
+        prisma.prescription.findFirst({
+          where: { customerId: member.id, isActive: true, source: "INTERNAL" },
+          select: { expiryDate: true },
+          orderBy: { date: "desc" },
+        }),
+        prisma.insurancePolicy.findFirst({
+          where: { customerId: member.id, isActive: true },
+          select: { eligibilityIntervalMonths: true, lastClaimDate: true },
+        }),
+      ]);
+
+      return computeExamDueDate({
+        customerId: member.id,
+        firstName: member.firstName,
+        lastExamDate: lastExam?.examDate ?? null,
+        rxExpiryDate: activeRx?.expiryDate ?? null,
+        insuranceIntervalMonths: policy?.eligibilityIntervalMonths ?? null,
+        lastClaimDate: policy?.lastClaimDate ?? null,
+      });
+    })
+  );
+
   return {
     family,
     members,
@@ -123,6 +155,7 @@ export async function getFamilyOverview() {
     totalCredit,
     activeOrders,
     unlockSummary,
+    examDueDates,
   };
 }
 

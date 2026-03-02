@@ -19,6 +19,8 @@ interface MatchedFrame {
   retailPrice: number | null;
   imageUrl: string | null;
   styleTags: string[];
+  score: number;
+  matchReasons: string[];
 }
 
 interface MatchedFrameGridProps {
@@ -160,6 +162,18 @@ export function MatchedFrameGrid({ customerId }: MatchedFrameGridProps) {
                   <p className="text-xs font-medium text-primary mt-0.5">
                     ${frame.retailPrice}
                   </p>
+                )}
+                {frame.matchReasons.length > 0 && (
+                  <div className="flex flex-wrap gap-1 mt-1.5">
+                    {frame.matchReasons.slice(0, 3).map((reason) => (
+                      <span
+                        key={reason}
+                        className="text-[10px] font-medium bg-green-50 text-green-700 px-1.5 py-0.5 rounded-full"
+                      >
+                        {reason}
+                      </span>
+                    ))}
+                  </div>
                 )}
               </div>
             </div>

@@ -1,5 +1,6 @@
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { createClientNotificationForFamily } from "@/lib/client-notifications";
 
 type TriggerRule =
   | { type: "STYLE_QUIZ_COMPLETED" }
@@ -40,7 +41,7 @@ export async function checkAndUnlockCards(familyId: string): Promise<void> {
       const result = await evaluateRule(rule, familyId, memberIds);
 
       if (result.met) {
-        await prisma.unlockCard.update({
+        const updated = await prisma.unlockCard.update({
           where: { id: card.id },
           data: {
             status: "UNLOCKED",
@@ -48,6 +49,18 @@ export async function checkAndUnlockCards(familyId: string): Promise<void> {
             unlockedBy: "system",
             ...(result.progress !== undefined ? { progress: result.progress } : {}),
           },
+          select: { title: true },
+        });
+        // Notify client
+        void createClientNotificationForFamily({
+          familyId,
+          type: "UNLOCK_CARD_EARNED",
+          title: "Card Unlocked!",
+          body: `You just unlocked: ${updated.title}`,
+          href: "/my/unlocks",
+          refId: card.id,
+          refType: "UnlockCard",
+          sendEmail: false,
         });
       } else if (result.progress !== undefined) {
         // Update progress even if not yet met

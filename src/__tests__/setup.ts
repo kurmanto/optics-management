@@ -62,5 +62,18 @@ vi.mock("@/lib/supabase", () => ({
   ensurePrescriptionBucket: vi.fn().mockResolvedValue(undefined),
 }));
 
+// ── Client notification mock ─────────────────────────────────────────────────
+
+vi.mock("@/lib/client-notifications", () => ({
+  createClientNotification: vi.fn(),
+  createClientNotificationForFamily: vi.fn(),
+}));
+
+// ── Gamification mock ───────────────────────────────────────────────────────
+
+vi.mock("@/lib/gamification", () => ({
+  awardPoints: vi.fn(),
+}));
+
 // ── Auth helpers mock ─────────────────────────────────────────────────────────
 // NOTE: Only mock for action tests. Auth unit tests import the real module.

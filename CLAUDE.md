@@ -189,6 +189,23 @@ After implementing any new feature, update `user-guide-site/index.html` immediat
 - Match the existing HTML style (use `<h2>`, `<h3>`, `<h4>`, `<ul>`, `<div class="box box-tip">`, etc.)
 - Redeploy after editing: `cd user-guide-site && vercel --prod`
 
+## PR Merge Process — Required for Every PR
+
+Before merging any PR, complete this checklist:
+
+1. **Run full test suite:** `npm run test:run` — all tests must pass (0 failures)
+2. **Run production build:** `npm run build` — must complete with no errors
+3. **Feature verification:** For each item in the PR's test plan:
+   - Trace the code path (server action → data fetch → component render)
+   - Verify authorization/session checks are in place
+   - Confirm test coverage exists for happy path + error paths
+   - Check data isolation (no cross-tenant/cross-family access)
+4. **Merge:** `gh pr merge <number> --merge`
+5. **Update master:** `git checkout master && git pull origin master`
+6. **Post-merge documentation:** Update all docs per "Documentation Requirements" section
+
+This process is non-negotiable — never merge a PR without running tests and build first.
+
 ## Running Locally
 
 ```bash

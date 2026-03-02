@@ -1,3 +1,5 @@
+import { ClientNotificationBell } from "./ClientNotificationBell";
+
 interface ClientHeaderProps {
   familyName: string;
 }
@@ -14,10 +16,13 @@ export function ClientHeader({ familyName }: ClientHeaderProps) {
             {/family$/i.test(familyName.trim()) ? familyName : `${familyName} Family`}
           </h1>
         </div>
-        <div className="h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center">
-          <span className="text-sm font-bold text-primary">
-            {familyName.charAt(0).toUpperCase()}
-          </span>
+        <div className="flex items-center gap-2">
+          <ClientNotificationBell />
+          <div className="h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center">
+            <span className="text-sm font-bold text-primary">
+              {familyName.charAt(0).toUpperCase()}
+            </span>
+          </div>
         </div>
       </div>
     </header>

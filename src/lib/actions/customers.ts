@@ -7,6 +7,7 @@ import { verifySession, verifyRole } from "@/lib/dal";
 import { logAudit } from "@/lib/audit";
 import { CustomerSchema, MedicalHistorySchema, StoreCreditSchema } from "@/lib/validations/customer";
 import { Gender } from "@prisma/client";
+import { awardPoints } from "@/lib/gamification";
 
 export type CustomerFormState = {
   error?: string;
@@ -390,13 +391,14 @@ export async function toggleGoogleReview(
   const session = await verifyRole("STAFF");
 
   try {
-    await prisma.customer.update({
+    const customer = await prisma.customer.update({
       where: { id: customerId },
       data: {
         googleReviewGiven: given,
         googleReviewDate: given ? new Date() : null,
         googleReviewNote: given ? (note?.trim() || null) : null,
       },
+      select: { familyId: true },
     });
 
     void logAudit({
@@ -406,6 +408,11 @@ export async function toggleGoogleReview(
       recordId: customerId,
       changes: { googleReviewGiven: given },
     });
+
+    // Award points only when toggling ON (not when removing review)
+    if (given && customer.familyId) {
+      void awardPoints(customer.familyId, 75, "Google Review", customerId, "Customer");
+    }
 
     revalidatePath(`/customers/${customerId}`);
     revalidatePath("/customers");
