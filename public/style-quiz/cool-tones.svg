@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="120" height="120" fill="none">
+  <path d="M20 62 Q20 50 32 50 L50 50 Q56 50 58 56 L62 56 Q64 50 70 50 L88 50 Q100 50 100 62 L100 70 Q100 80 88 80 L32 80 Q20 80 20 70 Z" stroke="#d1d5db" stroke-width="1" fill="none"/>
+  <circle cx="28" cy="46" r="12" fill="#0f172a"/>
+  <circle cx="46" cy="38" r="12" fill="#334155"/>
+  <circle cx="64" cy="36" r="12" fill="#64748b"/>
+  <circle cx="82" cy="38" r="12" fill="#94a3b8"/>
+  <circle cx="98" cy="46" r="12" fill="#cbd5e1"/>
+  <text x="60" y="100" text-anchor="middle" font-family="system-ui" font-size="9" fill="#334155" font-weight="500">Cool Palette</text>
+</svg>

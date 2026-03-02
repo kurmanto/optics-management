@@ -5,7 +5,8 @@ import { ExamTimeline } from "@/components/client/member/ExamTimeline";
 import { CurrentRxCard } from "@/components/client/member/CurrentRxCard";
 import { FrameHistory } from "@/components/client/member/FrameHistory";
 import Link from "next/link";
-import { ChevronLeft } from "lucide-react";
+import { ChevronLeft, Palette, Sparkles } from "lucide-react";
+import type { StyleProfile } from "@/lib/utils/style-quiz";
 
 export default async function MemberProfilePage({
   params,
@@ -36,6 +37,46 @@ export default async function MemberProfilePage({
       />
 
       {data.currentRx && <CurrentRxCard rx={data.currentRx} />}
+
+      {/* Style profile section */}
+      {(() => {
+        const styleProfile = data.customer.styleProfile as StyleProfile | null;
+        if (styleProfile) {
+          return (
+            <div className="bg-gradient-to-br from-amber-50 to-orange-50 rounded-xl border border-amber-100 shadow-sm p-4">
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="text-sm font-semibold text-gray-900 flex items-center gap-1.5">
+                  <Sparkles className="h-4 w-4 text-amber-500" />
+                  Style ID
+                </h3>
+                <Link
+                  href={`/my/style/${customerId}`}
+                  className="text-xs text-primary font-medium hover:underline"
+                >
+                  View Details
+                </Link>
+              </div>
+              <p className="text-base font-bold text-gray-900">{styleProfile.label}</p>
+            </div>
+          );
+        }
+        return (
+          <Link
+            href={`/my/style/${customerId}`}
+            className="block bg-gradient-to-br from-amber-50 to-orange-50 rounded-xl border border-amber-100 shadow-sm p-4 hover:border-amber-200 transition-colors"
+          >
+            <div className="flex items-center gap-3">
+              <div className="h-9 w-9 rounded-full bg-amber-100 flex items-center justify-center shrink-0">
+                <Palette className="h-4 w-4 text-amber-600" />
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-gray-900">Take the Style ID Quiz</p>
+                <p className="text-xs text-gray-500">Discover frames matched to your personality</p>
+              </div>
+            </div>
+          </Link>
+        );
+      })()}
 
       <ExamTimeline exams={data.exams} />
 

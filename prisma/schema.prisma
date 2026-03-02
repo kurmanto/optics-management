@@ -106,6 +106,8 @@ model Customer {
   referredByName String? @map("referred_by_name")
   occupation     String?
 
+  styleProfile   Json?   @map("style_profile")
+
   googleReviewGiven Boolean   @default(false) @map("google_review_given")
   googleReviewDate  DateTime? @map("google_review_date")
   googleReviewNote  String?   @map("google_review_note")

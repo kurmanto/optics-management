@@ -8,6 +8,7 @@ import { OrderStatus, LineItemType, OrderType, PrescriptionSource } from "@prism
 import { generateOrderNumber } from "@/lib/utils/formatters";
 import { createNotification } from "@/lib/notifications";
 import { uploadPrescriptionScan } from "@/lib/supabase";
+import { checkAndUnlockCards } from "@/lib/unlock-triggers";
 import { emailInvoice } from "@/lib/actions/email";
 import { redeemReferral } from "@/lib/actions/referrals";
 
@@ -338,6 +339,11 @@ export async function handlePickupComplete(
       emailInvoice(orderId).catch((err) =>
         console.error("[Invoice Email] Failed to send on pickup:", err)
       );
+    }
+
+    // Unlock trigger check for family (fire-and-forget)
+    if (order.customer.familyId) {
+      void checkAndUnlockCards(order.customer.familyId);
     }
 
     // SMS placeholder — Twilio integration later

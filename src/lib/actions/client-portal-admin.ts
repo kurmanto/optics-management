@@ -1,5 +1,6 @@
 "use server";
 
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { verifyRole } from "@/lib/dal";
 import { logAudit } from "@/lib/audit";
@@ -161,6 +162,16 @@ export async function sendPortalInviteEmail(clientAccountId: string): Promise<{ 
 export async function createUnlockCard(formData: FormData): Promise<{ error?: string }> {
   const session = await verifyRole("STAFF");
 
+  let triggerRule: Record<string, unknown> | undefined;
+  const triggerRuleRaw = formData.get("triggerRule") as string;
+  if (triggerRuleRaw) {
+    try {
+      triggerRule = JSON.parse(triggerRuleRaw);
+    } catch {
+      return { error: "Invalid trigger rule JSON." };
+    }
+  }
+
   const raw = {
     familyId: formData.get("familyId") as string,
     customerId: (formData.get("customerId") as string) || undefined,
@@ -171,6 +182,7 @@ export async function createUnlockCard(formData: FormData): Promise<{ error?: st
     value: formData.get("value") ? Number(formData.get("value")) : undefined,
     valueType: (formData.get("valueType") as string) || undefined,
     progressGoal: formData.get("progressGoal") ? Number(formData.get("progressGoal")) : undefined,
+    triggerRule,
   };
 
   const parsed = CreateUnlockCardSchema.safeParse(raw);
@@ -189,6 +201,7 @@ export async function createUnlockCard(formData: FormData): Promise<{ error?: st
       value: parsed.data.value,
       valueType: parsed.data.valueType,
       progressGoal: parsed.data.progressGoal,
+      triggerRule: (parsed.data.triggerRule ?? Prisma.JsonNull) as Prisma.InputJsonValue,
       unlockedAt: parsed.data.status === "UNLOCKED" ? new Date() : null,
       unlockedBy: parsed.data.status === "UNLOCKED" ? session.id : null,
     },

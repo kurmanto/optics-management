@@ -1,9 +1,9 @@
 # Product Requirements Document
 ## Mint Vision Optique — Staff Portal
 
-**Version:** 1.3 / Inventory V2
-**Last updated:** 2026-02-17
-**Status:** V1.3 + Inventory V2 shipped; V1.1 (Staff/Reporting/PDF) next
+**Version:** 3.0
+**Last updated:** 2026-02-28
+**Status:** V3.0 (Client Portal) shipped; V1.1 (Staff/Reporting) next
 
 ---
 
@@ -33,7 +33,7 @@ The portal is **staff-only** (not customer-facing). It runs in-store on tablets 
 
 ## 3. Non-Goals (V1)
 
-- Customer-facing portal or booking system
+- ~~Customer-facing portal or booking system~~ → **Shipped in V3.0** (Family Vision Dashboard)
 - Online store / e-commerce
 - Direct integration with labs or insurance portals
 - SMS / email automation (V2.1)
@@ -230,10 +230,38 @@ The portal is **staff-only** (not customer-facing). It runs in-store on tablets 
 
 ---
 
-### V4.0 — PMS Replacement
+### V3.0 — Client Portal (Shipped)
 
-- Appointment scheduling (eye exams, fittings, pickups, adjustments)
-- Calendar view
+#### Family Vision Dashboard
+- Client-facing portal at `/my/*` with separate auth (magic link + password)
+- Family overview: tier badge, upcoming exams, benefits countdown, store credit, active orders, unlock cards
+- Member profiles: exam timeline, current Rx (OD/OS), Rx comparison, frame history
+- Exam detail: Rx result, change indicators, doctor/date info
+- Appointment booking wizard: select member → type → date/time → confirm
+- Unlock cards: achievement grid with progress tracking (staff-managed)
+- Settings: account info, password change, logout
+
+#### Client Auth
+- Separate `mvo_client_session` cookie (HMAC-signed, 30-day max)
+- Magic link login (15-min TTL, single-use) + password login
+- Staff-only account creation (PHIPA/PIPEDA compliance)
+- 60-minute idle timeout, 5-attempt lockout
+- All data scoped by familyId — no cross-family access
+
+#### Staff-Side Admin
+- "Client Portal" card on customer detail page (create account, send invite, disable)
+- Unlock card management (create, update status)
+
+#### PHI Data Scoping
+- Shown: Rx values, exam dates, doctor names, order status, frame details, insurance eligibility
+- Hidden: IOP, VA, clinical notes, billing codes, wholesale costs, staff notes, audit logs
+
+---
+
+### V4.0 — PMS Replacement (Shipped)
+
+- ~~Appointment scheduling (eye exams, fittings, pickups, adjustments)~~ → **Shipped in V2.4.0**
+- ~~Calendar view~~ → **Shipped in V2.4.0**
 - Reminder automation
 
 ---

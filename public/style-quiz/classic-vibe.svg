@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="120" height="120" fill="none">
+  <path d="M12 42 L54 42" stroke="#1e293b" stroke-width="6" stroke-linecap="round"/>
+  <path d="M66 42 L108 42" stroke="#1e293b" stroke-width="6" stroke-linecap="round"/>
+  <path d="M12 42 L12 60 Q12 68 20 68 L46 68 Q54 68 54 60 L54 42" stroke="#64748b" stroke-width="1.5" fill="#f8fafc" fill-opacity="0.2"/>
+  <path d="M66 42 L66 60 Q66 68 74 68 L100 68 Q108 68 108 60 L108 42" stroke="#64748b" stroke-width="1.5" fill="#f8fafc" fill-opacity="0.2"/>
+  <path d="M54 48 L66 48" stroke="#64748b" stroke-width="1.5" fill="none"/>
+  <circle cx="57" cy="58" r="1.5" fill="#94a3b8"/>
+  <circle cx="63" cy="58" r="1.5" fill="#94a3b8"/>
+  <path d="M12 44 L6 46 Q4 48 4 54" stroke="#1e293b" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+  <path d="M108 44 L114 46 Q116 48 116 54" stroke="#1e293b" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+  <text x="60" y="90" text-anchor="middle" font-family="Georgia, serif" font-size="9" fill="#64748b" font-style="italic">Est. 1960</text>
+</svg>

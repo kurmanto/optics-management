@@ -1,7 +1,7 @@
 # Architecture
 ## Mint Vision Optique — Staff Portal
 
-**Last updated:** 2026-02-23
+**Last updated:** 2026-02-28
 
 ---
 
@@ -33,9 +33,21 @@ optics_boutique/
 │   └── migrate-inventory.ts   # Inventory import script
 ├── src/
 │   ├── app/
-│   │   ├── (auth)/            # Login page — no sidebar
+│   │   ├── (auth)/            # Staff login page — no sidebar
 │   │   │   └── login/
-│   │   ├── (portal)/          # All authenticated pages — has sidebar
+│   │   ├── (client)/          # Client portal — mobile-first, bottom nav
+│   │   │   └── my/
+│   │   │       ├── layout.tsx           # Client shell (header + bottom nav)
+│   │   │       ├── (portal)/            # Auth-required client pages
+│   │   │       │   ├── page.tsx         # Family overview
+│   │   │       │   ├── member/[customerId]/page.tsx
+│   │   │       │   ├── exam/[examId]/page.tsx
+│   │   │       │   ├── book/page.tsx    # Booking wizard
+│   │   │       │   ├── unlocks/page.tsx
+│   │   │       │   └── settings/page.tsx
+│   │   │       ├── login/page.tsx       # Client login (magic link + password)
+│   │   │       └── verify/page.tsx      # Magic link verification
+│   │   ├── (portal)/          # All authenticated staff pages — has sidebar
 │   │   │   ├── layout.tsx     # Portal shell (sidebar + header)
 │   │   │   ├── dashboard/
 │   │   │   ├── customers/
@@ -90,19 +102,32 @@ optics_boutique/
 │   │   └── page.tsx           # Redirects to /dashboard
 │   ├── components/
 │   │   ├── auth/              # LoginForm, ChangePasswordForm
-│   │   ├── customers/         # CustomerForm, MedicalHistoryForm, ExternalPrescriptionUpload, StoreCreditManager, CurrentGlassesForm
+│   │   ├── client/            # Client portal components
+│   │   │   ├── layout/        # ClientHeader, ClientBottomNav
+│   │   │   ├── auth/          # MagicLinkForm, PasswordLoginForm, SetPasswordForm
+│   │   │   ├── dashboard/     # FamilyBanner, QuickActionsRow, UpcomingExamCards, BenefitsCountdown, CreditBalancePill, ActiveOrdersStrip
+│   │   │   ├── member/        # MemberHeader, ExamTimeline, CurrentRxCard, RxComparisonView, FrameHistory
+│   │   │   ├── exam/          # ExamSummaryCard, RxResultCard, RxChangeIndicator
+│   │   │   ├── booking/       # BookingWizard, MemberSelector, TimeSlotPicker
+│   │   │   └── unlocks/       # UnlockCardGrid, UnlockCardItem
+│   │   ├── customers/         # CustomerForm, MedicalHistoryForm, ExternalPrescriptionUpload, StoreCreditManager, CurrentGlassesForm, ClientPortalCard
 │   │   ├── appointments/      # AppointmentCalendar, AppointmentCard, AppointmentActions, BookAppointmentModal
 │   │   ├── forms/             # FormsHub, SendFormModal, IntakePackageModal, InPersonIntakeButton
 │   │   │   └── public/        # NewPatientForm, HipaaConsentForm, InsuranceVerificationForm, FrameRepairWaiverForm, SignaturePad, IntakeStartClient
 │   │   ├── inventory/         # InventoryForm, VendorForm, PurchaseOrderForm, POStatusButtons, ReceivingWorkflow
 │   │   ├── layout/            # Sidebar, Header
 │   │   ├── orders/            # KanbanBoard, NewOrderWizard, OrderStatusActions, WorkOrderView, PickupCompleteModal
+│   │   ├── shared/            # RxTable (shared between staff + client portals)
 │   │   └── ui/                # Button (with variants/sizes/loading state)
 │   ├── lib/
 │   │   ├── actions/           # Server Actions (mutations)
 │   │   │   ├── auth.ts
-│   │   │   ├── appointments.ts  # createAppointment, getAppointmentsForRange, rescheduleAppointment, updateAppointmentStatus, cancelAppointment
-│   │   │   ├── breach.ts        # createBreachReport, updateBreachStatus, generateIPCNotificationText
+│   │   │   ├── appointments.ts       # createAppointment, getAppointmentsForRange, rescheduleAppointment, updateAppointmentStatus, cancelAppointment
+│   │   │   ├── breach.ts             # createBreachReport, updateBreachStatus, generateIPCNotificationText
+│   │   │   ├── client-auth.ts        # requestMagicLink, verifyMagicLink, clientLogin, clientLogout, setClientPassword
+│   │   │   ├── client-portal.ts      # getFamilyOverview, getMemberProfile, getExamDetail, getUnlockCards, getFamilyMembers
+│   │   │   ├── client-booking.ts     # getAvailableSlots, bookAppointment, cancelAppointment (client-side)
+│   │   │   ├── client-portal-admin.ts # createClientPortalAccount, disableClientPortalAccount, sendPortalInviteEmail, createUnlockCard, updateUnlockCardStatus
 │   │   │   ├── customers.ts
 │   │   │   ├── invoices.ts
 │   │   │   ├── orders.ts
@@ -208,6 +233,35 @@ const ROLE_HIERARCHY = { VIEWER: 0, STAFF: 1, ADMIN: 2 } as const;
 
 ---
 
+## Client Portal Authentication
+
+Completely separate from staff auth — different cookies, different secrets, different session logic.
+
+- **Cookie name:** `mvo_client_session` (+ `mvo_client_last_active` for 60-min idle timeout)
+- **Algorithm:** HMAC-SHA256 signed token containing `{ clientAccountId, familyId, primaryCustomerId, email }`
+- **Secret:** `CLIENT_SESSION_SECRET` env var
+- **Expiry:** 30 days (idle timeout enforced separately)
+- **Magic link:** 15-min TTL, single-use, sent via Resend email
+- **Password:** bcrypt, cost factor 12 (same as staff)
+- **Account lockout:** 5 consecutive failures → locked 15 min
+- **Account creation:** Staff-only (no self-registration) — PHIPA compliance
+
+### Key files
+- `src/lib/client-auth.ts` — `createClientSession()`, `destroyClientSession()`, `getClientSession()`
+- `src/lib/client-dal.ts` — `verifyClientSession()` returns `{ clientAccountId, familyId, primaryCustomerId, email }`
+- `src/lib/actions/client-auth.ts` — `requestMagicLink()`, `verifyMagicLink()`, `clientLogin()`, `clientLogout()`, `setClientPassword()`
+
+### Data Scoping (PHIPA/PIPEDA)
+Every client-facing action MUST:
+1. Call `verifyClientSession()` → returns `{ familyId }`
+2. Scope ALL queries with `familyId` from session
+3. Verify requested records belong to the family
+
+**Shown to clients:** Rx values (SPH/CYL/AXIS/ADD/PD), exam dates, doctor names, order status, frame details, insurance eligibility, store credit, appointments
+**Hidden from clients:** IOP, VA, clinical notes, billing codes, amounts billed/paid, wholesale costs, staff notes, audit logs
+
+---
+
 ## Database
 
 ### Connection
@@ -265,6 +319,10 @@ The Prisma singleton in `src/lib/prisma.ts` uses `@prisma/adapter-pg`.
 | `Appointment` | Scheduled appointments | ✅ Active (V4) |
 | `AuditLog` | General audit trail | ✅ Active (V2.5) |
 | `BreachReport` | PHIPA breach notification records | ✅ Active (V2.5) |
+| `ClientAccount` | Client portal auth entity (per family) | ✅ Active (V3.0) |
+| `MagicLink` | Passwordless login tokens (15-min TTL) | ✅ Active (V3.0) |
+| `ClientSession` | Client portal sessions (audit/revocation) | ✅ Active (V3.0) |
+| `UnlockCard` | Achievement/bonus tracking per family | ✅ Active (V3.0) |
 | `SystemSetting` | Key-value store for app settings | ✅ Schema only |
 
 ---
@@ -290,6 +348,7 @@ The Prisma singleton in `src/lib/prisma.ts` uses `@prisma/adapter-pg`.
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Yes | Supabase anon key |
 | `SUPABASE_SERVICE_ROLE_KEY` | Yes | Supabase service role (for admin operations) |
 | `ANTHROPIC_API_KEY` | Yes (V1.3+) | Claude AI for external prescription OCR |
+| `CLIENT_SESSION_SECRET` | Yes (V3.0+) | HMAC signing key for client portal sessions |
 | `CRON_SECRET` | Yes (production) | Bearer token for `/api/cron/campaigns` — set in Vercel env |
 
 ---

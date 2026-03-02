@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { verifySession } from "@/lib/dal";
 import { createNotification } from "@/lib/notifications";
+import { checkAndUnlockCards } from "@/lib/unlock-triggers";
 
 function generateCode(firstName: string, lastName: string): string {
   const first2 = (firstName || "XX").slice(0, 2).toUpperCase().replace(/[^A-Z]/g, "X");
@@ -132,6 +133,16 @@ export async function redeemReferral(
 
     revalidatePath(`/customers/${referral.referrerId}`);
     revalidatePath(`/customers/${referredCustomerId}`);
+
+    // Trigger unlock check for referrer's family
+    const referrer = await prisma.customer.findUnique({
+      where: { id: referral.referrerId },
+      select: { familyId: true },
+    });
+    if (referrer?.familyId) {
+      void checkAndUnlockCards(referrer.familyId);
+    }
+
     return { success: true };
   } catch (e) {
     console.error(e);

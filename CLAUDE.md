@@ -14,7 +14,9 @@ A staff portal for Mint Vision Optique (optometry boutique) replacing paper orde
 
 ### Route Groups
 - `(auth)` — Login page, no sidebar
-- `(portal)` — All authenticated pages, has sidebar layout
+- `(portal)` — All authenticated staff pages, has sidebar layout
+- `(client)` — Client portal pages (`/my/*`), mobile-first layout with bottom nav
+- `(forms)` — Public form pages, no auth required
 
 ### Data Layer Pattern
 - **Server Components** fetch data directly via Prisma (no API layer)
@@ -22,21 +24,36 @@ A staff portal for Mint Vision Optique (optometry boutique) replacing paper orde
 - **DAL** (`src/lib/dal.ts`) — always call `verifySession()` at the top of Server Components and Actions
 - **No API routes** for CRUD — use Server Actions
 
-### Auth
+### Staff Auth
 - Custom session: bcrypt + HMAC-signed token in httpOnly cookie `mvo_session`
 - Session max age: 7 days
 - Middleware (`src/middleware.ts`) guards all non-public routes
 - Admin seed account: `admin@mintvisionsoptique.com` / `changeme123` (must change on first login)
 
+### Client Auth (Client Portal)
+- Separate cookie: `mvo_client_session` (HMAC-signed, 30-day max, httpOnly)
+- Separate secret: `CLIENT_SESSION_SECRET` env var
+- Magic link login (15-min TTL, single-use) + password login
+- 60-minute idle timeout via `mvo_client_last_active` cookie
+- Account creation is staff-only (no self-registration) — PHIPA compliance
+- All data scoped to `familyId` from session — no cross-family access
+- Test account: `portal@mintvisionsoptique.com` / `Portal123!`
+
 ### Key Files
 ```
-src/lib/prisma.ts          # Prisma singleton
-src/lib/auth.ts            # Session creation/verification/destruction
-src/lib/dal.ts             # verifySession() + verifyAdmin()
-src/lib/utils/formatters.ts # formatCurrency, formatDate, formatPhone, formatRxValue
-src/lib/utils/cn.ts        # Tailwind class merging utility
-src/lib/actions/           # Server Actions per entity
-src/lib/validations/       # Zod schemas
+src/lib/prisma.ts              # Prisma singleton
+src/lib/auth.ts                # Staff session creation/verification/destruction
+src/lib/dal.ts                 # verifySession() + verifyRole() + verifyAdmin()
+src/lib/client-auth.ts         # Client portal session (HMAC, create/get/destroy)
+src/lib/client-dal.ts          # verifyClientSession() — returns { clientAccountId, familyId, ... }
+src/lib/utils/formatters.ts    # formatCurrency, formatDate, formatPhone, formatRxValue
+src/lib/utils/cn.ts            # Tailwind class merging utility
+src/lib/actions/               # Server Actions per entity
+src/lib/actions/client-auth.ts # Client login (magic link + password), logout, password set
+src/lib/actions/client-portal.ts      # Client portal data (family overview, member profile, exam detail)
+src/lib/actions/client-booking.ts     # Client appointment booking (slots, book, cancel)
+src/lib/actions/client-portal-admin.ts # Staff-side portal admin (create/disable accounts, unlock cards)
+src/lib/validations/           # Zod schemas
 ```
 
 ## Business Rules
@@ -90,7 +107,7 @@ VERIFIED = Rx check by optician after lab receives order. PICKED_UP triggers Pic
 - `legacyCustomerId` is nullable — not all migrated records have it
 
 ## Version Status
-Current version: **V2.8.0 — Work Order Redesign** (2026-02-25)
+Current version: **V3.0.0 — Client Portal** (2026-02-28)
 
 | Feature | Status |
 |---------|--------|
@@ -115,6 +132,7 @@ Current version: **V2.8.0 — Work Order Redesign** (2026-02-25)
 | Staff management | 🔲 V1.1 |
 | Exams weekly tracking page (`/exams`) + payment method | ✅ Complete |
 | Google Review tracking (customer field + card + list filter) | ✅ Complete |
+| Client Portal (magic link + password auth, family dashboard, member profiles, booking wizard, unlock cards) | ✅ Complete |
 | Reporting | 🔲 V1.1 |
 | Walk-ins | 🔲 V2 |
 | SMS / Email | 🔲 V2.1 |
@@ -204,3 +222,4 @@ Required for V1:
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 - `SUPABASE_SERVICE_ROLE_KEY`
 - `ANTHROPIC_API_KEY` (required for AI Rx OCR — `ExternalPrescriptionUpload` component)
+- `CLIENT_SESSION_SECRET` (client portal HMAC key — `openssl rand -base64 32`)

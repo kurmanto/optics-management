@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Calendar, Eye, Gift } from "lucide-react";
+import { Calendar, Eye, Gift, Palette } from "lucide-react";
 
 interface QuickActionsRowProps {
   firstMemberId?: string;
@@ -15,6 +15,7 @@ export function QuickActionsRow({ firstMemberId }: QuickActionsRowProps) {
       color: "bg-blue-50 text-blue-600",
     },
     { href: "/my/unlocks", label: "Unlocks", icon: Gift, color: "bg-purple-50 text-purple-600" },
+    { href: "/my/style", label: "Style ID", icon: Palette, color: "bg-amber-50 text-amber-600" },
   ];
 
   return (

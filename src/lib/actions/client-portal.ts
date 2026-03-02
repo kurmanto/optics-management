@@ -141,6 +141,7 @@ export async function getMemberProfile(customerId: string) {
       email: true,
       phone: true,
       familyId: true,
+      styleProfile: true,
     },
   });
 
@@ -219,6 +220,7 @@ export async function getMemberProfile(customerId: string) {
       firstName: customer.firstName,
       lastName: customer.lastName,
       dateOfBirth: customer.dateOfBirth,
+      styleProfile: customer.styleProfile,
     },
     exams,
     currentRx,
