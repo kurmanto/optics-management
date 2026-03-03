@@ -4,7 +4,7 @@ import { useState, useActionState } from "react";
 import { bookAppointment, getAvailableSlots } from "@/lib/actions/client-booking";
 import { MemberSelector } from "./MemberSelector";
 import { TimeSlotPicker } from "./TimeSlotPicker";
-import { CheckCircle, ChevronLeft, ChevronRight, Eye, Glasses, Stethoscope, Wrench, Sparkles, Clock } from "lucide-react";
+import { CheckCircle, ChevronLeft, ChevronRight, Eye, Glasses, Stethoscope, Wrench, Sparkles, Clock, Search } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import Link from "next/link";
 
@@ -60,6 +60,13 @@ const APPOINTMENT_TYPES = [
     description: "Browse frames with a style consultant",
     duration: "30 min",
     icon: Sparkles,
+  },
+  {
+    value: "CONSULTATION",
+    label: "Lens Consultation",
+    description: "15-min lens recommendation review",
+    duration: "15 min",
+    icon: Search,
   },
 ];
 

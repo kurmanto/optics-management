@@ -6,6 +6,61 @@ Format: `[Version] — Date`
 
 ---
 
+## [3.1.0] — 2026-03-03
+
+### Added — Lens Match Quiz & In-App Booking Integration
+
+#### Database Schema
+- **CONSULTATION** added to `AppointmentType` enum — 15-minute lens recommendation review
+- **LensQuote booking fields** — `appointmentId`, `requestedAppointmentType`, `callbackRequestedAt` on LensQuote model
+
+#### Lens Match Quiz (Public)
+- 6-question public quiz at `/lens-match` recommending lens packages
+- 6 lens packages: SV Standard/Premium/Elite, Progressive Standard/Premium/Elite
+- Anonymous users see "Request a Callback" flow + "Log in to book online" link
+- Quiz data auto-generates appointment notes (package name, price range, answers, contact info)
+- `sendLensMatchEmail` sends recommendation results to user's email
+
+#### In-App Booking (replaces external Jane App URLs)
+- Logged-in portal users get inline date/time picker + confirm flow
+- `getAvailableSlotsPublic` — public slot availability (no auth required)
+- `bookLensMatchAppointment` — books CONSULTATION appointment from quiz results
+- `requestLensMatchCallback` — anonymous callback request with contact info
+
+#### Portal Integration
+- `/my/lens-match` — authenticated version of lens match quiz within client portal layout
+- QuickActionsRow updated: label changed to "Lens Fit", href to `/my/lens-match`
+
+#### New Components
+- `LensMatchWizard` — 6-step quiz orchestrator
+- `ResultsPage` — package recommendation display
+- `PackageCard` — individual lens package card
+- `QuizQuestion` — single quiz question component
+- `QuizProgress` — progress indicator for quiz steps
+- `LeadCaptureForm` — anonymous user contact capture
+- `LensMatchBooking` — inline booking flow for logged-in users
+- `LensMatchCallbackForm` — callback request form for anonymous users
+
+#### New Server Actions (`src/lib/actions/lens-match.ts`)
+- `submitLensQuiz` — processes quiz answers and returns package recommendation
+- `bookLensMatchAppointment` — creates CONSULTATION appointment from quiz
+- `requestLensMatchCallback` — stores callback request with quiz context
+- `getAvailableSlotsPublic` — public-facing slot availability (no auth)
+
+#### New Validations (`src/lib/validations/lens-match.ts`)
+- `LensQuizSubmissionSchema` — quiz answer validation
+- `LensMatchBookingSchema` — booking request validation
+- `LensMatchCallbackSchema` — callback request validation
+
+#### New Utilities
+- `src/lib/utils/lens-packages.ts` — 6 lens package definitions, scoring/recommendation logic
+
+#### Unit Tests
+- 791 tests total (+117), 26 new tests in `lens-match.test.ts`
+- Covers quiz submission, booking, callback, slot availability, email sending
+
+---
+
 ## [3.0.0] — 2026-02-28
 
 ### Added — Client Portal (Family Vision Dashboard)

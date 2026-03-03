@@ -2,7 +2,7 @@ import { z } from "zod";
 
 export const AppointmentSchema = z.object({
   customerId: z.string().min(1),
-  type: z.enum(["EYE_EXAM", "CONTACT_LENS_FITTING", "FOLLOW_UP", "GLASSES_PICKUP", "ADJUSTMENT", "STYLING"]),
+  type: z.enum(["EYE_EXAM", "CONTACT_LENS_FITTING", "FOLLOW_UP", "GLASSES_PICKUP", "ADJUSTMENT", "STYLING", "CONSULTATION"]),
   scheduledAt: z.string().min(1, "Date and time are required"),
   duration: z.coerce.number().int().min(5).default(30),
   notes: z.string().optional(),

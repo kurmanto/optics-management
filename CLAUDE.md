@@ -15,7 +15,8 @@ A staff portal for Mint Vision Optique (optometry boutique) replacing paper orde
 ### Route Groups
 - `(auth)` — Login page, no sidebar
 - `(portal)` — All authenticated staff pages, has sidebar layout
-- `(client)` — Client portal pages (`/my/*`), mobile-first layout with bottom nav
+- `(client)` — Client portal pages (`/my/*`), mobile-first layout with bottom nav; includes `/my/lens-match` (authenticated lens quiz)
+- `(lens-match)` — Public lens match quiz (`/lens-match`), no auth required
 - `(forms)` — Public form pages, no auth required
 
 ### Data Layer Pattern
@@ -53,7 +54,9 @@ src/lib/actions/client-auth.ts # Client login (magic link + password), logout, p
 src/lib/actions/client-portal.ts      # Client portal data (family overview, member profile, exam detail)
 src/lib/actions/client-booking.ts     # Client appointment booking (slots, book, cancel)
 src/lib/actions/client-portal-admin.ts # Staff-side portal admin (create/disable accounts, unlock cards)
-src/lib/validations/           # Zod schemas
+src/lib/actions/lens-match.ts  # submitLensQuiz, bookLensMatchAppointment, requestLensMatchCallback, getAvailableSlotsPublic
+src/lib/utils/lens-packages.ts # 6 lens package definitions, scoring/recommendation logic
+src/lib/validations/           # Zod schemas (includes lens-match.ts)
 ```
 
 ## Business Rules
@@ -107,7 +110,7 @@ VERIFIED = Rx check by optician after lab receives order. PICKED_UP triggers Pic
 - `legacyCustomerId` is nullable — not all migrated records have it
 
 ## Version Status
-Current version: **V3.0.0 — Client Portal** (2026-02-28)
+Current version: **V3.1.0 — Lens Match Quiz & In-App Booking** (2026-03-03)
 
 | Feature | Status |
 |---------|--------|
@@ -133,6 +136,7 @@ Current version: **V3.0.0 — Client Portal** (2026-02-28)
 | Exams weekly tracking page (`/exams`) + payment method | ✅ Complete |
 | Google Review tracking (customer field + card + list filter) | ✅ Complete |
 | Client Portal (magic link + password auth, family dashboard, member profiles, booking wizard, unlock cards) | ✅ Complete |
+| Lens Match Quiz (public quiz at `/lens-match`, in-app booking replaces Jane App, `/my/lens-match` portal route, 6 packages, callback flow) | ✅ Complete |
 | Reporting | 🔲 V1.1 |
 | Walk-ins | 🔲 V2 |
 | SMS / Email | 🔲 V2.1 |

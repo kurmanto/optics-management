@@ -61,7 +61,7 @@ export const StyleQuizSchema = z.object({
 
 export const BookAppointmentSchema = z.object({
   customerId: z.string().min(1, "Please select a family member"),
-  type: z.enum(["EYE_EXAM", "CONTACT_LENS_FITTING", "FOLLOW_UP", "GLASSES_PICKUP", "ADJUSTMENT", "STYLING"]),
+  type: z.enum(["EYE_EXAM", "CONTACT_LENS_FITTING", "FOLLOW_UP", "GLASSES_PICKUP", "ADJUSTMENT", "STYLING", "CONSULTATION"]),
   scheduledAt: z.string().min(1, "Please select a date and time"),
   notes: z.string().optional(),
 });

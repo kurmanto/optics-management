@@ -1,7 +1,7 @@
 # Architecture
 ## Mint Vision Optique — Staff Portal
 
-**Last updated:** 2026-02-28
+**Last updated:** 2026-03-03
 
 ---
 
@@ -43,6 +43,7 @@ optics_boutique/
 │   │   │       │   ├── member/[customerId]/page.tsx
 │   │   │       │   ├── exam/[examId]/page.tsx
 │   │   │       │   ├── book/page.tsx    # Booking wizard
+│   │   │       │   ├── lens-match/page.tsx  # Authenticated lens match quiz
 │   │   │       │   ├── unlocks/page.tsx
 │   │   │       │   └── settings/page.tsx
 │   │   │       ├── login/page.tsx       # Client login (magic link + password)
@@ -98,6 +99,8 @@ optics_boutique/
 │   │   │   ├── f/[token]/success/page.tsx
 │   │   │   ├── intake/[token]/page.tsx         # Sequential intake flow
 │   │   │   └── intake/start/page.tsx          # Self-service intake entry point
+│   │   ├── (lens-match)/                       # Public lens match quiz — no auth required
+│   │   │   └── lens-match/page.tsx             # 6-question quiz + package recommendation
 │   │   ├── layout.tsx
 │   │   └── page.tsx           # Redirects to /dashboard
 │   ├── components/
@@ -117,6 +120,7 @@ optics_boutique/
 │   │   ├── inventory/         # InventoryForm, VendorForm, PurchaseOrderForm, POStatusButtons, ReceivingWorkflow
 │   │   ├── layout/            # Sidebar, Header
 │   │   ├── orders/            # KanbanBoard, NewOrderWizard, OrderStatusActions, WorkOrderView, PickupCompleteModal
+│   │   ├── lens-match/         # LensMatchWizard, ResultsPage, PackageCard, QuizQuestion, QuizProgress, LeadCaptureForm, LensMatchBooking, LensMatchCallbackForm
 │   │   ├── shared/            # RxTable (shared between staff + client portals)
 │   │   └── ui/                # Button (with variants/sizes/loading state)
 │   ├── lib/
@@ -128,6 +132,7 @@ optics_boutique/
 │   │   │   ├── client-portal.ts      # getFamilyOverview, getMemberProfile, getExamDetail, getUnlockCards, getFamilyMembers
 │   │   │   ├── client-booking.ts     # getAvailableSlots, bookAppointment, cancelAppointment (client-side)
 │   │   │   ├── client-portal-admin.ts # createClientPortalAccount, disableClientPortalAccount, sendPortalInviteEmail, createUnlockCard, updateUnlockCardStatus
+│   │   │   ├── lens-match.ts          # submitLensQuiz, bookLensMatchAppointment, requestLensMatchCallback, getAvailableSlotsPublic
 │   │   │   ├── customers.ts
 │   │   │   ├── invoices.ts
 │   │   │   ├── orders.ts
@@ -151,9 +156,11 @@ optics_boutique/
 │   │   │   ├── customer.ts
 │   │   │   ├── order.ts
 │   │   │   ├── forms.ts
-│   │   │   └── campaign.ts
+│   │   │   ├── campaign.ts
+│   │   │   └── lens-match.ts  # LensQuizSubmissionSchema, LensMatchBookingSchema, LensMatchCallbackSchema
 │   │   ├── utils/
 │   │   │   ├── formatters.ts  # formatCurrency, formatDate, formatPhone, formatRxValue
+│   │   │   ├── lens-packages.ts # 6 lens package definitions, scoring/recommendation logic
 │   │   │   └── cn.ts          # Tailwind class merging
 │   │   ├── audit.ts           # logAudit() — fire-and-forget audit writer
 │   │   ├── auth.ts            # Session create/verify/destroy
@@ -361,6 +368,9 @@ The Prisma singleton in `src/lib/prisma.ts` uses `@prisma/adapter-pg`.
 | Anthropic Claude API | AI OCR for external prescription photos | `@anthropic-ai/sdk` |
 | Twilio | SMS delivery for campaigns | ❌ Not yet integrated — `sendSms()` in `dispatch.ts` is a stub |
 | Resend | Email delivery for campaigns | ❌ Not yet integrated — `sendEmail()` in `dispatch.ts` is a stub |
+
+### Dual-Route Pattern: Public + Portal
+The Lens Match Quiz uses a dual-route pattern: `/lens-match` is a public route (no auth, in `(lens-match)` route group) for anonymous visitors, while `/my/lens-match` is an authenticated route within the client portal layout. Both share the same `LensMatchWizard` component. The public route offers "Request a Callback" for anonymous users or "Log in to book online"; the portal route provides inline date/time booking via `bookLensMatchAppointment`. Public slot availability uses `getAvailableSlotsPublic` (no auth), while client booking uses `getAvailableSlots` (client auth required).
 
 ### AI OCR (External Rx Upload)
 The `ExternalPrescriptionUpload` component calls Claude's vision API to parse prescription images. The prompt asks Claude to return structured JSON with OD/OS sphere, cylinder, axis, add, PD, expiry date, and prescribing doctor info. The response is validated before pre-filling the prescription form.
