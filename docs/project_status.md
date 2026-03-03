@@ -1,11 +1,36 @@
 # Project Status
 ## Mint Vision Optique — Staff Portal
 
-**Last updated:** 2026-02-28
+**Last updated:** 2026-03-03
 
 ---
 
-## Current Version: V3.0.0 — Client Portal
+## Current Version: V3.1.0 — Lens Match Quiz & In-App Booking
+
+---
+
+### V3.1.0 — Lens Match Quiz & In-App Booking (Complete)
+
+| Feature | Status | Notes |
+|---------|--------|-------|
+| CONSULTATION appointment type | ✅ Complete | 15-min lens recommendation review added to AppointmentType enum |
+| LensQuote booking fields | ✅ Complete | `appointmentId`, `requestedAppointmentType`, `callbackRequestedAt` |
+| Public lens match quiz (`/lens-match`) | ✅ Complete | 6-question quiz, 6 packages (SV/Progressive x Standard/Premium/Elite) |
+| Lens package recommendation engine | ✅ Complete | `src/lib/utils/lens-packages.ts` — scoring + recommendation logic |
+| In-app booking (replaces Jane App) | ✅ Complete | Inline date/time picker for logged-in portal users |
+| Anonymous callback request flow | ✅ Complete | "Request a Callback" + "Log in to book online" for anonymous users |
+| Portal route (`/my/lens-match`) | ✅ Complete | Authenticated version within client portal layout |
+| QuickActionsRow update | ✅ Complete | Label changed to "Lens Fit", href to `/my/lens-match` |
+| Quiz data in appointment notes | ✅ Complete | Auto-generated notes: package name, price range, answers, contact info |
+| Email results (`sendLensMatchEmail`) | ✅ Complete | Sends recommendation to user's email |
+| New components (8) | ✅ Complete | LensMatchWizard, ResultsPage, PackageCard, QuizQuestion, QuizProgress, LeadCaptureForm, LensMatchBooking, LensMatchCallbackForm |
+| Server actions (4) | ✅ Complete | `submitLensQuiz`, `bookLensMatchAppointment`, `requestLensMatchCallback`, `getAvailableSlotsPublic` |
+| Zod validations (3) | ✅ Complete | `LensQuizSubmissionSchema`, `LensMatchBookingSchema`, `LensMatchCallbackSchema` |
+| Unit tests (791 total) | ✅ Complete | +117 tests; 26 in `lens-match.test.ts` |
+
+---
+
+### Previous Version: V3.0.0 — Client Portal
 
 ---
 
@@ -419,6 +444,7 @@
 1. **Run data migration** — export Customer Master CSV, run `migrate-customers.ts`
 2. **Staff management** — create/deactivate staff accounts (Admin only)
 3. **Reporting** — revenue by period, orders by status
+4. **Wire SMS/email delivery** — replace stubs in `dispatch.ts` with Twilio/Resend
 
 ---
 

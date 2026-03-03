@@ -1,9 +1,9 @@
 # Product Requirements Document
 ## Mint Vision Optique — Staff Portal
 
-**Version:** 3.0
-**Last updated:** 2026-02-28
-**Status:** V3.0 (Client Portal) shipped; V1.1 (Staff/Reporting) next
+**Version:** 3.1
+**Last updated:** 2026-03-03
+**Status:** V3.1 (Lens Match Quiz) shipped; V1.1 (Staff/Reporting) next
 
 ---
 
@@ -33,7 +33,7 @@ The portal is **staff-only** (not customer-facing). It runs in-store on tablets 
 
 ## 3. Non-Goals (V1)
 
-- ~~Customer-facing portal or booking system~~ → **Shipped in V3.0** (Family Vision Dashboard)
+- ~~Customer-facing portal or booking system~~ → **Shipped in V3.0** (Family Vision Dashboard) + **V3.1** (Lens Match Quiz with in-app booking replacing Jane App)
 - Online store / e-commerce
 - Direct integration with labs or insurance portals
 - SMS / email automation (V2.1)
@@ -255,6 +255,32 @@ The portal is **staff-only** (not customer-facing). It runs in-store on tablets 
 #### PHI Data Scoping
 - Shown: Rx values, exam dates, doctor names, order status, frame details, insurance eligibility
 - Hidden: IOP, VA, clinical notes, billing codes, wholesale costs, staff notes, audit logs
+
+---
+
+### V3.1 — Lens Match Quiz & In-App Booking (Shipped)
+
+#### Lens Match Quiz
+- 6-question public quiz at `/lens-match` that recommends lens packages based on patient lifestyle and visual needs
+- 6 lens packages: Single Vision Standard/Premium/Elite, Progressive Standard/Premium/Elite
+- Quiz results display recommended package with price range, features, and benefits
+- `sendLensMatchEmail` sends recommendation summary to user's email address
+- Quiz data (package name, price range, answers, contact info) auto-populates appointment notes for staff visibility
+
+#### In-App Booking (replaces external Jane App)
+- Logged-in portal users get an inline date/time picker with confirm flow, booking a CONSULTATION appointment type (15-min lens recommendation review)
+- Anonymous users see a "Request a Callback" form (captures name, phone, email, preferred time) + "Log in to book online" link
+- `getAvailableSlotsPublic` provides slot availability without authentication
+- `bookLensMatchAppointment` creates a CONSULTATION appointment linked to the quiz result
+- `requestLensMatchCallback` stores the callback request with quiz context for staff follow-up
+
+#### Portal Integration
+- `/my/lens-match` — authenticated version of the quiz within the client portal layout (same `LensMatchWizard` component)
+- QuickActionsRow on family dashboard updated: label changed to "Lens Fit", href to `/my/lens-match`
+
+#### Schema Changes
+- `CONSULTATION` added to `AppointmentType` enum
+- `LensQuote` booking fields: `appointmentId`, `requestedAppointmentType`, `callbackRequestedAt`
 
 ---
 

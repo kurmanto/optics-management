@@ -991,7 +991,8 @@ model Appointment {
   createdAt      DateTime          @default(now())
   updatedAt      DateTime          @updatedAt
 
-  customer Customer @relation(fields: [customerId], references: [id])
+  customer  Customer   @relation(fields: [customerId], references: [id])
+  lensQuote LensQuote?
 
   @@map("appointments")
 }
@@ -1003,6 +1004,7 @@ enum AppointmentType {
   GLASSES_PICKUP
   ADJUSTMENT
   STYLING
+  CONSULTATION
 }
 
 enum AppointmentStatus {
@@ -1531,4 +1533,41 @@ model PointsLedger {
 
   @@index([familyId])
   @@map("points_ledger")
+}
+
+// ─────────────────────────────────────────
+// LENS MATCH (Marketing Quiz)
+// ─────────────────────────────────────────
+
+model LensQuote {
+  id                       String    @id @default(cuid())
+  firstName                String    @map("first_name")
+  phone                    String?
+  email                    String?
+  preferredTimeframe       String?   @map("preferred_timeframe")
+  answers                  Json
+  primaryPackageId         String    @map("primary_package_id")
+  upgradePackageId         String?   @map("upgrade_package_id")
+  alternativePackageId     String?   @map("alternative_package_id")
+  completedAt              DateTime  @default(now()) @map("completed_at")
+  emailSentAt              DateTime? @map("email_sent_at")
+  bookingClickedAt         DateTime? @map("booking_clicked_at")
+  appointmentId            String?   @unique @map("appointment_id")
+  requestedAppointmentType String?   @map("requested_appointment_type")
+  callbackRequestedAt      DateTime? @map("callback_requested_at")
+  clientAccountId          String?   @map("client_account_id")
+  customerId               String?   @map("customer_id")
+  ipAddress                String?   @map("ip_address")
+  userAgent                String?   @map("user_agent")
+  utmSource                String?   @map("utm_source")
+  utmMedium                String?   @map("utm_medium")
+  utmCampaign              String?   @map("utm_campaign")
+  createdAt                DateTime  @default(now()) @map("created_at")
+
+  appointment Appointment? @relation(fields: [appointmentId], references: [id])
+
+  @@index([email])
+  @@index([clientAccountId])
+  @@index([createdAt])
+  @@map("lens_quotes")
 }

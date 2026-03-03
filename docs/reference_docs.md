@@ -1,7 +1,7 @@
 # Developer Reference
 ## Mint Vision Optique — Staff Portal
 
-**Last updated:** 2026-02-28
+**Last updated:** 2026-03-03
 
 ---
 
@@ -41,6 +41,9 @@
 | `src/lib/campaigns/drip-presets.ts` | `getDripConfig(campaignType)` — returns steps, cooldownDays, enrollmentMode |
 | `src/lib/rate-limit.ts` | `checkRateLimit(key, max, windowMs)`, `timingSafeDelay(ms)` — in-memory sliding window rate limiter |
 | `src/lib/types/forms.ts` | `ReturningPatientPrefill` — prefill data type for returning patient intake |
+| `src/lib/actions/lens-match.ts` | `submitLensQuiz`, `bookLensMatchAppointment`, `requestLensMatchCallback`, `getAvailableSlotsPublic` (public, no auth) |
+| `src/lib/utils/lens-packages.ts` | 6 lens package definitions (SV/Progressive x Standard/Premium/Elite), scoring/recommendation logic |
+| `src/lib/validations/lens-match.ts` | `LensQuizSubmissionSchema`, `LensMatchBookingSchema`, `LensMatchCallbackSchema` |
 | `src/lib/validations/customer.ts` | `CustomerSchema` (Zod) |
 | `src/lib/validations/order.ts` | Order validation schemas (Zod) |
 | `src/lib/validations/forms.ts` | Form submission schemas (Zod) |
@@ -322,6 +325,9 @@ Format: `ORD-YYYY-NNN` (e.g. `ORD-2026-001`).
 ### UnlockCardStatus
 `LOCKED | UNLOCKED | CLAIMED | EXPIRED`
 
+### AppointmentType
+`EYE_EXAM | CONTACT_LENS_FITTING | FRAME_STYLING | FRAME_ADJUSTMENT | FRAME_REPAIR | FOLLOW_UP | CONSULTATION`
+
 ---
 
 ## Client Portal Auth Pattern
@@ -343,6 +349,18 @@ export async function getFamilyOverview() {
 ```
 
 Staff-side admin actions for managing client portal accounts use `verifyRole('STAFF')` or `verifyRole('ADMIN')`.
+
+---
+
+## Lens Match Quiz — Public vs Authenticated Slots
+
+Two slot availability actions exist:
+- `getAvailableSlotsPublic` (`src/lib/actions/lens-match.ts`) — **no auth required**; used by the public `/lens-match` quiz page for anonymous visitors
+- `getAvailableSlots` (`src/lib/actions/client-booking.ts`) — **client auth required**; used by the portal `/my/book` and `/my/lens-match` pages, scoped to family
+
+Both return the same slot structure; the public version omits family-scoped logic.
+
+Lens match components (`src/components/lens-match/`): `LensMatchWizard`, `ResultsPage`, `PackageCard`, `QuizQuestion`, `QuizProgress`, `LeadCaptureForm`, `LensMatchBooking`, `LensMatchCallbackForm`. The wizard is shared between the public route and the portal route.
 
 ---
 

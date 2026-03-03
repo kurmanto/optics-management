@@ -265,6 +265,82 @@ export async function sendClientNotificationEmail(input: ClientNotificationEmail
   return result;
 }
 
+// ─── Lens Match Email ─────────────────────────────────────────────────────
+
+interface LensMatchEmailInput {
+  to: string;
+  firstName: string;
+  packageName: string;
+  priceRange: string;
+  whyBullets: string[];
+}
+
+export async function sendLensMatchEmail(input: LensMatchEmailInput) {
+  const bulletsHtml = input.whyBullets
+    .map((b) => `<li style="color:#555;font-size:14px;line-height:1.8;">${b}</li>`)
+    .join("");
+
+  const html = `
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8" /></head>
+<body style="font-family:Arial,sans-serif;margin:0;padding:0;background:#f8f8f8;">
+  <div style="max-width:600px;margin:0 auto;background:#ffffff;padding:0 0 24px;">
+    <!-- Header -->
+    <div style="background:#1a1a2e;padding:32px 40px;text-align:center;">
+      <h1 style="color:#ffffff;margin:0;font-size:22px;letter-spacing:2px;">MINT VISION OPTIQUE</h1>
+    </div>
+
+    <!-- Body -->
+    <div style="padding:32px 40px;">
+      <h2 style="margin:0 0 16px;font-size:18px;color:#111;">Your Personalized Lens Recommendation</h2>
+      <p style="color:#555;font-size:14px;line-height:1.6;margin:0 0 16px;">
+        Hi ${input.firstName}, based on your answers, we recommend:
+      </p>
+
+      <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:20px;margin:0 0 20px;">
+        <h3 style="margin:0 0 4px;font-size:17px;color:#111;">${input.packageName}</h3>
+        <p style="margin:0;font-size:15px;color:#16a34a;font-weight:600;">${input.priceRange}</p>
+      </div>
+
+      <h4 style="margin:0 0 8px;font-size:14px;color:#333;">Why this fits you:</h4>
+      <ul style="margin:0 0 24px;padding-left:20px;">
+        ${bulletsHtml}
+      </ul>
+
+      <div style="text-align:center;margin:24px 0;">
+        <a href="https://mintvisionsoptique.janeapp.com/#/staff_member/1/treatment/1"
+           style="display:inline-block;background:#16a34a;color:#ffffff;padding:14px 32px;border-radius:8px;font-size:15px;font-weight:600;text-decoration:none;">
+          Book Your Consult
+        </a>
+      </div>
+
+      <p style="color:#999;font-size:12px;line-height:1.5;margin:24px 0 0;">
+        Final pricing is confirmed in-store after prescription verification and measurements. Your recommendation is based on your quiz responses and may be adjusted during your consultation.
+      </p>
+    </div>
+
+    <!-- Footer -->
+    <div style="padding:16px 40px 0;border-top:1px solid #eee;">
+      <p style="font-size:11px;color:#999;margin:0;">
+        Mint Vision Optique · 478 Dundas St. W. Unit 5, Oakville, Ontario L6H 6L8<br/>
+        905-257-6400 · harmeet@mintvision.ca
+      </p>
+    </div>
+  </div>
+</body>
+</html>`;
+
+  const result = await getResend().emails.send({
+    from: FROM_EMAIL,
+    to: input.to,
+    subject: "Your Lens Recommendation — Mint Vision Optique",
+    html,
+  });
+
+  return result;
+}
+
 // ─── Intake Email ──────────────────────────────────────────────────────────
 
 interface IntakeEmailInput {

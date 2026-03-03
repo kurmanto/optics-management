@@ -64,6 +64,7 @@ export function buildPrismaMock() {
     clientNotification: modelMock(),
     clientNotificationPreference: modelMock(),
     pointsLedger: modelMock(),
+    lensQuote: modelMock(),
     $transaction: vi.fn(async (fn: (tx: unknown) => unknown) => {
       if (typeof fn === "function") {
         return fn(mock);

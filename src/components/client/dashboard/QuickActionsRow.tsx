@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Calendar, Eye, Gift, Palette } from "lucide-react";
+import { Calendar, Eye, Gift, Palette, Search } from "lucide-react";
 
 interface QuickActionsRowProps {
   firstMemberId?: string;
@@ -16,6 +16,7 @@ export function QuickActionsRow({ firstMemberId }: QuickActionsRowProps) {
     },
     { href: "/my/unlocks", label: "Unlocks", icon: Gift, color: "bg-purple-50 text-purple-600" },
     { href: "/my/style", label: "Style ID", icon: Palette, color: "bg-amber-50 text-amber-600" },
+    { href: "/my/lens-match", label: "Lens Fit", icon: Search, color: "bg-teal-50 text-teal-600" },
   ];
 
   return (
@@ -31,7 +32,7 @@ export function QuickActionsRow({ firstMemberId }: QuickActionsRowProps) {
             <div className={`h-9 w-9 rounded-full flex items-center justify-center ${action.color}`}>
               <Icon className="h-4.5 w-4.5" />
             </div>
-            <span className="text-xs font-medium text-gray-700">{action.label}</span>
+            <span className="text-xs font-medium text-gray-700 whitespace-nowrap">{action.label}</span>
           </Link>
         );
       })}
