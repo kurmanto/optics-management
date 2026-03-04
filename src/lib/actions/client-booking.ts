@@ -154,7 +154,7 @@ export async function cancelAppointment(appointmentId: string): Promise<{ error?
     include: { customer: { select: { familyId: true } } },
   });
 
-  if (!appointment || appointment.customer.familyId !== session.familyId) {
+  if (!appointment || appointment.customer?.familyId !== session.familyId) {
     return { error: "Appointment not found." };
   }
 

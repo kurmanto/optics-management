@@ -52,6 +52,10 @@ const navItems = [
     title: "Appointments",
     href: "/appointments",
     icon: CalendarDays,
+    children: [
+      { title: "Calendar", href: "/appointments" },
+      { title: "Settings", href: "/appointments/settings", adminOnly: true },
+    ],
   },
   {
     title: "Forms",
@@ -96,13 +100,16 @@ const navItems = [
   },
 ];
 
-type NavChild = { title: string; href: string; icon?: React.ElementType };
+type NavChild = { title: string; href: string; icon?: React.ElementType; adminOnly?: boolean };
 type NavItem = {
   title: string;
   href: string;
   icon: React.ElementType;
   children?: NavChild[];
 };
+
+// Type assertion for navItems to support adminOnly
+const typedNavItems: NavItem[] = navItems as NavItem[];
 
 type Props = {
   userName: string;
@@ -128,6 +135,7 @@ export function Sidebar({ userName, userRole, taskCount }: Props) {
     if (child.href === "/inventory") return pathname === "/inventory";
     if (child.href === "/orders") return pathname === "/orders";
     if (child.href === "/customers") return pathname === "/customers" || pathname.startsWith("/customers/");
+    if (child.href === "/appointments") return pathname === "/appointments";
     if (child.href === "/campaigns") return pathname === "/campaigns" || (pathname.startsWith("/campaigns/") && !pathname.startsWith("/campaigns/analytics"));
     return pathname.startsWith(child.href);
   }
@@ -150,7 +158,7 @@ export function Sidebar({ userName, userRole, taskCount }: Props) {
       {/* Nav */}
       <nav className="flex-1 p-4 flex flex-col">
         <div className="space-y-1">
-        {navItems.map((item) => {
+        {typedNavItems.map((item) => {
           const isActive = isGroupActive(item);
           const Icon = item.icon;
 
@@ -172,7 +180,7 @@ export function Sidebar({ userName, userRole, taskCount }: Props) {
                 </Link>
                 {isActive && (
                   <div className="mt-1 ml-4 pl-4 border-l border-gray-700 space-y-0.5">
-                    {item.children.map((child) => {
+                    {item.children.filter((c) => !c.adminOnly || userRole === "ADMIN").map((child) => {
                       const ChildIcon = child.icon;
                       return (
                         <Link

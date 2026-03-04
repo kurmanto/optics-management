@@ -143,7 +143,11 @@ describe("getAppointmentsForRange", () => {
         duration: 30,
         notes: null,
         customerId: "cust-1",
+        source: "STAFF",
+        bufferAfter: 0,
         customer: { id: "cust-1", firstName: "Jane", lastName: "Doe", phone: "6476485809" },
+        provider: null,
+        serviceType: null,
       },
     ];
     prisma.appointment.findMany.mockResolvedValue(mockAppts);
@@ -156,9 +160,9 @@ describe("getAppointmentsForRange", () => {
         where: {
           scheduledAt: { gte: start, lt: end },
         },
-        include: {
+        include: expect.objectContaining({
           customer: { select: { id: true, firstName: true, lastName: true, phone: true } },
-        },
+        }),
       })
     );
 
@@ -168,6 +172,7 @@ describe("getAppointmentsForRange", () => {
       customerName: "Jane Doe",
       customerPhone: "6476485809",
       scheduledAt: "2026-03-12T10:00:00.000Z",
+      source: "STAFF",
     });
   });
 

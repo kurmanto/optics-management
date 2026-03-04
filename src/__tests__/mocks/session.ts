@@ -4,6 +4,7 @@ export const mockSession = {
   name: "Staff User",
   role: "STAFF",
   mustChangePassword: false,
+  fontSizePreference: "MEDIUM" as const,
 };
 
 export const mockAdminSession = {

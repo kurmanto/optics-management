@@ -10,7 +10,7 @@ interface Appointment {
   type: string;
   scheduledAt: Date;
   status: string;
-  customer: { firstName: string };
+  customer: { firstName: string } | null;
 }
 
 interface UpcomingAppointmentsListProps {
@@ -56,7 +56,7 @@ export function UpcomingAppointmentsList({ appointments: initialAppointments }: 
           >
             <div>
               <p className="text-sm font-medium text-gray-900">
-                {apt.customer.firstName} · {TYPE_LABELS[apt.type] || apt.type}
+                {apt.customer?.firstName ?? "Patient"} · {TYPE_LABELS[apt.type] || apt.type}
               </p>
               <p className="text-xs text-gray-500">
                 {formatDate(apt.scheduledAt)} at{" "}

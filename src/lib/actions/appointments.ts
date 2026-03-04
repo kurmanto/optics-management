@@ -67,6 +67,8 @@ export async function getAppointmentsForRange(
     },
     include: {
       customer: { select: { id: true, firstName: true, lastName: true, phone: true } },
+      provider: { select: { id: true, name: true } },
+      serviceType: { select: { id: true, name: true } },
     },
     orderBy: { scheduledAt: "asc" },
   });
@@ -79,8 +81,16 @@ export async function getAppointmentsForRange(
     duration: a.duration,
     notes: a.notes,
     customerId: a.customerId,
-    customerName: `${a.customer.firstName} ${a.customer.lastName}`,
-    customerPhone: a.customer.phone,
+    customerName: a.customer
+      ? `${a.customer.firstName} ${a.customer.lastName}`
+      : "New Patient",
+    customerPhone: a.customer?.phone ?? null,
+    providerId: a.provider?.id ?? null,
+    providerName: a.provider?.name ?? null,
+    serviceTypeId: a.serviceType?.id ?? null,
+    serviceTypeName: a.serviceType?.name ?? null,
+    source: a.source,
+    bufferAfter: a.bufferAfter,
   }));
 }
 

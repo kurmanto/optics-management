@@ -341,6 +341,80 @@ export async function sendLensMatchEmail(input: LensMatchEmailInput) {
   return result;
 }
 
+// ─── Booking Confirmation Email ────────────────────────────────────────────
+
+interface BookingConfirmationEmailInput {
+  to: string;
+  firstName: string;
+  serviceName: string;
+  date: string;
+  time: string;
+  providerName?: string;
+  duration: number;
+}
+
+export async function sendBookingConfirmationEmail(input: BookingConfirmationEmailInput) {
+  const providerLine = input.providerName
+    ? `<p style="color:#555;font-size:14px;line-height:1.6;margin:0 0 4px;"><strong>Provider:</strong> ${input.providerName}</p>`
+    : "";
+
+  const html = `
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8" /></head>
+<body style="font-family:Arial,sans-serif;margin:0;padding:0;background:#f8f8f8;">
+  <div style="max-width:600px;margin:0 auto;background:#ffffff;padding:0 0 24px;">
+    <!-- Header -->
+    <div style="background:#1a1a2e;padding:32px 40px;text-align:center;">
+      <h1 style="color:#ffffff;margin:0;font-size:22px;letter-spacing:2px;">MINT VISION OPTIQUE</h1>
+    </div>
+
+    <!-- Body -->
+    <div style="padding:32px 40px;">
+      <h2 style="margin:0 0 16px;font-size:18px;color:#111;">Appointment Confirmed</h2>
+      <p style="color:#555;font-size:14px;line-height:1.6;margin:0 0 20px;">
+        Hi ${input.firstName}, your appointment has been confirmed!
+      </p>
+
+      <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:20px;margin:0 0 20px;">
+        <p style="color:#555;font-size:14px;line-height:1.6;margin:0 0 4px;"><strong>Service:</strong> ${input.serviceName}</p>
+        <p style="color:#555;font-size:14px;line-height:1.6;margin:0 0 4px;"><strong>Date:</strong> ${input.date}</p>
+        <p style="color:#555;font-size:14px;line-height:1.6;margin:0 0 4px;"><strong>Time:</strong> ${input.time}</p>
+        ${providerLine}
+        <p style="color:#555;font-size:14px;line-height:1.6;margin:0;"><strong>Duration:</strong> ${input.duration} minutes</p>
+      </div>
+
+      <p style="color:#555;font-size:14px;line-height:1.6;margin:0 0 16px;">
+        Please arrive 5-10 minutes early. If you need to reschedule or cancel, please contact us at least 24 hours in advance.
+      </p>
+
+      <p style="color:#555;font-size:14px;line-height:1.6;margin:0;">
+        Warm regards,<br/>
+        <strong>Mint Vision Optique</strong><br/>
+        <span style="font-size:12px;color:#888;">905-257-6400 &middot; harmeet@mintvision.ca</span>
+      </p>
+    </div>
+
+    <!-- Footer -->
+    <div style="padding:16px 40px 0;border-top:1px solid #eee;">
+      <p style="font-size:11px;color:#999;margin:0;">
+        478 Dundas St. W. Unit 5, Oakville, Ontario L6H 6L8
+      </p>
+    </div>
+  </div>
+</body>
+</html>`;
+
+  const result = await getResend().emails.send({
+    from: FROM_EMAIL,
+    to: input.to,
+    subject: `Appointment Confirmed — ${input.serviceName} | Mint Vision Optique`,
+    html,
+  });
+
+  return result;
+}
+
 // ─── Intake Email ──────────────────────────────────────────────────────────
 
 interface IntakeEmailInput {
