@@ -5,9 +5,16 @@ export type CalendarAppointment = {
   scheduledAt: string; // ISO string
   duration: number;
   notes: string | null;
-  customerId: string;
+  customerId: string | null;
   customerName: string;
   customerPhone: string | null;
+  // V4 upgrade fields
+  providerId: string | null;
+  providerName: string | null;
+  serviceTypeId: string | null;
+  serviceTypeName: string | null;
+  source: string;
+  bufferAfter: number;
 };
 
 export const APPOINTMENT_TYPE_LABELS: Record<string, string> = {

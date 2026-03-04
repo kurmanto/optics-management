@@ -1106,12 +1106,12 @@ export default async function DashboardPage() {
                   {followUps.upcomingStylingAppts.map((appt) => (
                     <Link
                       key={appt.id}
-                      href={`/customers/${appt.customer.id}`}
+                      href={`/customers/${appt.customer?.id ?? ""}`}
                       className="flex items-center justify-between px-5 py-3 hover:bg-[#F9F9F9] transition-colors"
                     >
                       <div>
                         <p className="text-sm font-medium text-gray-900">
-                          {appt.customer.firstName} {appt.customer.lastName}
+                          {appt.customer ? `${appt.customer.firstName} ${appt.customer.lastName}` : "New Patient"}
                         </p>
                         <p className="text-xs text-[#808080]">
                           {new Date(appt.scheduledAt).toLocaleString("en-CA", { weekday: "short", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}

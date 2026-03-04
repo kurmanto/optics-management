@@ -11,6 +11,7 @@ import {
   AlertTriangle,
   Check,
   ClipboardList,
+  CalendarDays,
 } from "lucide-react";
 import {
   getMyNotifications,
@@ -31,7 +32,8 @@ type NotificationType =
   | "CAMPAIGN_COMPLETED"
   | "CAMPAIGN_ERROR"
   | "TASK_ASSIGNED"
-  | "TASK_DUE_SOON";
+  | "TASK_DUE_SOON"
+  | "APPOINTMENT_BOOKED_PUBLIC";
 
 function timeAgo(date: Date): string {
   const seconds = Math.floor((Date.now() - new Date(date).getTime()) / 1000);
@@ -60,6 +62,8 @@ function typeIcon(type: NotificationType) {
     case "TASK_ASSIGNED":
     case "TASK_DUE_SOON":
       return <ClipboardList className="w-4 h-4 text-indigo-500 flex-shrink-0" />;
+    case "APPOINTMENT_BOOKED_PUBLIC":
+      return <CalendarDays className="w-4 h-4 text-teal-500 flex-shrink-0" />;
   }
 }
 

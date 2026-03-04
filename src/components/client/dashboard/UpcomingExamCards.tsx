@@ -5,7 +5,7 @@ interface Appointment {
   id: string;
   type: string;
   scheduledAt: Date;
-  customer: { firstName: string };
+  customer: { firstName: string } | null;
 }
 
 interface UpcomingExamCardsProps {
@@ -47,7 +47,7 @@ export function UpcomingExamCards({ appointments }: UpcomingExamCardsProps) {
             className="flex items-center justify-between py-2 border-b border-gray-50 last:border-0"
           >
             <div>
-              <p className="text-sm font-medium text-gray-900">{apt.customer.firstName}</p>
+              <p className="text-sm font-medium text-gray-900">{apt.customer?.firstName ?? "Patient"}</p>
               <p className="text-xs text-gray-500">{TYPE_LABELS[apt.type] || apt.type}</p>
             </div>
             <div className="text-right">

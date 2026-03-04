@@ -21,7 +21,8 @@ export type AuditAction =
   | "CLIENT_LOGIN_FAILED"
   | "CLIENT_PORTAL_VIEW"
   | "CLIENT_PASSWORD_CHANGE"
-  | "CLIENT_BOOKING";
+  | "CLIENT_BOOKING"
+  | "PUBLIC_BOOKING";
 
 export async function logAudit(params: {
   userId?: string;

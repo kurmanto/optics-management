@@ -60,6 +60,8 @@ vi.mock("@/lib/supabase", () => ({
   uploadInventoryPhoto: vi.fn().mockResolvedValue(null),
   uploadPrescriptionScan: vi.fn().mockResolvedValue(null),
   ensurePrescriptionBucket: vi.fn().mockResolvedValue(undefined),
+  uploadStyleSelfie: vi.fn().mockResolvedValue(null),
+  ensureStyleSelfiesBucket: vi.fn().mockResolvedValue(undefined),
 }));
 
 // ── Client notification mock ─────────────────────────────────────────────────

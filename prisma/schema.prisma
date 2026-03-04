@@ -980,7 +980,7 @@ model Referral {
 
 model Appointment {
   id             String            @id @default(cuid())
-  customerId     String
+  customerId     String?
   type           AppointmentType   @default(EYE_EXAM)
   status         AppointmentStatus @default(SCHEDULED)
   scheduledAt    DateTime
@@ -991,9 +991,27 @@ model Appointment {
   createdAt      DateTime          @default(now())
   updatedAt      DateTime          @updatedAt
 
-  customer  Customer   @relation(fields: [customerId], references: [id])
-  lensQuote LensQuote?
+  // V4 upgrade fields
+  serviceTypeId      String?         @map("service_type_id")
+  providerId         String?         @map("provider_id")
+  source             BookingSource   @default(STAFF)
+  bufferAfter        Int             @default(0) @map("buffer_after")
+  reminder72hSent    Boolean         @default(false) @map("reminder_72h_sent")
+  reminder24hSent    Boolean         @default(false) @map("reminder_24h_sent")
+  confirmationSentAt DateTime?       @map("confirmation_sent_at")
+  cancelledReason    String?         @map("cancelled_reason")
+  addOns             String[]        @default([]) @map("add_ons")
+  recallSentAt       DateTime?       @map("recall_sent_at")
 
+  customer      Customer?      @relation(fields: [customerId], references: [id])
+  serviceType   ServiceType?   @relation(fields: [serviceTypeId], references: [id])
+  provider      Provider?      @relation(fields: [providerId], references: [id])
+  lensQuote     LensQuote?
+  publicBooking PublicBooking?
+
+  @@index([serviceTypeId])
+  @@index([providerId])
+  @@index([scheduledAt])
   @@map("appointments")
 }
 
@@ -1014,6 +1032,154 @@ enum AppointmentStatus {
   COMPLETED
   CANCELLED
   NO_SHOW
+}
+
+enum BookingSource {
+  STAFF
+  CLIENT_PORTAL
+  PUBLIC_BOOKING
+  WALK_IN
+}
+
+// ─────────────────────────────────────────
+// SERVICE TYPES & PROVIDERS
+// ─────────────────────────────────────────
+
+model ServiceType {
+  id              String   @id @default(cuid())
+  name            String
+  slug            String   @unique
+  description     String?
+  duration        Int      @default(30)
+  bufferAfter     Int      @default(15) @map("buffer_after")
+  color           String   @default("#3B82F6")
+  bgColor         String   @default("#EFF6FF") @map("bg_color")
+  requiresOD      Boolean  @default(false) @map("requires_od")
+  isPublicBookable Boolean @default(true) @map("is_public_bookable")
+  sortOrder       Int      @default(0) @map("sort_order")
+  isActive        Boolean  @default(true) @map("is_active")
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  appointments   Appointment[]
+  waitlistEntries WaitlistEntry[]
+  publicBookings PublicBooking[]
+
+  @@map("service_types")
+}
+
+model Provider {
+  id       String  @id @default(cuid())
+  name     String
+  title    String  @default("Optician")
+  isOD     Boolean @default(false) @map("is_od")
+  userId   String? @map("user_id")
+  isActive Boolean @default(true) @map("is_active")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  availability  ProviderAvailability[]
+  blockedTimes  BlockedTime[]
+  appointments  Appointment[]
+
+  @@map("providers")
+}
+
+model ProviderAvailability {
+  id         String  @id @default(cuid())
+  providerId String  @map("provider_id")
+  dayOfWeek  Int     @map("day_of_week") // 0=Sunday, 6=Saturday
+  startTime  String  @map("start_time") // "HH:mm"
+  endTime    String  @map("end_time")   // "HH:mm"
+  isActive   Boolean @default(true) @map("is_active")
+
+  provider Provider @relation(fields: [providerId], references: [id], onDelete: Cascade)
+
+  @@unique([providerId, dayOfWeek])
+  @@map("provider_availability")
+}
+
+model BlockedTime {
+  id          String   @id @default(cuid())
+  providerId  String?  @map("provider_id") // null = clinic-wide
+  startAt     DateTime @map("start_at")
+  endAt       DateTime @map("end_at")
+  reason      String?
+  isRecurring Boolean  @default(false) @map("is_recurring")
+  createdAt   DateTime @default(now())
+
+  provider Provider? @relation(fields: [providerId], references: [id], onDelete: Cascade)
+
+  @@index([startAt, endAt])
+  @@map("blocked_times")
+}
+
+model WaitlistEntry {
+  id             String         @id @default(cuid())
+  customerId     String?        @map("customer_id")
+  firstName      String         @map("first_name")
+  phone          String?
+  email          String?
+  serviceTypeId  String         @map("service_type_id")
+  preferredDays  String[]       @default([]) @map("preferred_days")
+  preferredTimes String[]       @default([]) @map("preferred_times")
+  notes          String?
+  status         WaitlistStatus @default(WAITING)
+  notifiedAt     DateTime?      @map("notified_at")
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  serviceType ServiceType @relation(fields: [serviceTypeId], references: [id])
+
+  @@index([status])
+  @@index([serviceTypeId])
+  @@map("waitlist_entries")
+}
+
+enum WaitlistStatus {
+  WAITING
+  NOTIFIED
+  BOOKED
+  EXPIRED
+  CANCELLED
+}
+
+model PublicBooking {
+  id               String   @id @default(cuid())
+  firstName        String   @map("first_name")
+  lastName         String   @map("last_name")
+  phone            String
+  email            String?
+  isNewPatient     Boolean  @default(true) @map("is_new_patient")
+  hearAboutUs      String?  @map("hear_about_us")
+  insuranceInfo    String?  @map("insurance_info")
+  lastExamDate     String?  @map("last_exam_date")
+  preferredContact String?  @map("preferred_contact")
+  notes            String?
+  serviceTypeId    String   @map("service_type_id")
+  scheduledAt      DateTime @map("scheduled_at")
+  appointmentId    String   @unique @map("appointment_id")
+  customerId       String?  @map("customer_id")
+  utmSource        String?  @map("utm_source")
+  utmMedium        String?  @map("utm_medium")
+  utmCampaign      String?  @map("utm_campaign")
+  createdAt        DateTime @default(now())
+
+  appointment Appointment @relation(fields: [appointmentId], references: [id])
+  serviceType ServiceType @relation(fields: [serviceTypeId], references: [id])
+
+  @@index([phone])
+  @@index([email])
+  @@index([createdAt])
+  @@map("public_bookings")
+}
+
+model AppointmentSettings {
+  id             String @id @default(cuid())
+  minCancelHours Int    @default(24) @map("min_cancel_hours")
+  updatedAt      DateTime @updatedAt
+
+  @@map("appointment_settings")
 }
 
 // ─────────────────────────────────────────
@@ -1229,6 +1395,7 @@ enum NotificationType {
   CAMPAIGN_ERROR
   TASK_ASSIGNED
   TASK_DUE_SOON
+  APPOINTMENT_BOOKED_PUBLIC
 }
 
 model Notification {

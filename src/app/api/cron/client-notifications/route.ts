@@ -130,11 +130,12 @@ export async function GET() {
           minute: "2-digit",
         });
 
+        const custName = apt.customer?.firstName ?? "Patient";
         void createClientNotification({
           clientAccountId: account.id,
           type: "APPOINTMENT_REMINDER",
-          title: `Appointment Tomorrow — ${apt.customer.firstName}`,
-          body: `${apt.customer.firstName} has a ${apt.type.toLowerCase().replace(/_/g, " ")} appointment at ${time}.`,
+          title: `Appointment Tomorrow — ${custName}`,
+          body: `${custName} has a ${apt.type.toLowerCase().replace(/_/g, " ")} appointment at ${time}.`,
           href: "/my",
           refId: apt.id,
           refType: "Appointment",
