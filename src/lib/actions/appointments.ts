@@ -5,7 +5,8 @@ import { prisma } from "@/lib/prisma";
 import { verifySession, verifyRole } from "@/lib/dal";
 import { logAudit } from "@/lib/audit";
 import { AppointmentSchema, RescheduleSchema } from "@/lib/validations/appointment";
-import { AppointmentType, AppointmentStatus } from "@prisma/client";
+import { AppointmentType, AppointmentStatus, BookingSource } from "@prisma/client";
+import { slugToAppointmentType } from "@/lib/utils/service-type-mapping";
 import type { CalendarAppointment } from "@/lib/types/appointment";
 
 export async function createAppointment(
@@ -21,14 +22,40 @@ export async function createAppointment(
   const data = parsed.data;
 
   try {
+    let duration = data.duration;
+    let bufferAfter = 0;
+    let appointmentType = data.type as AppointmentType;
+    let source: BookingSource = BookingSource.STAFF;
+
+    // When serviceTypeId is provided, look up the ServiceType for config
+    if (data.serviceTypeId) {
+      const serviceType = await prisma.serviceType.findUnique({
+        where: { id: data.serviceTypeId },
+        select: { duration: true, bufferAfter: true, slug: true },
+      });
+      if (serviceType) {
+        duration = serviceType.duration;
+        bufferAfter = serviceType.bufferAfter;
+        appointmentType = slugToAppointmentType(serviceType.slug);
+      }
+    }
+
+    if (data.source) {
+      source = data.source as BookingSource;
+    }
+
     const appt = await prisma.appointment.create({
       data: {
         customerId: data.customerId,
-        type: data.type as AppointmentType,
+        type: appointmentType,
         scheduledAt: new Date(data.scheduledAt),
-        duration: data.duration,
+        duration,
+        bufferAfter,
         notes: data.notes || null,
         status: AppointmentStatus.SCHEDULED,
+        serviceTypeId: data.serviceTypeId || null,
+        providerId: data.providerId || null,
+        source,
       },
     });
 
@@ -68,7 +95,7 @@ export async function getAppointmentsForRange(
     include: {
       customer: { select: { id: true, firstName: true, lastName: true, phone: true } },
       provider: { select: { id: true, name: true } },
-      serviceType: { select: { id: true, name: true } },
+      serviceType: { select: { id: true, name: true, color: true, bgColor: true } },
     },
     orderBy: { scheduledAt: "asc" },
   });
@@ -89,9 +116,48 @@ export async function getAppointmentsForRange(
     providerName: a.provider?.name ?? null,
     serviceTypeId: a.serviceType?.id ?? null,
     serviceTypeName: a.serviceType?.name ?? null,
+    serviceTypeColor: a.serviceType?.color ?? null,
+    serviceTypeBgColor: a.serviceType?.bgColor ?? null,
     source: a.source,
     bufferAfter: a.bufferAfter,
   }));
+}
+
+export async function getProvidersForBooking() {
+  await verifySession();
+  return prisma.provider.findMany({
+    where: { isActive: true },
+    orderBy: { name: "asc" },
+    select: {
+      id: true,
+      name: true,
+      title: true,
+      isOD: true,
+      availability: {
+        where: { isActive: true },
+        select: { dayOfWeek: true, startTime: true, endTime: true },
+        orderBy: { dayOfWeek: "asc" },
+      },
+    },
+  });
+}
+
+export async function getBlockedTimesForRange(start: Date, end: Date) {
+  await verifySession();
+  return prisma.blockedTime.findMany({
+    where: {
+      startAt: { lt: end },
+      endAt: { gt: start },
+    },
+    select: {
+      id: true,
+      startAt: true,
+      endAt: true,
+      reason: true,
+      providerId: true,
+    },
+    orderBy: { startAt: "asc" },
+  });
 }
 
 export async function updateAppointmentStatus(
