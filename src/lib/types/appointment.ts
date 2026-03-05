@@ -15,6 +15,8 @@ export type CalendarAppointment = {
   serviceTypeName: string | null;
   source: string;
   bufferAfter: number;
+  serviceTypeColor: string | null;
+  serviceTypeBgColor: string | null;
 };
 
 export const APPOINTMENT_TYPE_LABELS: Record<string, string> = {
@@ -72,6 +74,8 @@ export const APPOINTMENT_TYPES = [
   { value: "ADJUSTMENT", label: "Adjustment" },
   { value: "STYLING", label: "Eyewear Styling" },
 ];
+
+export type CalendarViewType = "day" | "week" | "month";
 
 // Calendar layout constants
 export const CALENDAR_START_HOUR = 9;   // 9 AM
