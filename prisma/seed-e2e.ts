@@ -90,12 +90,21 @@ async function truncateAll() {
   await prisma.medicalHistory.deleteMany();
   await prisma.exam.deleteMany();
 
+  // Appointment-related tables (FK-safe order: dependents first)
+  try { await prisma.publicBooking.deleteMany(); } catch (_) {}
+  try { await prisma.lensQuote.deleteMany(); } catch (_) {}
+  try { await prisma.blockedTime.deleteMany(); } catch (_) {}
+  try { await prisma.providerAvailability.deleteMany(); } catch (_) {}
+  try { await prisma.appointment.deleteMany(); } catch (_) {}
+  try { await prisma.provider.deleteMany(); } catch (_) {}
+  try { await prisma.serviceType.deleteMany(); } catch (_) {}
+  try { await prisma.appointmentSettings.deleteMany(); } catch (_) {}
+
   // V2 models — may exist, use try/catch
   try { await (prisma as any).walkin.deleteMany(); } catch (_) {}
   try { await (prisma as any).campaignRecipient.deleteMany(); } catch (_) {}
   try { await (prisma as any).message.deleteMany(); } catch (_) {}
   try { await (prisma as any).referral.deleteMany(); } catch (_) {}
-  try { await (prisma as any).appointment.deleteMany(); } catch (_) {}
   try { await (prisma as any).campaign.deleteMany(); } catch (_) {}
 
   // Client portal tables (FK to customer + family)
