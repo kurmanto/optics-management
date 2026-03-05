@@ -1,11 +1,12 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { X, Search, User, ExternalLink } from "lucide-react";
+import { X, Search, User, ExternalLink, Clock } from "lucide-react";
 import { createAppointment } from "@/lib/actions/appointments";
 import { searchCustomers } from "@/lib/actions/customers";
 import { APPOINTMENT_TYPES } from "@/lib/types/appointment";
 import { formatPhone } from "@/lib/utils/formatters";
+import { cn } from "@/lib/utils/cn";
 
 type CustomerResult = {
   id: string;
@@ -15,9 +16,31 @@ type CustomerResult = {
   email: string | null;
 };
 
+type ServiceTypeOption = {
+  id: string;
+  name: string;
+  slug: string;
+  description: string | null;
+  duration: number;
+  color: string;
+  bgColor: string;
+  requiresOD: boolean;
+  isActive: boolean;
+};
+
+type ProviderOption = {
+  id: string;
+  name: string;
+  title: string;
+  isOD: boolean;
+};
+
 type Props = {
-  defaultScheduledAt?: string; // "YYYY-MM-DDTHH:MM"
+  defaultScheduledAt?: string;
   defaultType?: string;
+  defaultProviderId?: string | null;
+  serviceTypes?: ServiceTypeOption[];
+  providers?: ProviderOption[];
   onClose: () => void;
   onSuccess: () => void;
 };
@@ -25,6 +48,9 @@ type Props = {
 export function BookAppointmentModal({
   defaultScheduledAt = "",
   defaultType = "STYLING",
+  defaultProviderId,
+  serviceTypes = [],
+  providers = [],
   onClose,
   onSuccess,
 }: Props) {
@@ -35,13 +61,23 @@ export function BookAppointmentModal({
   const [searching, setSearching] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  const [selectedServiceTypeId, setSelectedServiceTypeId] = useState<string | null>(null);
   const [apptType, setApptType] = useState(defaultType);
   const [scheduledAt, setScheduledAt] = useState(defaultScheduledAt);
   const [duration, setDuration] = useState(30);
+  const [selectedProviderId, setSelectedProviderId] = useState<string | null>(defaultProviderId ?? null);
   const [notes, setNotes] = useState("");
 
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
+
+  const hasServiceTypes = serviceTypes.length > 0;
+  const selectedServiceType = serviceTypes.find((st) => st.id === selectedServiceTypeId);
+
+  // Filter providers by requiresOD when a service type is selected
+  const availableProviders = selectedServiceType?.requiresOD
+    ? providers.filter((p) => p.isOD)
+    : providers;
 
   // Debounced customer search
   useEffect(() => {
@@ -75,9 +111,20 @@ export function BookAppointmentModal({
     setResults([]);
   }
 
+  function handleServiceTypeSelect(st: ServiceTypeOption) {
+    setSelectedServiceTypeId(st.id);
+    setDuration(st.duration);
+    // Reset provider if they're no longer valid for this service type
+    if (st.requiresOD && selectedProviderId) {
+      const providerStillValid = providers.find((p) => p.id === selectedProviderId && p.isOD);
+      if (!providerStillValid) setSelectedProviderId(null);
+    }
+  }
+
   async function handleBook() {
     if (!selectedCustomer) { setError("Please select a customer"); return; }
     if (!scheduledAt) { setError("Date and time are required"); return; }
+    if (hasServiceTypes && !selectedServiceTypeId) { setError("Please select a service type"); return; }
     setError("");
     setPending(true);
 
@@ -87,6 +134,9 @@ export function BookAppointmentModal({
       scheduledAt,
       duration,
       notes: notes || undefined,
+      serviceTypeId: selectedServiceTypeId || undefined,
+      providerId: selectedProviderId || undefined,
+      source: "STAFF",
     });
 
     setPending(false);
@@ -100,7 +150,7 @@ export function BookAppointmentModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-md p-6 space-y-5">
+      <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-md p-6 space-y-5 max-h-[90vh] overflow-y-auto">
         {/* Header */}
         <div className="flex items-start justify-between">
           <div>
@@ -189,9 +239,40 @@ export function BookAppointmentModal({
           )}
         </div>
 
-        {/* Appointment fields */}
-        <div className="grid grid-cols-2 gap-3">
-          <div className="col-span-2">
+        {/* Service Type selector or legacy Type dropdown */}
+        {hasServiceTypes ? (
+          <div>
+            <label className="block text-xs font-medium text-gray-700 mb-1">Service Type</label>
+            <div className="space-y-1.5 max-h-48 overflow-y-auto">
+              {serviceTypes.filter((st) => st.isActive).map((st) => (
+                <button
+                  key={st.id}
+                  type="button"
+                  onClick={() => handleServiceTypeSelect(st)}
+                  className={cn(
+                    "w-full flex items-center gap-3 rounded-lg border p-3 transition-colors text-left",
+                    selectedServiceTypeId === st.id
+                      ? "border-primary bg-primary/5"
+                      : "border-gray-100 hover:border-gray-200"
+                  )}
+                >
+                  <div
+                    className="w-3 h-3 rounded-full flex-shrink-0"
+                    style={{ backgroundColor: st.color }}
+                  />
+                  <div className="flex-1 min-w-0">
+                    <span className="text-sm font-medium text-gray-900">{st.name}</span>
+                  </div>
+                  <div className="flex items-center gap-1 text-xs text-gray-400 flex-shrink-0">
+                    <Clock className="w-3 h-3" />
+                    {st.duration} min
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+        ) : (
+          <div>
             <label className="block text-xs font-medium text-gray-700 mb-1">Type</label>
             <select
               value={apptType}
@@ -203,7 +284,27 @@ export function BookAppointmentModal({
               ))}
             </select>
           </div>
+        )}
 
+        {/* Provider selector */}
+        {hasServiceTypes && providers.length > 0 && (
+          <div>
+            <label className="block text-xs font-medium text-gray-700 mb-1">Provider (optional)</label>
+            <select
+              value={selectedProviderId ?? ""}
+              onChange={(e) => setSelectedProviderId(e.target.value || null)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary bg-white"
+            >
+              <option value="">Auto-assign</option>
+              {availableProviders.map((p) => (
+                <option key={p.id} value={p.id}>{p.name} — {p.title}</option>
+              ))}
+            </select>
+          </div>
+        )}
+
+        {/* Date/Time and Duration */}
+        <div className="grid grid-cols-2 gap-3">
           <div>
             <label className="block text-xs font-medium text-gray-700 mb-1">Date & Time</label>
             <input
@@ -219,7 +320,8 @@ export function BookAppointmentModal({
             <select
               value={duration}
               onChange={(e) => setDuration(Number(e.target.value))}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary bg-white"
+              disabled={!!selectedServiceTypeId}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary bg-white disabled:opacity-60"
             >
               {[15, 30, 45, 60, 90, 120].map((d) => (
                 <option key={d} value={d}>{d} min</option>
