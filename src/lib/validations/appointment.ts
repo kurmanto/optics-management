@@ -6,6 +6,9 @@ export const AppointmentSchema = z.object({
   scheduledAt: z.string().min(1, "Date and time are required"),
   duration: z.coerce.number().int().min(5).default(30),
   notes: z.string().optional(),
+  serviceTypeId: z.string().optional(),
+  providerId: z.string().optional(),
+  source: z.enum(["STAFF", "CLIENT_PORTAL", "PUBLIC_BOOKING", "WALK_IN"]).optional(),
 });
 
 export type AppointmentInput = z.infer<typeof AppointmentSchema>;
